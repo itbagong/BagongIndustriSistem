@@ -75,8 +75,20 @@
             border-bottom: 1px solid #000; 
         }
         .gaji-diterima { font-weight: bold; font-size: 14px; margin-top: 10px; }
-        .footer { text-align: right; margin-top: 40px; font-size: 12px; }
-        .signature { margin-top: 60px; }
+        .footer {
+            font-family: Arial, sans-serif;
+            margin-left: auto;
+            text-align: center; 
+            margin-top: 40px;
+            width: 220px; /* bebas — sesuaikan */
+        }
+        .signature {
+            font-family: Arial, sans-serif;
+            margin-top: 60px;
+            width: 220px;      /* bebas — sesuaikan */
+            margin-left: auto; /* geser ke kanan */
+            text-align: center; /* teks tetap tengah */
+        }
         .action-buttons {
             text-align: center;
             margin: 20px 0;
@@ -162,7 +174,7 @@
                 </div>
                 <div class="info-row">
                     <span class="info-label">NO.</span>
-                    <span>: <?= $karyawan['id'] ?></span>
+                    <span>: <?= $karyawan['nomor_slip'] ?></span>
                 </div>
             </div>
         </div>
@@ -237,7 +249,9 @@
         <div class="footer">
             Malang, <?= date('d F Y') ?><br>
             <div class="signature">
-                ( Tis'ah Amalia )
+            <!-- barcode ttd -->
+            <!-- <img src="data:image/png;base64" alt="TTD Barcode"><br> -->
+            ( Tis'ah Amalia )
             </div>
         </div>
     </div>

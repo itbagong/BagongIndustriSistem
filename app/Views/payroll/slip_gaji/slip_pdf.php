@@ -79,7 +79,7 @@
                 <td class="info-label">JABATAN</td>
                 <td>: <?= $karyawan['jabatan'] ?></td>
                 <td class="info-label">NO.</td>
-                <td>: <?= $karyawan['id'] ?></td>
+                <td>: <?= $karyawan['nomor_slip'] ?></td>
             </tr>
         </table>
     </div>
