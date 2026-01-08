@@ -64,29 +64,67 @@
                     <i class="fas fa-users mr-2"></i>2. Data Karyawan (<?= count($karyawan) ?> orang)
                 </h2>
                 <div class="flex gap-2">
-                    <button onclick="sendAllEmails()" class="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+                    <!-- Tombol Kirim Biasa (Original) -->
+                    <button onclick="sendAllEmails()" id="btn-sync" class="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
                         <i class="fas fa-envelope"></i>
                         Kirim Semua Email
                     </button>
-                    <!-- Tombol Enqueue (ganti tombol Kirim Semua) -->
-                    <!-- <button id="btn-send-all"
-                            onclick="sendAllEmails()"
-                            class="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
-                        <i class="fas fa-envelope"></i>
-                        Enqueue Semua Email
-                    </button> -->
-
-                    <!-- Progress UI (kosongkan default) -->
-                    <div id="queueProgressWrap" class="mt-4" style="display:none;">
-                        <div class="w-full bg-gray-200 rounded h-3 overflow-hidden">
-                            <div id="queueProgressBar" class="h-3 rounded" style="width:0%"></div>
-                        </div>
-                        <div id="queueProgress" class="mt-2 text-sm text-gray-700"></div>
-                    </div>
+                    
+                    <!-- Tombol Background (NEW) -->
+                    <button onclick="sendAllEmailsBackground()" id="btn-async" class="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
+                        <i class="fas fa-paper-plane"></i>
+                        Kirim Background
+                    </button>
+                    
                     <a href="<?= base_url('slip-gaji/export-excel') ?>" class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
                         <i class="fas fa-file-excel"></i>
                         Export Excel
                     </a>
+                </div>
+            </div>
+
+            <!-- Progress Monitor (NEW) -->
+            <div id="progressMonitor" class="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200" style="display:none;">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-semibold text-blue-800">
+                        <i class="fas fa-cog fa-spin"></i> Status Pengiriman Email (Background)
+                    </h3>
+                    <button onclick="stopMonitoring()" class="text-sm text-blue-600 hover:text-blue-800">
+                        <i class="fas fa-times"></i> Tutup
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-5 gap-3 mb-3">
+                    <div class="text-center p-2 bg-white rounded">
+                        <div class="text-2xl font-bold text-gray-700" id="stat-total">0</div>
+                        <div class="text-xs text-gray-500">Total</div>
+                    </div>
+                    <div class="text-center p-2 bg-white rounded">
+                        <div class="text-2xl font-bold text-green-600" id="stat-sent">0</div>
+                        <div class="text-xs text-gray-500">Terkirim</div>
+                    </div>
+                    <div class="text-center p-2 bg-white rounded">
+                        <div class="text-2xl font-bold text-red-600" id="stat-failed">0</div>
+                        <div class="text-xs text-gray-500">Gagal</div>
+                    </div>
+                    <div class="text-center p-2 bg-white rounded">
+                        <div class="text-2xl font-bold text-yellow-600" id="stat-pending">0</div>
+                        <div class="text-xs text-gray-500">Menunggu</div>
+                    </div>
+                    <div class="text-center p-2 bg-white rounded">
+                        <div class="text-2xl font-bold text-purple-600" id="stat-processing">0</div>
+                        <div class="text-xs text-gray-500">Diproses</div>
+                    </div>
+                </div>
+                
+                <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                    <div id="progress-bar" class="h-4 bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500" style="width:0%"></div>
+                </div>
+                <div class="text-xs text-gray-600 mt-2 text-center" id="progress-text">0% selesai</div>
+                
+                <div class="mt-3 text-sm text-blue-700">
+                    <i class="fas fa-info-circle"></i> 
+                    <span id="status-message">Worker berjalan di background. Anda bisa logout atau tutup halaman ini.</span>
                 </div>
             </div>
 
@@ -216,13 +254,13 @@
     </div>
 
     <script>
-        // Show filename when selected
+        let pollInterval = null;
+
         function showFileName(input) {
             const fileName = input.files[0]?.name || 'Belum ada file dipilih';
             document.getElementById('file-name').textContent = fileName;
         }
 
-        // Search function
         function searchTable() {
             const input = document.getElementById('searchInput');
             const filter = input.value.toLowerCase();
@@ -246,7 +284,6 @@
             }
         }
 
-        // Sort table
         function sortTable(columnIndex) {
             const table = document.getElementById('dataTable');
             const rows = Array.from(table.rows).slice(1);
@@ -261,7 +298,6 @@
             rows.forEach(row => table.tBodies[0].appendChild(row));
         }
 
-        // Send email to single employee
         function sendEmail(id, nama) {
             if (!confirm(`Kirim slip gaji ke ${nama}?`)) return;
 
@@ -293,206 +329,238 @@
             });
         }
 
-        // Send email to all employees
-        // Show/hide overlay
-    function showOverlay() {
-        const overlay = document.createElement('div');
-        overlay.id = 'email-overlay';
-        overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-        overlay.innerHTML = `
-            <div class="bg-white rounded-lg p-8 text-center min-w-[300px]">
-                <i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
-                <p class="text-lg font-semibold">Mengirim email...</p>
-                <p class="text-sm text-gray-600">Mohon tunggu, jangan tutup halaman ini</p>
-            </div>
-        `;
-        document.body.appendChild(overlay);
-    }
+        // ========================================
+        // ORIGINAL: Kirim Semua Email (Synchronous)
+        // ========================================
+        function showOverlay() {
+            const overlay = document.createElement('div');
+            overlay.id = 'email-overlay';
+            overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            overlay.innerHTML = `
+                <div class="bg-white rounded-lg p-8 text-center min-w-[300px]">
+                    <i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
+                    <p class="text-lg font-semibold">Mengirim email...</p>
+                    <p class="text-sm text-gray-600">Mohon tunggu, jangan tutup halaman ini</p>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
 
-    function hideOverlay() {
-        const ov = document.getElementById('email-overlay');
-        if (ov) ov.remove();
-    }
+        function hideOverlay() {
+            const ov = document.getElementById('email-overlay');
+            if (ov) ov.remove();
+        }
 
-    // Send email to all employees (POST via fetch)
-    function sendAllEmails() {
-        if (!confirm('Kirim slip gaji ke semua karyawan? Proses ini mungkin memakan waktu beberapa menit.')) return;
+        function sendAllEmails() {
+            if (!confirm('Kirim slip gaji ke semua karyawan? Proses ini mungkin memakan waktu beberapa menit dan Anda harus tetap di halaman ini.')) return;
 
-        showOverlay();
+            showOverlay();
 
-        fetch('<?= base_url('slip-gaji/send-all-emails') ?>', {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                // optional: include json accept
-                'Accept': 'application/json'
-            },
-            body: new URLSearchParams({
-                '<?= csrf_token() ?>': '<?= csrf_hash() ?>'
+            fetch('<?= base_url('slip-gaji/send-all-emails') ?>', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: new URLSearchParams({
+                    '<?= csrf_token() ?>': '<?= csrf_hash() ?>'
+                })
             })
-        })
-        .then(async res => {
-            hideOverlay();
+            .then(async res => {
+                hideOverlay();
 
-            const raw = await res.text(); // <-- dibaca sekali
+                const raw = await res.text();
 
-            let data;
-            try {
-                data = JSON.parse(raw); // jika valid JSON
-            } catch (_) {
-                data = null; // fallback non-JSON
-            }
+                let data;
+                try {
+                    data = JSON.parse(raw);
+                } catch (_) {
+                    data = null;
+                }
 
-            if (!res.ok) {
+                if (!res.ok) {
+                    alert(
+                        (data && data.message)
+                        || raw
+                        || 'Terjadi kesalahan server'
+                    );
+                    return;
+                }
+
                 alert(
                     (data && data.message)
-                    || raw
-                    || 'Terjadi kesalahan server'
+                    || 'Proses pengiriman selesai'
                 );
-                return;
-            }
 
-            alert(
-                (data && data.message)
-                || 'Proses pengiriman selesai'
-            );
-
-            location.reload();
-        })
-        .catch(err => {
-            hideOverlay();
-            alert('Error: ' + err);
-        });
-    }
-
-    // Enqueue all emails for background sending
-    // async function sendAllEmails() {
-    //     if (!confirm('Enqueue semua email untuk pengiriman background?')) return;
-
-    //     const btn = document.getElementById('btn-send-all');
-    //     btn.disabled = true;
-    //     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-
-    //     try {
-    //         const res = await fetch('<?= base_url('slip-gaji/enqueue-all') ?>', {
-    //             method: 'POST',
-    //             headers: {
-    //                 'X-Requested-With': 'XMLHttpRequest',
-    //                 'Content-Type': 'application/x-www-form-urlencoded'
-    //             },
-    //             body: '<?= csrf_token() ?>=' + encodeURIComponent('<?= csrf_hash() ?>')
-    //         });
-            
-    //         const json = await res.json();
-            
-    //         if (json.success) {
-    //             alert(json.message || 'Queue created');
-    //             // Show progress UI
-    //             document.getElementById('queueProgressWrap').style.display = 'block';
-    //             // Start polling
-    //             pollProgress();
-    //         } else {
-    //             alert('Error: ' + (json.message || 'Unknown error'));
-    //             btn.disabled = false;
-    //             btn.innerHTML = '<i class="fas fa-envelope"></i> Enqueue Semua Email';
-    //         }
-    //     } catch (err) {
-    //         alert('Error: ' + err);
-    //         btn.disabled = false;
-    //         btn.innerHTML = '<i class="fas fa-envelope"></i> Enqueue Semua Email';
-    //     }
-    // }
-
-    // let pollInterval = null;
-
-    // function pollProgress() {
-    //     if (pollInterval) clearInterval(pollInterval);
-        
-    //     pollInterval = setInterval(async () => {
-    //         try {
-    //             const r = await fetch('<?= base_url('slip-gaji/queue-status') ?>');
-    //             const data = await r.json();
-                
-    //             const total = data.total || 0;
-    //             const sent = data.sent || 0;
-    //             const failed = data.failed || 0;
-    //             const pending = data.pending || 0;
-    //             const processing = data.processing || 0;
-
-    //             const percent = total > 0 ? Math.round(((sent + failed) / total) * 100) : 0;
-                
-    //             // Update progress bar
-    //             const progressBar = document.getElementById('queueProgressBar');
-    //             const progressText = document.getElementById('queueProgress');
-                
-    //             if (progressBar) {
-    //                 progressBar.style.width = percent + '%';
-    //                 progressBar.className = 'h-3 rounded transition-all duration-300 ' + 
-    //                     (percent < 50 ? 'bg-blue-500' : percent < 100 ? 'bg-green-500' : 'bg-green-600');
-    //             }
-                
-    //             if (progressText) {
-    //                 progressText.innerHTML = `
-    //                     <strong>Progress:</strong> ${sent} terkirim, ${failed} gagal, ${pending} menunggu, ${processing} diproses
-    //                     <br><small class="text-gray-500">${percent}% selesai dari ${total} total</small>
-    //                 `;
-    //             }
-
-    //             // Stop polling when complete
-    //             if ((sent + failed) >= total && total > 0) {
-    //                 clearInterval(pollInterval);
-    //                 alert(`Proses selesai!\n✓ Terkirim: ${sent}\n✗ Gagal: ${failed}`);
-    //                 location.reload();
-    //             }
-    //         } catch (e) {
-    //             console.error('Poll error:', e);
-    //         }
-    //     }, 3000); // poll setiap 3 detik
-    // }
-
-    // Delete data (POST + _method=DELETE)
-    function deleteData(id, nama) {
-        if (!confirm(`Hapus data ${nama}?`)) return;
-
-        // optional: bisa tampil loading kecil
-        const btn = document.getElementById(`row-${id}`);
-        if (btn) btn.style.opacity = '0.6';
-
-        fetch(`<?= base_url('slip-gaji/delete/') ?>${id}`, {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json'
-            },
-            body: new URLSearchParams({
-                '_method': 'DELETE',
-                '<?= csrf_token() ?>': '<?= csrf_hash() ?>'
+                location.reload();
             })
-        })
-        .then(async res => {
-            const raw = await res.text();
+            .catch(err => {
+                hideOverlay();
+                alert('Error: ' + err);
+            });
+        }
 
-            let data;
+        // ========================================
+        // NEW: Kirim Background (Asynchronous)
+        // ========================================
+        async function sendAllEmailsBackground() {
+            if (!confirm('Kirim semua email di background?\n\nProses akan berjalan otomatis di server dan Anda bisa meninggalkan halaman ini atau bahkan logout.')) return;
+
+            const btn = document.getElementById('btn-async');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+
             try {
-                data = JSON.parse(raw);
-            } catch (_) {
-                data = null;
+                const res = await fetch('<?= base_url('slip-gaji/enqueue-all') ?>', {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: '<?= csrf_token() ?>=' + encodeURIComponent('<?= csrf_hash() ?>')
+                });
+                
+                const json = await res.json();
+                
+                if (json.success) {
+                    // Show progress monitor
+                    document.getElementById('progressMonitor').style.display = 'block';
+                    
+                    // Start polling
+                    startMonitoring();
+                    
+                    // Reset button
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Background';
+                    
+                    alert('✓ Email telah ditambahkan ke queue!\n\nProses pengiriman berjalan di background. Anda bisa tutup halaman ini.');
+                } else {
+                    alert('Error: ' + (json.message || 'Unknown error'));
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Background';
+                }
+            } catch (err) {
+                alert('Error: ' + err);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Background';
             }
+        }
 
-            if (!res.ok) {
-                alert((data && data.message) || raw);
-                return;
+        function startMonitoring() {
+            if (pollInterval) clearInterval(pollInterval);
+            
+            // Poll setiap 3 detik
+            pollInterval = setInterval(async () => {
+                try {
+                    const r = await fetch('<?= base_url('slip-gaji/queue-status') ?>');
+                    const data = await r.json();
+                    
+                    updateProgress(data);
+                    
+                    // Stop jika selesai
+                    if ((data.sent + data.failed) >= data.total && data.total > 0 && data.pending === 0 && data.processing === 0) {
+                        clearInterval(pollInterval);
+                        document.getElementById('status-message').innerHTML = 
+                            `<i class="fas fa-check-circle"></i> <strong>Selesai!</strong> ${data.sent} terkirim, ${data.failed} gagal.`;
+                        
+                        setTimeout(() => {
+                            if (confirm('Proses selesai!\n\n✓ Terkirim: ' + data.sent + '\n✗ Gagal: ' + data.failed + '\n\nReload halaman untuk melihat status terbaru?')) {
+                                location.reload();
+                            }
+                        }, 2000);
+                    }
+                } catch (e) {
+                    console.error('Poll error:', e);
+                }
+            }, 3000);
+        }
+
+        function updateProgress(data) {
+            document.getElementById('stat-total').textContent = data.total || 0;
+            document.getElementById('stat-sent').textContent = data.sent || 0;
+            document.getElementById('stat-failed').textContent = data.failed || 0;
+            document.getElementById('stat-pending').textContent = data.pending || 0;
+            document.getElementById('stat-processing').textContent = data.processing || 0;
+            
+            const total = data.total || 1;
+            const completed = (data.sent || 0) + (data.failed || 0);
+            const percent = Math.round((completed / total) * 100);
+            
+            document.getElementById('progress-bar').style.width = percent + '%';
+            document.getElementById('progress-text').textContent = percent + '% selesai';
+        }
+
+        function stopMonitoring() {
+            if (pollInterval) clearInterval(pollInterval);
+            document.getElementById('progressMonitor').style.display = 'none';
+        }
+
+        function deleteData(id, nama) {
+            if (!confirm(`Hapus data ${nama}?`)) return;
+
+            const btn = document.getElementById(`row-${id}`);
+            if (btn) btn.style.opacity = '0.6';
+
+            fetch(`<?= base_url('slip-gaji/delete/') ?>${id}`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: new URLSearchParams({
+                    '_method': 'DELETE',
+                    '<?= csrf_token() ?>': '<?= csrf_hash() ?>'
+                })
+            })
+            .then(async res => {
+                const raw = await res.text();
+
+                let data;
+                try {
+                    data = JSON.parse(raw);
+                } catch (_) {
+                    data = null;
+                }
+
+                if (!res.ok) {
+                    alert((data && data.message) || raw);
+                    return;
+                }
+
+                alert((data && data.message) || 'Data dihapus');
+
+                const row = document.getElementById(`row-${id}`);
+                if (row) row.remove();
+            })
+            .catch(err => {
+                if (btn) btn.style.opacity = '';
+                alert('Error: ' + err);
+            });
+        }
+        // Cek status saat halaman pertama kali dimuat
+    document.addEventListener('DOMContentLoaded', function() {
+        checkInitialQueueStatus();
+    });
+
+    async function checkInitialQueueStatus() {
+        try {
+            const r = await fetch('<?= base_url('slip-gaji/queue-status') ?>');
+            const data = await r.json();
+            
+            // Jika masih ada yang pending atau processing, tampilkan monitor lagi
+            if (data.pending > 0 || data.processing > 0) {
+                document.getElementById('progressMonitor').style.display = 'block';
+                updateProgress(data);
+                startMonitoring(); // Lanjutkan polling
+                
+                // Disable tombol agar tidak double click
+                const btn = document.getElementById('btn-async');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
             }
-
-            alert((data && data.message) || 'Data dihapus');
-
-            const row = document.getElementById(`row-${id}`);
-            if (row) row.remove();
-        })
-        .catch(err => {
-            if (btn) btn.style.opacity = '';
-            alert('Error: ' + err);
-        });
+        } catch (e) {
+            console.error('Auto check error:', e);
+        }
     }
     </script>
 </body>
