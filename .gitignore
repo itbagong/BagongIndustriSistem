@@ -1,8 +1,18 @@
-/vendor
-/node_modules
+# Dependencies
+/vendor/
+/node_modules/
+
+# Environment
 .env
-/writable
-/uploads
-.idea
+
+# Runtime & storage
+/writable/
+/uploads/
+
+# IDE & OS
+/.idea/
+/.vscode/
 .DS_Store
-.vscode
+
+# Logs
+*.log
