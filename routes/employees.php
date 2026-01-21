@@ -1,18 +1,39 @@
 <?php
 
-$routes->group('employees', ['filter' => 'auth'], function($routes){
+$routes->group('employees', function ($routes) {
 
-    $routes->get('', 'Employee\EmployeeController::index');
-    $routes->get('/', 'Employee\EmployeeController::index');
-    $routes->get('data', 'Employee\EmployeeController::getData');
-    $routes->get('statistics', 'Employee\EmployeeController::getStatistics');
-    
-    $routes->get('create', 'Employee\EmployeeController::create');
-    $routes->post('store', 'Employee\EmployeeController::store');
+    // ===== VIEW =====
+    $routes->get('/', 'Employee\EmployeeController::index', [
+        'filter' => 'permission:employee.view'
+    ]);
+    $routes->get('data', 'Employee\EmployeeController::getData', [
+        'filter' => 'permission:employee.view'
+    ]);
+    $routes->get('statistics', 'Employee\EmployeeController::getStatistics', [
+        'filter' => 'permission:employee.view'
+    ]);
+    $routes->get('view/(:num)', 'Employee\EmployeeController::view/$1', [
+        'filter' => 'permission:employee.view'
+    ]);
 
-    $routes->get('edit/(:num)', 'Employee\EmployeeController::edit/$1');
-    $routes->post('update/(:num)', 'Employee\EmployeeController::update/$1');
+    // ===== CREATE =====
+    $routes->get('create', 'Employee\EmployeeController::create', [
+        'filter' => 'permission:employee.create'
+    ]);
+    $routes->post('store', 'Employee\EmployeeController::store', [
+        'filter' => 'permission:employee.create'
+    ]);
 
-    $routes->get('view/(:num)', 'Employee\EmployeeController::view/$1');
-    $routes->delete('delete/(:num)', 'Employee\EmployeeController::delete/$1');
+    // ===== UPDATE =====
+    $routes->get('edit/(:num)', 'Employee\EmployeeController::edit/$1', [
+        'filter' => 'permission:employee.update'
+    ]);
+    $routes->post('update/(:num)', 'Employee\EmployeeController::update/$1', [
+        'filter' => 'permission:employee.update'
+    ]);
+
+    // ===== DELETE =====
+    $routes->delete('delete/(:num)', 'Employee\EmployeeController::delete/$1', [
+        'filter' => 'permission:employee.delete'
+    ]);
 });

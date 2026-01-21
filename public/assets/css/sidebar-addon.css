@@ -1,0 +1,267 @@
+/* ========================================
+   SIDEBAR DROPDOWN & TOGGLE ADDON
+   Tambahan untuk dashboard.css
+   ======================================== */
+
+/* ========== MENU GROUP (Parent with Submenu) ========== */
+.menu-group {
+    position: relative;
+}
+
+.menu-item.has-submenu {
+    position: relative;
+    background: rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+}
+
+.menu-item.has-submenu:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.menu-item.has-submenu .arrow {
+    margin-left: auto;
+    font-size: 0.9rem;
+    transition: transform 0.3s ease;
+}
+
+/* Rotate arrow when active */
+.menu-group.active > .menu-item.has-submenu .arrow {
+    transform: rotate(180deg);
+}
+
+/* ========== SUBMENU STYLING ========== */
+.submenu {
+    max-height: 0;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.2);
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                opacity 0.3s ease;
+    opacity: 0;
+}
+
+.submenu[style*="display:block"],
+.submenu[style*="display: block"],
+.menu-group.active .submenu {
+    max-height: 500px;
+    opacity: 1;
+}
+
+.submenu .menu-item {
+    padding: 12px 25px 12px 60px;
+    font-size: 0.9rem;
+    border-left: 3px solid transparent;
+    position: relative;
+}
+
+.submenu .menu-item::before {
+    content: '';
+    position: absolute;
+    left: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+}
+
+.submenu .menu-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.submenu .menu-item.active {
+    background: rgba(255, 255, 255, 0.15);
+    border-left-color: rgba(255, 255, 255, 0.8);
+}
+
+.submenu .menu-item.active::before {
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+}
+
+/* ========== SIDEBAR TOGGLE BUTTON ========== */
+.sidebar-toggle-btn {
+    position: fixed;
+    top: 85px;
+    left: calc(var(--sidebar-width) - 18px);
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    border: 3px solid var(--white-color);
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    z-index: 1001;
+    box-shadow: 0 3px 12px rgba(232, 154, 107, 0.4);
+    font-size: 1.2rem;
+}
+
+.sidebar-toggle-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 16px rgba(232, 154, 107, 0.5);
+}
+
+.sidebar-toggle-btn:active {
+    transform: scale(0.95);
+}
+
+/* ========== COLLAPSED STATE ========== */
+.sidebar.collapsed {
+    width: 80px;
+}
+
+.sidebar.collapsed .sidebar-header h3,
+.sidebar.collapsed .menu-item .text,
+.sidebar.collapsed .menu-item .arrow {
+    opacity: 0;
+    visibility: hidden;
+    width: 0;
+    overflow: hidden;
+}
+
+.sidebar.collapsed .sidebar-header .logo {
+    width: 50px;
+    height: 50px;
+}
+
+.sidebar.collapsed .menu-item {
+    justify-content: center;
+    padding: 15px 10px;
+}
+
+.sidebar.collapsed .menu-item .icon {
+    margin-right: 0;
+}
+
+/* Hide submenu when collapsed */
+.sidebar.collapsed .submenu {
+    display: none !important;
+}
+
+/* Adjust toggle button position when collapsed */
+.sidebar.collapsed ~ .sidebar-toggle-btn,
+body.sidebar-collapsed .sidebar-toggle-btn {
+    left: calc(80px - 18px);
+}
+
+/* Adjust main wrapper when collapsed */
+.sidebar.collapsed ~ .main-wrapper,
+body.sidebar-collapsed .main-wrapper {
+    margin-left: 80px;
+}
+
+/* ========== TOOLTIP FOR COLLAPSED MENU ========== */
+.sidebar.collapsed .menu-item {
+    position: relative;
+}
+
+.sidebar.collapsed .menu-item::after {
+    content: attr(data-title);
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--dark-color);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    margin-left: 10px;
+    font-size: 0.9rem;
+    z-index: 1002;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar.collapsed .menu-item::before {
+    content: '';
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 6px solid transparent;
+    border-right-color: var(--dark-color);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    margin-left: 4px;
+    z-index: 1002;
+}
+
+.sidebar.collapsed .menu-item:hover::after,
+.sidebar.collapsed .menu-item:hover::before {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* ========== MOBILE RESPONSIVE ========== */
+@media (max-width: 768px) {
+    .sidebar {
+        left: -260px;
+    }
+
+    .sidebar.active {
+        left: 0;
+    }
+
+    .sidebar-toggle-btn {
+        left: 15px;
+        top: 15px;
+    }
+
+    .sidebar.active ~ .sidebar-toggle-btn {
+        left: calc(var(--sidebar-width) - 18px);
+    }
+
+    .main-wrapper {
+        margin-left: 0;
+    }
+
+    /* Mobile Overlay */
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .sidebar.active ~ .sidebar-overlay,
+    body.sidebar-active .sidebar-overlay {
+        display: block;
+        opacity: 1;
+    }
+}
+
+/* ========== SMOOTH ANIMATIONS ========== */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.submenu .menu-item {
+    animation: slideIn 0.3s ease forwards;
+}
+
+.submenu .menu-item:nth-child(1) { animation-delay: 0.05s; }
+.submenu .menu-item:nth-child(2) { animation-delay: 0.1s; }
+.submenu .menu-item:nth-child(3) { animation-delay: 0.15s; }
+.submenu .menu-item:nth-child(4) { animation-delay: 0.2s; }
+.submenu .menu-item:nth-child(5) { animation-delay: 0.25s; }

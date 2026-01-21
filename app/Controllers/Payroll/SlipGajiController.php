@@ -6,9 +6,11 @@ use App\Models\SlipGajiModel;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Dompdf\Dompdf;
 use Dompdf\Options;
+use App\Controllers\BaseController;
 use CodeIgniter\Controller;
+use Faker\Provider\Base;
 
-class SlipGajiController extends Controller
+class SlipGajiController extends BaseController
 {
     protected $karyawanModel;
     protected $email;
@@ -19,12 +21,13 @@ class SlipGajiController extends Controller
         $this->karyawanModel = new SlipGajiModel();
         $this->email = \Config\Services::email();
         $this->emailConfig = config('Email');
+        helper(['number']);
     }
 
     public function index()
     {
-        $data['karyawan'] = $this->karyawanModel->findAll();
-        return view('payroll/index', $data); // ← fix case sensitivity
+        $this->data['karyawan'] = $this->karyawanModel->findAll();
+        return view('payroll/index', $this->data);
     }
 
     public function upload()
@@ -47,54 +50,49 @@ class SlipGajiController extends Controller
 
             $spreadsheet = IOFactory::load($filePath);
             $worksheet = $spreadsheet->getActiveSheet();
-            $rows = $worksheet->toArray();
+            $rows = $worksheet->toArray(null, true, true, true);
 
-            array_shift($rows);
+            $header = array_shift($rows);
+            $map = array_flip(array_map('trim', $header));
 
             $inserted = 0;
             foreach ($rows as $row) {
                 $data = [
-                    'tanggal_slip' => $row[1] ?? date('Y-m-d'),
-                    'nik' => $row[2] ?? '',
-                    'nama' => $row[3] ?? '',
-                    'jabatan' => $row[4] ?? '',
-                    'status' => $row[5] ?? '',
-                    'bulan' => $row[6] ?? '',
-                    'site' => $row[7] ?? '',
-                    'umk' => $row[8] ?? 0,
-                    'insentif_lain' => $row[9] ?? 0,
-                    'insentif_pulsa' => $row[10] ?? 0,
-                    'kompensasi_cuti' => $row[11] ?? 0,
-                    'insentif_lembur' => $row[12] ?? 0,
-                    'insentif_makan' => $row[13] ?? 0,
-                    'uang_tunggu' => $row[14] ?? 0,
-                    'gaji_prorate' => $row[15] ?? 0,
-                    'total_pendapatan' => $row[16] ?? 0,
-                    'bpjs_kes' => $row[17] ?? 0,
-                    'bpjs_tk' => $row[18] ?? 0,
-                    'pot_pph21' => $row[19] ?? 0,
-                    'lainnya' => $row[20] ?? 0,
-                    'total_pot' => $row[21] ?? 0,
-                    'gaji_bersih' => $row[22] ?? 0,
-                    'email' => $row[23] ?? ''
+                    'nik'                   => $row[$map['NIK']] ?? '',
+                    'nama'                  => $row[$map['Nama']] ?? '',
+                    'jabatan'               => $row[$map['Jabatan']] ?? '',
+                    'status'                => $row[$map['Status']] ?? '',
+                    'bulan'                 => $row[$map['Bulan']] ?? '',
+                    'site'                  => $row[$map['Site']] ?? '',
+                    'umk'                   => normalize_number($row[$map['UMK']]) ?? 0,
+                    'tunjangan_tidak_tetap' => normalize_number($row[$map['Tunjangan Tidak Tetap']]) ?? 0,
+                    // 'insentif_lain'      => normalize_number($row[$map['Insentif Lain']]) ?? 0,
+                    //  'insentif_lembur'   => normalize_number($row[$map['Insentif Lembur']]) ?? 0,
+                    'kompenasasi'           => normalize_number($row[$map['Kompensasi']]) ?? 0,
+                    // 'uang_tunggu'        => normalize_number($row[$map['Uang Tunggu']]) ?? 0,
+                    'gaji_prorate'          => normalize_number($row[$map['Gaji Prorate']]) ?? 0,
+                    'total_pendapatan'      => normalize_number($row[$map['Total Pendapatan']]) ?? 0,
+                    'bpjs_kes'              => normalize_number($row[$map['BPJS Kes']]) ?? 0,
+                    'bpjs_tk'               => normalize_number($row[$map['BPJS TK']]) ?? 0,
+                    'pot_pph21'             => normalize_number($row[$map['Pot. PPh 21']]) ?? 0,
+                    'lainnya'               => normalize_number($row[$map['Lainnya']]) ?? 0,
+                    'total_pot'             => normalize_number($row[$map['Total Pot']]) ?? 0,
+                    'gaji_bersih'           => normalize_number($row[$map['Gaji Bersih']]) ?? 0,
+                    'email'                 => $row[$map['Email']] ?? '',
                 ];
 
                 if (!empty($data['nik']) && !empty($data['nama'])) {
                     $this->karyawanModel->insert($data);
-
-                    // ambil ID terakhir yang diinsert
                     $karyawanId = $this->karyawanModel->getInsertID();
 
-                    // Generate nomer slip gaji
                     $nomerSlip = "09.8.$karyawanId/HCGS-BDM/HO/SG/" . $data['bulan'] . "/" . date('Y');
-
                     $this->karyawanModel->update($karyawanId, ['nomor_slip' => $nomerSlip]);
 
                     $inserted++;
                 }
             }
 
-            unlink($filePath);
+            @unlink($filePath);
             return redirect()->to('/slip-gaji')->with('success', "Berhasil upload $inserted data karyawan");
 
         } catch (\Exception $e) {
@@ -105,22 +103,144 @@ class SlipGajiController extends Controller
 
     public function preview($id)
     {
-        $data['karyawan'] = $this->karyawanModel->find($id);
-        if (!$data['karyawan']) {
+        $this->data['karyawan'] = $this->karyawanModel->find($id);
+        if (!$this->data['karyawan']) {
             return redirect()->back()->with('error', 'Data tidak ditemukan');
         }
-        return view('payroll/slip_gaji/preview', $data); // ← fix case
+        return view('payroll/slip_gaji/preview', $this->data);
     }
 
+    /**
+     * Prepare and optimize images for PDF generation
+     * Resize ke ukuran kecil untuk hemat memory
+     */
+    protected function prepareImagesForPdf()
+    {
+        $cacheDir = WRITEPATH . 'barcode/';
+        if (!is_dir($cacheDir)) {
+            mkdir($cacheDir, 0755, true);
+        }
+
+        // Optimize logo header
+        $logoHeader = FCPATH . 'assets/img/logo_header.png';
+        $logoHeaderOptimized = $cacheDir . 'logo_header.png';
+        
+        if (file_exists($logoHeader) && !file_exists($logoHeaderOptimized)) {
+            $this->resizeImage($logoHeader, $logoHeaderOptimized, 400, 100);
+        }
+
+        // Optimize barcode
+        $barcode = WRITEPATH . 'uploads/barcode_ttd.png';
+        $barcodeOptimized = $cacheDir . 'barcode_ttd.png';
+        
+        if (file_exists($barcode) && !file_exists($barcodeOptimized)) {
+            $this->resizeImage($barcode, $barcodeOptimized, 300, 150);
+        }
+    }
+
+    /**
+     * Resize image dan compress untuk PDF
+     */
+    protected function resizeImage($source, $destination, $maxWidth, $maxHeight)
+    {
+        if (!file_exists($source)) {
+            return false;
+        }
+
+        $imageInfo = @getimagesize($source);
+        if (!$imageInfo) {
+            return false;
+        }
+
+        list($width, $height, $type) = $imageInfo;
+
+        // Calculate new dimensions
+        $ratio = min($maxWidth / $width, $maxHeight / $height);
+        
+        // Skip resize jika sudah kecil
+        if ($ratio >= 1) {
+            copy($source, $destination);
+            return true;
+        }
+
+        $newWidth = (int)($width * $ratio);
+        $newHeight = (int)($height * $ratio);
+
+        // Create source image
+        switch ($type) {
+            case IMAGETYPE_PNG:
+                $srcImage = @imagecreatefrompng($source);
+                break;
+            case IMAGETYPE_JPEG:
+                $srcImage = @imagecreatefromjpeg($source);
+                break;
+            case IMAGETYPE_GIF:
+                $srcImage = @imagecreatefromgif($source);
+                break;
+            default:
+                return false;
+        }
+
+        if (!$srcImage) {
+            return false;
+        }
+
+        // Create new image
+        $dstImage = imagecreatetruecolor($newWidth, $newHeight);
+
+        // Preserve transparency for PNG
+        if ($type == IMAGETYPE_PNG) {
+            imagealphablending($dstImage, false);
+            imagesavealpha($dstImage, true);
+            $transparent = imagecolorallocatealpha($dstImage, 0, 0, 0, 127);
+            imagefill($dstImage, 0, 0, $transparent);
+        }
+
+        // Resize
+        imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+
+        // Save
+        $result = false;
+        switch ($type) {
+            case IMAGETYPE_PNG:
+                $result = imagepng($dstImage, $destination, 6); // Compression level 6
+                break;
+            case IMAGETYPE_JPEG:
+                $result = imagejpeg($dstImage, $destination, 75); // Quality 75%
+                break;
+            case IMAGETYPE_GIF:
+                $result = imagegif($dstImage, $destination);
+                break;
+        }
+
+        imagedestroy($srcImage);
+        imagedestroy($dstImage);
+
+        return $result;
+    }
+
+    /**
+     * Generate PDF and return path to temporary stored file (WRITEPATH/uploads)
+     */
     protected function generatePdfForEmployee(array $karyawan): string
     {
-        $html = view('payroll/slip_gaji/slip_pdf', ['karyawan' => $karyawan]); // ← fix case
+        // Increase memory limit untuk generate PDF
+        ini_set('memory_limit', '512M');
+        
+        // Optimize images before PDF generation
+        $this->prepareImagesForPdf();
+        
+        $html = view('payroll/slip_gaji/slip_pdf', ['karyawan' => $karyawan]);
 
         $options = new Options();
         $options->set('isRemoteEnabled', true);
+        $options->set('isHtml5ParserEnabled', true);
         $options->set('defaultFont', 'DejaVu Sans');
-        $dompdf = new Dompdf($options);
+        $options->set('chroot', ROOTPATH);
+        $options->set('debugPng', false);
+        $options->set('debugKeepTemp', false);
 
+        $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
@@ -145,17 +265,33 @@ class SlipGajiController extends Controller
         }
 
         try {
-            $html = view('payroll/slip_gaji/slip_pdf', ['karyawan' => $karyawan]); // ← fix case
+            // Increase memory limit
+            ini_set('memory_limit', '512M');
+            
+            // Optimize images
+            $this->prepareImagesForPdf();
+            
+            $html = view('payroll/slip_gaji/slip_pdf', ['karyawan' => $karyawan]);
+
             $options = new Options();
             $options->set('isRemoteEnabled', true);
-            $dompdf = new Dompdf($options);
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('defaultFont', 'DejaVu Sans');
+            $options->set('chroot', ROOTPATH);
+            $options->set('debugPng', false);
+            $options->set('debugKeepTemp', false);
 
+            $dompdf = new Dompdf($options);
             $dompdf->loadHtml($html);
             $dompdf->setPaper('A4', 'portrait');
             $dompdf->render();
 
             $filename = 'SlipGaji_' . $karyawan['nama'] . '_' . $karyawan['bulan'] . '.pdf';
             $dompdf->stream($filename, ['Attachment' => true]);
+
+            unset($dompdf);
+            gc_collect_cycles();
+
         } catch (\Exception $e) {
             log_message('error', 'Generate PDF Error: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal generate PDF: ' . $e->getMessage());
@@ -200,26 +336,22 @@ class SlipGajiController extends Controller
 
             if ($this->email->send()) {
                 $this->karyawanModel->update($id, ['status_kirim' => 'sent', 'tanggal_kirim' => date('Y-m-d H:i:s')]);
-                unlink($filepath);
+                @unlink($filepath);
                 return $this->response->setJSON(['success' => true, 'message' => 'Email berhasil dikirim ke ' . $karyawan['email']]);
             } else {
                 $debug = $this->email->printDebugger(['headers']);
                 log_message('error', 'Email send failed for ' . $karyawan['email'] . ' debugger: ' . print_r($debug, true));
-                if ($filepath && file_exists($filepath)) unlink($filepath);
+                if ($filepath && file_exists($filepath)) @unlink($filepath);
                 return $this->response->setJSON(['success' => false, 'message' => 'Gagal mengirim email. Cek log.']);
             }
 
         } catch (\Exception $e) {
-            if ($filepath && file_exists($filepath)) unlink($filepath);
+            if ($filepath && file_exists($filepath)) @unlink($filepath);
             log_message('error', 'SendEmail Error for ID ' . $id . ': ' . $e->getMessage());
             return $this->response->setJSON(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
         }
     }
 
-    /**
-     * Enqueue emails ke database untuk diproses background
-     * User bisa langsung logout/tutup browser setelah ini
-     */
     public function enqueueAllEmails()
     {
         if (!$this->request->isAJAX()) {
@@ -232,7 +364,6 @@ class SlipGajiController extends Controller
         $karyawanList = $this->karyawanModel->where('email !=', '')->findAll();
         $now = date('Y-m-d H:i:s');
 
-        // Ambil existing queue
         $existing = $db->table('email_queue')
                     ->select('karyawan_id')
                     ->whereIn('status', ['pending','processing'])
@@ -241,10 +372,7 @@ class SlipGajiController extends Controller
 
         $toInsert = [];
         foreach ($karyawanList as $k) {
-            // Skip jika sudah sent
             if (isset($k['status_kirim']) && $k['status_kirim'] === 'sent') continue;
-
-            // Skip jika sudah di queue
             if (in_array($k['id'], $existingIds)) continue;
 
             $toInsert[] = [
@@ -263,7 +391,6 @@ class SlipGajiController extends Controller
             $queue->insertBatch($toInsert);
         }
 
-        // ✅ TRIGGER BACKGROUND WORKER OTOMATIS
         $this->triggerBackgroundWorker();
 
         return $this->response->setJSON([
@@ -273,15 +400,10 @@ class SlipGajiController extends Controller
         ]);
     }
 
-    /**
-     * Trigger worker via non-blocking HTTP request
-     * Worker akan jalan di background tanpa perlu user tunggu
-     */
     private function triggerBackgroundWorker()
     {
         $workerUrl = base_url('slip-gaji/run-worker?key=Cvbagong.1994&background=1');
         
-        // Method 1: Using fsockopen (non-blocking, fastest)
         try {
             $parts = parse_url($workerUrl);
             $host = $parts['host'];
@@ -301,41 +423,32 @@ class SlipGajiController extends Controller
         }
     }
 
-    /**
-     * Queue status - untuk monitoring progress
-     */
     public function queueStatus()
     {
         $db = \Config\Database::connect();
 
-        // 1. FIX SINKRONISASI (Kasus: Email terkirim, tapi status queue belum update)
-        // Ini mengatasi masalah screenshot Anda sebelumnya (Terkirim vs Diproses)
+        // Fix sinkronisasi
         $sqlSync = "UPDATE email_queue eq
                    JOIN slip_gaji sg ON eq.karyawan_id = sg.id
                    SET eq.status = 'sent', eq.updated_at = NOW()
                    WHERE eq.status = 'processing' AND sg.status_kirim = 'sent'";
         $db->query($sqlSync);
 
-        // 2. FIX NYANTOL / CRASH (Kasus: Worker mati saat processing)
-        // Jika status 'processing' tapi tidak ada update > 5 menit, kembalikan ke 'pending'
-        // agar worker berikutnya bisa mencoba kirim ulang.
+        // Fix stuck processing
         $sqlReset = "UPDATE email_queue 
                      SET status = 'pending', updated_at = NOW(), last_error = 'Reset otomatis (Stuck Detected)'
                      WHERE status = 'processing' 
                      AND updated_at < DATE_SUB(NOW(), INTERVAL 5 MINUTE)";
         $db->query($sqlReset);
 
-        // 3. AUTO-RESTART WORKER (Penting!)
-        // Cek apakah ada antrean 'pending' tapi tidak ada yang 'processing' (artinya worker mati)?
+        // Auto-restart worker
         $pendingCount = $db->table('email_queue')->where('status', 'pending')->countAllResults();
         $processingCount = $db->table('email_queue')->where('status', 'processing')->countAllResults();
         
-        // Jika ada kerjaan (pending) tapi gak ada kuli (processing 0), panggil kuli baru!
         if ($pendingCount > 0 && $processingCount == 0) {
             $this->triggerBackgroundWorker();
         }
 
-        // 4. Hitung Statistik Terbaru (Setelah perbaikan di atas)
         $total = (int) $db->table('email_queue')->countAllResults();
         $sent = (int) $db->table('email_queue')->where('status', 'sent')->countAllResults();
         $failed = (int) $db->table('email_queue')->where('status', 'failed')->countAllResults();
@@ -351,20 +464,14 @@ class SlipGajiController extends Controller
         ]);
     }
 
-    /**
-     * Background Worker - Proses email queue secara kontinyu
-     * Jalan terus sampai semua queue selesai
-     */
     public function runWorker()
     {
-        // Security check
         $key = $this->request->getGet('key');
         if ($key !== 'Cvbagong.1994') {
             return $this->response->setStatusCode(403)
                 ->setJSON(['success' => false, 'message' => 'Forbidden']);
         }
 
-        // Disable timeout untuk background mode
         if ($this->request->getGet('background')) {
             @set_time_limit(0);
             @ignore_user_abort(true);
@@ -392,7 +499,6 @@ class SlipGajiController extends Controller
             try {
                 $now = date('Y-m-d H:i:s');
 
-                // === PERBAIKAN: Panggil table() DI DALAM LOOP agar builder selalu fresh ===
                 $tasks = $db->table('email_queue')
                     ->where('status', 'pending')
                     ->where('available_at <=', $now)
@@ -401,17 +507,14 @@ class SlipGajiController extends Controller
                     ->get()
                     ->getResultArray();
 
-                // Jika tidak ada task, berhenti
                 if (empty($tasks)) {
                     break;
                 }
 
                 $ids = array_column($tasks, 'id');
                 
-                // Gunakan Transaksi untuk update status massal
                 $db->transStart();
                 
-                // Panggil table() lagi untuk query update yang bersih
                 $db->table('email_queue') 
                    ->whereIn('id', $ids)
                    ->update([
@@ -421,16 +524,14 @@ class SlipGajiController extends Controller
                    
                 $db->transComplete();
 
-                // --- PROSES PENGIRIMAN ---
                 foreach ($tasks as $task) {
                     $this->processEmailTask($task, $maxAttempts, $backoffSeconds);
                     $totalProcessed++;
                     
-                    // Delay kecil untuk safety SMTP
                     usleep(500000); 
                 }
 
-                sleep(2); // Jeda antar batch
+                sleep(2);
 
             } catch (\Exception $e) {
                 log_message('error', 'runWorker error: ' . $e->getMessage());
@@ -445,9 +546,6 @@ class SlipGajiController extends Controller
         ]);
     }
 
-    /**
-     * Process single email task
-     */
     private function processEmailTask($task, $maxAttempts, $backoffSeconds)
     {
         $db = \Config\Database::connect();
@@ -466,7 +564,6 @@ class SlipGajiController extends Controller
                 return false;
             }
 
-            // Skip if already sent
             if (isset($karyawan['status_kirim']) && $karyawan['status_kirim'] === 'sent') {
                 $queue->where('id', $taskId)->update([
                     'status' => 'sent',
@@ -475,10 +572,8 @@ class SlipGajiController extends Controller
                 return true;
             }
 
-            // Generate PDF
             $filepath = $this->generatePdfForEmployee($karyawan);
 
-            // Send email
             $this->email->clear(true);
             $this->email->setMailType('html');
             $this->email->setFrom('payroll@bagongbis.com', 'PT Bagong Dekaka Makmur');
@@ -490,41 +585,33 @@ class SlipGajiController extends Controller
             $this->email->attach($filepath);
 
             if ($this->email->send()) {
-                // === MULAI PERUBAHAN DI SINI (TRANSAKSI DATABASE) ===
-                // Menggunakan transaksi agar kedua tabel terupdate bersamaan
                 $db->transStart();
 
-                // 1. Update status di tabel Karyawan
                 $this->karyawanModel->update($task['karyawan_id'], [
                     'status_kirim' => 'sent',
                     'tanggal_kirim' => date('Y-m-d H:i:s')
                 ]);
                 
-                // 2. Update status di tabel Queue
                 $queue->where('id', $taskId)->update([
                     'status' => 'sent',
                     'updated_at' => date('Y-m-d H:i:s')
                 ]);
 
-                // Selesaikan transaksi
                 $db->transComplete();
-                // === SELESAI PERUBAHAN ===
 
                 if (file_exists($filepath)) @unlink($filepath);
                 return true;
             } else {
-                // Failed - retry logic
                 $attempts = $task['attempts'] + 1;
                 $nextAvailable = date('Y-m-d H:i:s', time() + ($backoffSeconds * $attempts));
                 
-                // Ambil pesan error debugger
                 $debugMsg = $this->email->printDebugger(['headers']); 
 
                 if ($attempts >= $maxAttempts) {
                     $queue->update($taskId, [
                         'status' => 'failed',
                         'attempts' => $attempts,
-                        'last_error' => substr($debugMsg, 0, 1000), // Simpan error log email
+                        'last_error' => substr($debugMsg, 0, 1000),
                         'updated_at' => date('Y-m-d H:i:s')
                     ]);
                 } else {

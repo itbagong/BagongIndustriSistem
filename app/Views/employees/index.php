@@ -367,5 +367,5 @@
             </div>
         </div>
     </div>
-
+    <script src="<?= base_url('assets/js/employee.js?v=1') ?>"></script>
  <?= $this->endSection() ?>

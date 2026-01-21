@@ -10,6 +10,8 @@ class Api extends BaseConfig
 
     public array $endpoints = [
         'login'      => '/auth/login',
+        'users'    => '/user',
+        'employees'  => '/employees',
     ];
 
     public function __construct()
