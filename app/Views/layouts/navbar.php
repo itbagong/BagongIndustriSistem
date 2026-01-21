@@ -18,11 +18,11 @@
 
         <div class="user-menu">
             <div class="user-avatar">
-                <?= strtoupper(substr(session()->get('user_name') ?? 'U', 0, 1)) ?>
+                <?= strtoupper(substr(session()->get('username') ?? 'U', 0, 1)) ?>
             </div>
             <div class="user-info">
-                <div class="user-name"><?= esc(session()->get('user_name') ?? 'User') ?></div>
-                <div class="user-role"><?= esc(ucfirst(session()->get('user_role') ?? 'user')) ?></div>
+                <div class="user-name"><?= esc(session()->get('username') ?? 'User') ?></div>
+                <div class="user-role"><?= esc(ucfirst(session()->get('role_id') ?? 'user')) ?></div>
             </div>
         </div>
     </div>

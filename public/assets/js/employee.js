@@ -7,7 +7,7 @@ let employees = [];
 let filteredEmployees = [];
 
 let currentPage = 1;
-let itemsPerPage = 50; // ⬆️ Naik dari 10 ke 50
+let itemsPerPage = 10; // ⬆️ Naik dari 10 ke 50
 let deleteEmployeeId = null;
 
 // Virtual scrolling cache

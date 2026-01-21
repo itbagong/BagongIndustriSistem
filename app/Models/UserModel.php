@@ -13,9 +13,21 @@ class UserModel extends Model
     protected $useSoftDeletes = true;
     protected $protectFields = true;
     protected $allowedFields = [
-        'username', 'email', 'password', 'role_id', 'employee_id',
-        'is_active', 'last_login', 'login_attempts', 'locked_until',
-        'remember_token', 'email_verified_at'
+        'username', 
+        'email', 
+        'password', 
+        'role_id', 
+        'employee_id',
+        'is_active', 
+        'last_login', 
+        'login_attempts', 
+        'locked_until',
+        'remember_token', 
+        'email_verified_at',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+        'api_user_id'
     ];
 
     protected $useTimestamps = true;

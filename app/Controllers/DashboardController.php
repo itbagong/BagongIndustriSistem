@@ -17,13 +17,19 @@ class DashboardController extends BaseController
 
     public function index()
     {
-        $data = [
-            'title' => 'Dashboard',
+        // PERBAIKAN DISINI:
+        // Jangan timpa $this->data, tapi gabungkan (merge)
+        
+        $newData = [
+            'title'     => 'Dashboard',
             'user_name' => session()->get('user_name'),
-            'user_email' => session()->get('user_email'),
+            'user_email'=> session()->get('user_email'),
             'user_role' => session()->get('user_role'),
         ];
 
-        return view('dashboard/index', $data);
+        // Gabungkan data lama (menus) dengan data baru
+        $this->data = array_merge($this->data, $newData);
+
+        return view('dashboard/index', $this->data);
     }
 }
