@@ -36,4 +36,13 @@ $routes->group('employees', function ($routes) {
     $routes->delete('delete/(:num)', 'Employee\EmployeeController::delete/$1', [
         'filter' => 'permission:employee.delete'
     ]);
+
+    $routes->get('test-db', 'Employee\EmployeeController::testDb', [
+        'filter' => 'permission:employee.view'
+    ]);
+
+    $routes->post('api/import-employee', 'EmployeeImportController::import', [
+            'filter' => 'permission:employee.view'
+        ]
+    );
 });

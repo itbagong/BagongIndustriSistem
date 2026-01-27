@@ -8,10 +8,21 @@
 
 <div class="card shadow-sm">
     <div class="card-header bg-warning text-dark">
-        <h5 class="card-title mb-0"><i class="fas fa-wrench mr-2"></i> Form Data Workshop</h5>
+        <h5 class="card-title mb-0"><i class="fas fa-home mr-2"></i> Form Data Workshop</h5>
     </div>
     <div class="card-body">
-        
+        <?php if(session()->getFlashdata('errors')): ?>
+            <div class="alert alert-danger">
+                <ul class="mb-0">
+                <?php foreach(session()->getFlashdata('errors') as $err): ?>
+                    <li><?= esc($err) ?></li>
+                <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
+
+        <?php if(session()->getFlashdata('errors') && is_array(session()->getFlashdata('errors'))): ?>
+        <?php endif; ?>
         <form action="<?= base_url('workshop/save') ?>" method="post">
             <?= csrf_field() ?>
 
@@ -25,7 +36,7 @@
                         <?php endforeach; ?>
                     </select>
                 </div>
-
+                
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Job Site <span class="text-danger">*</span></label>
                     <select name="job_site" id="job_site" class="form-control" required>
@@ -36,7 +47,16 @@
 
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Nama Karyawan (Penanggung Jawab) <span class="text-danger">*</span></label>
+                    <label class="form-label">Cari Nama Karyawan <span class="text-danger">*</span></label>
+                    <input 
+                        type="text" 
+                        id="search_employee"
+                        class="form-control mb-2" 
+                        placeholder="Ketik minimal 2 karakter untuk mencari..."
+                        autocomplete="off">
+                    <small class="text-muted mb-2 d-block">Ketik nama atau NIK karyawan</small>
+                    
+                    <label class="form-label">Pilih Karyawan <span class="text-danger">*</span></label>
                     <select name="employee_id" id="employee_select" class="form-control" required>
                         <option value="">-- Ketik untuk mencari karyawan --</option>
                     </select>
@@ -53,101 +73,105 @@
 
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Luasan Workshop <span class="text-danger">*</span></label>
+                    <label class="form-label">Luasan Workshop (m²) <span class="text-danger">*</span></label>
                     <div class="input-group">
-                        <input type="number" step="0.01" name="luas_workshop" class="form-control" placeholder="0" required>
-                        <div class="input-group-append">
-                            <span class="input-group-text">m²</span>
-                        </div>
+                        <input type="number" step="0.01" name="luasan_workshop" class="form-control" placeholder="0" value="<?= old('luasan_workshop') ?>" required>
+                        <span class="input-group-text">m²</span>
                     </div>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Jumlah Bays <span class="text-danger">*</span></label>
-                    <input type="number" name="jumlah_bays" class="form-control" placeholder="0" min="0" required>
-                    <small class="text-muted">Total area kerja (bay) kendaraan.</small>
+                    <input type="number" name="jumlah_bays" class="form-control" min="1" value="<?= old('jumlah_bays') ?>" required>
+                    <small class="text-muted">Bays = area kerja untuk kendaraan</small>
                 </div>
             </div>
 
-            <div class="card bg-light border-0 mb-4">
-                <div class="card-body">
-                    <label class="form-label font-weight-bold mb-3">Kompartemen Wajib (Centang yang tersedia) <span class="text-danger">*</span></label>
-                    
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Gutter Oil" id="k_gutter">
-                                <label class="form-check-label" for="k_gutter">Gutter Oil</label>
-                            </div>
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Oil Trap" id="k_oiltrap">
-                                <label class="form-check-label" for="k_oiltrap">Oil Trap</label>
-                            </div>
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Gudang Alat" id="k_alat">
-                                <label class="form-check-label" for="k_alat">Gudang Alat</label>
-                            </div>
+            <div class="mb-3">
+                <label class="form-label font-weight-bold">Kompartemen Wajib (Centang yang tersedia) <span class="text-danger">*</span></label>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Gutter Oil" id="k_gutter" <?= in_array('Gutter Oil', old('kompartemen') ?? []) ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="k_gutter">Gutter Oil</label>
                         </div>
-
-                        <div class="col-md-4">
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Gudang Oli" id="k_oli">
-                                <label class="form-check-label" for="k_oli">Gudang Oli</label>
-                            </div>
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Gudang Sparepart" id="k_sparepart">
-                                <label class="form-check-label" for="k_sparepart">Gudang Sparepart</label>
-                            </div>
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Demarkasi" id="k_demarkasi">
-                                <label class="form-check-label" for="k_demarkasi">Demarkasi</label>
-                            </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Oil Trap" id="k_oiltrap" <?= in_array('Oil Trap', old('kompartemen') ?? []) ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="k_oiltrap">Oil Trap</label>
                         </div>
-
-                        <div class="col-md-4">
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Panel Listrik" id="k_panel">
-                                <label class="form-check-label" for="k_panel">Panel Listrik</label>
-                            </div>
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Gudang B3 Cair" id="k_b3cair">
-                                <label class="form-check-label" for="k_b3cair">Gudang B3 Cair</label>
-                            </div>
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Gudang B3 Padat" id="k_b3padat">
-                                <label class="form-check-label" for="k_b3padat">Gudang B3 Padat</label>
-                            </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Gudang Alat" id="k_gdg_alat" <?= in_array('Gudang Alat', old('kompartemen') ?? []) ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="k_gdg_alat">Gudang Alat</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Gudang Oli" id="k_gdg_oli" <?= in_array('Gudang Oli', old('kompartemen') ?? []) ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="k_gdg_oli">Gudang Oli</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Gudang Sparepart" id="k_gdg_spare" <?= in_array('Gudang Sparepart', old('kompartemen') ?? []) ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="k_gdg_spare">Gudang Sparepart</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Demarkasi" id="k_demarkasi" <?= in_array('Demarkasi', old('kompartemen') ?? []) ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="k_demarkasi">Demarkasi</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Panel Listrik" id="k_panel" <?= in_array('Panel Listrik', old('kompartemen') ?? []) ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="k_panel">Panel Listrik</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Gudang B3 Cair" id="k_b3_cair" <?= in_array('Gudang B3 Cair', old('kompartemen') ?? []) ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="k_b3_cair">Gudang B3 Cair</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Gudang B3 Padat" id="k_b3_padat" <?= in_array('Gudang B3 Padat', old('kompartemen') ?? []) ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="k_b3_padat">Gudang B3 Padat</label>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <hr>
 
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label d-block font-weight-bold">Status Kepemilikan Lahan <span class="text-danger">*</span></label>
-                    <div class="mt-2">
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="status_kepemilikan" id="milikSendiri" value="Milik PT Bagong Dekaka Makmur" required>
-                            <label class="form-check-label" for="milikSendiri">Milik PT Bagong Dekaka Makmur</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="status_kepemilikan" id="sewa" value="Sewa" required>
-                            <label class="form-check-label" for="sewa">Sewa</label>
-                        </div>
-                    </div>
+                    <label class="form-label">Status Kepemilikan Lahan Workshop <span class="text-danger">*</span></label>
+                    <select name="status_kepemilikan" class="form-control" required>
+                        <option value="">-- Pilih Status --</option>
+                        <option value="Milik PT Bagong Dekaka Makmur" <?= old('status_kepemilikan') === 'Milik PT Bagong Dekaka Makmur' ? 'selected' : '' ?>>
+                            Milik PT Bagong Dekaka Makmur
+                        </option>
+                        <option value="Sewa" <?= old('status_kepemilikan') === 'Sewa' ? 'selected' : '' ?>>
+                            Sewa
+                        </option>
+                    </select>
                 </div>
-                
                 <div class="col-md-6 mb-3">
-                    <label class="form-label d-block font-weight-bold">Status Pembangunan Workshop <span class="text-danger">*</span></label>
-                    <div class="mt-2">
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="status_pembangunan" id="eksisting" value="Eksisting" required>
-                            <label class="form-check-label" for="eksisting">Eksisting (Sudah ada sejak awal)</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="status_pembangunan" id="bangunSendiri" value="Dibangun Sendiri" required>
-                            <label class="form-check-label" for="bangunSendiri">Dibangun Sendiri (PT Bagong)</label>
-                        </div>
-                    </div>
+                    <label class="form-label">Status Pembangunan Workshop <span class="text-danger">*</span></label>
+                    <select name="status_pembangunan" class="form-control" required>
+                        <option value="">-- Pilih Status --</option>
+                        <option value="Eksisting (Sudah ada sejak awal/dibangun pemilik)" <?= old('status_pembangunan') === 'Eksisting (Sudah ada sejak awal/dibangun pemilik)' ? 'selected' : '' ?>>
+                            Eksisting (Sudah ada sejak awal/dibangun pemilik)
+                        </option>
+                        <option value="Dibangun Sendiri (PT Bagong Dekaka Makmur)" <?= old('status_pembangunan') === 'Dibangun Sendiri (PT Bagong Dekaka Makmur)' ? 'selected' : '' ?>>
+                            Dibangun Sendiri (PT Bagong Dekaka Makmur)
+                        </option>
+                    </select>
                 </div>
             </div>
 
@@ -155,30 +179,26 @@
                 <a href="<?= base_url('workshop') ?>" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Kembali
                 </a>
-                <button type="submit" class="btn btn-warning text-dark font-weight-bold">
-                    <i class="fas fa-save"></i> Simpan Data Workshop
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Simpan Data
                 </button>
             </div>
 
         </form>
     </div>
 </div>
-<!-- jQuery (WAJIB SEBELUM SELECT2) -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-<!-- Select2 CSS -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-
-<!-- Select2 JS -->
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     
     const divisiSelect = document.getElementById('divisi');
     const jobSiteSelect = document.getElementById('job_site');
+    const searchInput = document.getElementById('search_employee');
+    const employeeSelect = document.getElementById('employee_select');
     const nikInput = document.getElementById('nik');
     const namaInput = document.getElementById('nama_karyawan');
+    
+    let searchTimeout = null;
 
     // ==================== DIVISI & JOB SITE ====================
     divisiSelect.addEventListener('change', function() {
@@ -211,73 +231,103 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
-    // ==================== EMPLOYEE SELECT2 AUTOCOMPLETE ====================
-    // ✅ PASTIKAN JQUERY SUDAH READY
-    $(document).ready(function() {
-        $('#employee_select').select2({
-            placeholder: 'Ketik nama atau NIK karyawan (min 2 karakter)',
-            allowClear: true,
-            width: '100%', // ✅ TAMBAHKAN WIDTH
-            minimumInputLength: 2,
-            language: {
-                inputTooShort: function() {
-                    return 'Ketik minimal 2 karakter untuk mencari...';
-                },
-                searching: function() {
-                    return 'Mencari...';
-                },
-                noResults: function() {
-                    return 'Tidak ada hasil ditemukan';
-                }
-            },
-            ajax: {
-                url: '<?= base_url('general-service/search-employees') ?>',
-                type: 'POST',
-                dataType: 'json',
-                delay: 300,
-                data: function(params) {
-                    console.log('Searching for:', params.term); // ✅ DEBUG
-                    return {
-                        search: params.term
-                    };
-                },
-                processResults: function(data) {
-                    console.log('Results:', data); // ✅ DEBUG
-                    
-                    if (!data || data.length === 0) {
-                        return { results: [] };
-                    }
-                    
-                    return {
-                        results: data.map(function(employee) {
-                            return {
-                                id: employee.employee_number,
-                                text: employee.employee_name + ' (' + employee.employee_number + ')',
-                                name: employee.employee_name,
-                                nik: employee.employee_number
-                            };
-                        })
-                    };
-                },
-                cache: true
-            }
-        });
-
-        // Event ketika user memilih karyawan
-        $('#employee_select').on('select2:select', function(e) {
-            const data = e.params.data;
-            
-            nikInput.value = data.nik;
-            namaInput.value = data.name;
-            
-            console.log('Selected:', data);
-        });
-
-        // Event ketika user clear selection
-        $('#employee_select').on('select2:clear', function() {
+    // ==================== EMPLOYEE SEARCH ====================
+    searchInput.addEventListener('input', function() {
+        const keyword = this.value.trim();
+        
+        // Clear timeout sebelumnya
+        clearTimeout(searchTimeout);
+        
+        // Jika kurang dari 2 karakter, reset dropdown
+        if (keyword.length < 2) {
+            employeeSelect.innerHTML = '<option value="">-- Ketik untuk mencari karyawan --</option>';
             nikInput.value = '';
             namaInput.value = '';
+            return;
+        }
+
+        // Show loading
+        employeeSelect.innerHTML = '<option value="">Mencari...</option>';
+
+        // Debounce: tunggu 300ms setelah user berhenti mengetik
+        searchTimeout = setTimeout(() => {
+            searchEmployees(keyword);
+        }, 300);
+    });
+
+    // Fungsi untuk search employees
+    function searchEmployees(keyword) {
+        console.log('Searching for:', keyword);
+        
+        fetch('<?= base_url('general-service/search-employees') ?>?search=' + encodeURIComponent(keyword), {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Results:', data);
+            
+            if (data.error) {
+                console.error('Error:', data.message);
+                employeeSelect.innerHTML = '<option value="">Error: ' + data.message + '</option>';
+                return;
+            }
+            
+            // Update dropdown dengan hasil
+            if (data.length === 0) {
+                employeeSelect.innerHTML = '<option value="">Tidak ada hasil ditemukan</option>';
+            } else {
+                let html = '<option value="">-- Pilih Karyawan --</option>';
+                data.forEach(emp => {
+                    html += `<option value="${emp.employee_number}" data-name="${emp.employee_name}">${emp.employee_name} (${emp.employee_number})</option>`;
+                });
+                employeeSelect.innerHTML = html;
+            }
+        })
+        .catch(error => {
+            console.error('Fetch error:', error);
+            employeeSelect.innerHTML = '<option value="">Error mengambil data</option>';
         });
+    }
+
+    // Event ketika user memilih dari dropdown
+    employeeSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        
+        if (this.value) {
+            nikInput.value = this.value;
+            namaInput.value = selectedOption.getAttribute('data-name') || '';
+            console.log('Selected:', {
+                nik: this.value,
+                name: selectedOption.getAttribute('data-name')
+            });
+        } else {
+            nikInput.value = '';
+            namaInput.value = '';
+        }
+    });
+
+    // ==================== PARKIR TOGGLE ====================
+    function toggleParkir(isAda) {
+        const inputLuas = document.getElementById('luasParkir');
+        if (isAda) {
+            inputLuas.readOnly = false;
+            inputLuas.focus();
+        } else {
+            inputLuas.value = 0;
+            inputLuas.readOnly = true;
+        }
+    }
+
+    // Event listener untuk radio parkir
+    document.getElementById('parkirAda')?.addEventListener('change', function() {
+        toggleParkir(true);
+    });
+    
+    document.getElementById('parkirTidak')?.addEventListener('change', function() {
+        toggleParkir(false);
     });
 });
 </script>

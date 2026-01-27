@@ -17,52 +17,99 @@ class Database extends Config
     /**
      * Lets you choose which connection group to use if no other is specified.
      */
-    public string $defaultGroup = 'default';
+    public string $defaultGroup = 'mysql';
 
     /**
      * The default database connection.
      *
      * @var array<string, mixed>
      */
-    public array $default = [
-        'DSN'          => '',
-        'hostname'     => 'bagongbis.com',
-        'username'     => 'bagongbi_webbago',
-        'password'     => 'cvbagong.1994',
-        'database'     => 'bagongbi_webbagong',
-        'DBDriver'     => 'MySQLi',
-        'DBPrefix'     => '',
-        'pConnect'     => false,
-        'DBDebug'      => true,
-        'charset'      => 'utf8mb4',
-        'DBCollat'     => 'utf8mb4_general_ci',
-        'swapPre'      => '',
-        'encrypt'      => false,
-        'compress'     => false,
-        'strictOn'     => false,
-        'failover'     => [],
-        'port'         => 3306,
-        'numberNative' => false,
-        'foundRows'    => false,
-        'dateFormat'   => [
-            'date'     => 'Y-m-d',
-            'datetime' => 'Y-m-d H:i:s',
-            'time'     => 'H:i:s',
+    // public array $default = [
+    //     'DSN'          => '',
+    //     'hostname'     => 'bagongbis.com',
+    //     'username'     => 'bagongbi_webbago',
+    //     'password'     => 'cvbagong.1994',
+    //     'database'     => 'bagongbi_webbagong',
+    //     'DBDriver'     => 'MySQLi',
+    //     'DBPrefix'     => '',
+    //     'pConnect'     => false,
+    //     'DBDebug'      => true,
+    //     'charset'      => 'utf8mb4',
+    //     'DBCollat'     => 'utf8mb4_general_ci',
+    //     'swapPre'      => '',
+    //     'encrypt'      => false,
+    //     'compress'     => false,
+    //     'strictOn'     => false,
+    //     'failover'     => [],
+    //     'port'         => 3306,
+    //     'numberNative' => false,
+    //     'foundRows'    => false,
+    //     'dateFormat'   => [
+    //         'date'     => 'Y-m-d',
+    //         'datetime' => 'Y-m-d H:i:s',
+    //         'time'     => 'H:i:s',
+    //     ],
+    // ];
+    // public array $pgsql = [
+    //     'DSN'        => '',
+    //     'hostname'   => 'vps.bagongbis.com',
+    //     'username'   => 'bagong-it',
+    //     'password'   => 'RevolusiIt',
+    //     'database'   => 'BagongDashboardHCGS',
+    //     'schema'     => 'public',
+    //     'DBDriver'   => 'Postgre',
+    //     'DBPrefix'   => '',
+    //     'pConnect'   => false,
+    //     'DBDebug'    => true,
+    //     'port'       => 5435,
+    // ];
+
+    public array $mysql = [
+        'DSN'      => '',
+        'hostname' => 'bagongbis.com',
+        'username' => 'bagongbi_webbago',
+        'password' => 'cvbagong.1994',
+        'database' => 'bagongbi_webbagong',
+        'DBDriver' => 'MySQLi',
+        'DBPrefix' => '',
+        'pConnect' => false,
+        'DBDebug'  => true,
+        'charset'  => 'utf8mb4',
+        'DBCollat' => 'utf8mb4_general_ci',
+        'swapPre'  => '',
+        'encrypt'  => false,
+        'compress' => false,
+        'strictOn' => false,
+        'failover' => [],
+        'port'     => 3306,
+    ];
+
+    public array $pg = [
+        'DSN'      => '',
+        'hostname' => 'bagongbis.com',
+        'username' => 'bagongbi_admin',
+        'password' => 'cvbagong.1994',
+        'database' => 'bagongbi_webbagong',
+        'DBDriver' => 'Postgre',
+        'DBPrefix' => '',
+        'pConnect' => false,
+        'DBDebug'  => true,
+        'charset'  => 'utf8',
+        'DBCollat' => '',
+        'swapPre'  => '',
+        'encrypt'  => [
+            'ssl_verify' => false,
+            'ssl_key'    => null,
+            'ssl_cert'   => null,
+            'ssl_ca'     => null,
         ],
+        'compress' => false,
+        'strictOn' => false,
+        'failover' => [],
+        'port'     => 5432,
+        'schema'   => 'public',
     ];
-    public array $pgsql = [
-        'DSN'        => '',
-        'hostname'   => 'vps.bagongbis.com',
-        'username'   => 'bagong-it',
-        'password'   => 'RevolusiIt',
-        'database'   => 'BagongDashboardHCGS',
-        'schema'     => 'public',
-        'DBDriver'   => 'Postgre',
-        'DBPrefix'   => '',
-        'pConnect'   => false,
-        'DBDebug'    => true,
-        'port'       => 5435,
-    ];
+
 
     //    /**
     //     * Sample database connection for SQLite3.

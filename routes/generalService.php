@@ -11,7 +11,17 @@ $routes->group('general-service', function ($routes) {
         'filter' => 'permission:general.service'
     ]);
 
+    // ===== SAVE DATA =====
+
+    $routes->post('mess/save', 'GeneralService\FasilityController::saveMess', [
+        'filter' => 'permission:general.service'
+    ]);
+
+    $routes->post('workshop/save', 'GeneralService\WorkshopController::save', [
+        'filter' => 'permission:general.service'
+    ]);
+
     // ===== AJAX =====
     $routes->post('get-site-by-divisi-code', 'GeneralService\FasilityController::getSiteByDivisiCode');
-    $routes->post('search-employees', 'GeneralService\ApiGetEmployeeController::searchEmployees');
+    $routes->get('search-employees', 'GeneralService\FasilityController::searchEmployees');
 });
