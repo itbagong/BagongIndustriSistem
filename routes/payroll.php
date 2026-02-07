@@ -26,5 +26,13 @@ $routes->group('slip-gaji', ['filter' => 'auth'], function($routes) {
     // Jika form HTML tidak pakai method override, gunakan:
     // $routes->post('delete/(:num)', 'SlipGajiController::delete/$1');
     
+    // edit data slip gaji
+    $routes->get('edit/(:num)', 'Payroll\SlipGajiController::edit/$1');
+    $routes->post('update/(:num)', 'Payroll\SlipGajiController::update/$1');
+
+    // delete bulk
+    $routes->post('delete-multiple', 'Payroll\SlipGajiController::deleteMultiple');
+
+    $routes->post('resend-all-failed', 'Payroll\SlipGajiController::resendAllFailed');
 
 });

@@ -10,7 +10,7 @@ class SlipGajiModel extends Model
     protected $primaryKey = 'id';
     protected $allowedFields = [
         'nomor_slip','tanggal_slip', 'nik', 'nama', 'jabatan', 'status', 'bulan', 'site',
-        'umk', 'insentif_lain', 'insentif_pulsa', 'kompensasi_cuti',
+        'umk','tunjangan_tidak_tetap', 'insentif_lain', 'kompensasi',
         'insentif_lembur', 'insentif_makan', 'uang_tunggu', 'gaji_prorate',
         'total_pendapatan', 'bpjs_kes', 'bpjs_tk', 'pot_pph21', 'lainnya',
         'total_pot', 'gaji_bersih', 'email', 'status_kirim', 'tanggal_kirim'

@@ -2,15 +2,32 @@
 
 <?= $this->section('content') ?>
 
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+
+<style>
+    /* Styling agar Tom Select konsisten dengan Bootstrap */
+    .ts-control {
+        min-height: 38px;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        padding: 6px 12px;
+    }
+    .ts-dropdown {
+        z-index: 9999;
+    }
+</style>
+
 <div class="content-header mb-3">
     <h1>Input Data Workshop</h1>
 </div>
 
 <div class="card shadow-sm">
     <div class="card-header bg-warning text-dark">
-        <h5 class="card-title mb-0"><i class="fas fa-home mr-2"></i> Form Data Workshop</h5>
+        <h5 class="card-title mb-0"><i class="fas fa-tools mr-2"></i> Form Data Workshop</h5>
     </div>
     <div class="card-body">
+        
         <?php if(session()->getFlashdata('errors')): ?>
             <div class="alert alert-danger">
                 <ul class="mb-0">
@@ -21,9 +38,13 @@
             </div>
         <?php endif; ?>
 
-        <?php if(session()->getFlashdata('errors') && is_array(session()->getFlashdata('errors'))): ?>
+        <?php if(session()->getFlashdata('success')): ?>
+            <div class="alert alert-success">
+                <?= esc(session()->getFlashdata('success')) ?>
+            </div>
         <?php endif; ?>
-        <form action="<?= base_url('workshop/save') ?>" method="post">
+
+        <form action="<?= base_url('general-service/workshop/save') ?>" method="post" id="workshopForm">
             <?= csrf_field() ?>
 
             <div class="row">
@@ -32,7 +53,9 @@
                     <select name="divisi" id="divisi" class="form-control" required>
                         <option value="">-- Pilih Divisi --</option>
                         <?php foreach($divisi_list as $divisi): ?>
-                            <option value="<?= esc($divisi['id']) ?>"><?= esc($divisi['name']) ?></option>
+                            <option value="<?= esc($divisi['id']) ?>" <?= old('divisi') == $divisi['id'] ? 'selected' : '' ?>>
+                                <?= esc($divisi['name']) ?>
+                            </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -42,29 +65,29 @@
                     <select name="job_site" id="job_site" class="form-control" required>
                         <option value="">-- Pilih Divisi Terlebih Dahulu --</option>
                     </select>
+                    <input type="hidden" name="site_id" id="site_id">
                 </div>
             </div>
 
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Cari Nama Karyawan <span class="text-danger">*</span></label>
-                    <input 
-                        type="text" 
-                        id="search_employee"
-                        class="form-control mb-2" 
-                        placeholder="Ketik minimal 2 karakter untuk mencari..."
-                        autocomplete="off">
-                    <small class="text-muted mb-2 d-block">Ketik nama atau NIK karyawan</small>
+                    <label class="form-label">Pilih Karyawan (PIC) <span class="text-danger">*</span></label>
                     
-                    <label class="form-label">Pilih Karyawan <span class="text-danger">*</span></label>
-                    <select name="employee_id" id="employee_select" class="form-control" required>
-                        <option value="">-- Ketik untuk mencari karyawan --</option>
+                    <select name="employee_id" id="employee_select" placeholder="Ketik nama atau NIK karyawan..." required>
+                        <option value="">Ketik nama atau NIK karyawan...</option>
                     </select>
+                    
+                    <small class="text-muted d-block mt-1">
+                        <i class="fas fa-info-circle"></i> Ketik minimal 2 karakter untuk mencari.
+                    </small>
+                    
                     <input type="hidden" name="nama_karyawan" id="nama_karyawan">
+                    <input type="hidden" name="nik" id="nik_hidden">
                 </div>
+
                 <div class="col-md-6 mb-3">
                     <label class="form-label">NIK Karyawan <span class="text-danger">*</span></label>
-                    <input type="text" name="nik" id="nik" class="form-control" readonly required>
+                    <input type="text" name="nik_display" id="nik_display" class="form-control" readonly>
                     <small class="text-muted">NIK akan terisi otomatis setelah memilih karyawan</small>
                 </div>
             </div>
@@ -89,61 +112,27 @@
             <div class="mb-3">
                 <label class="form-label font-weight-bold">Kompartemen Wajib (Centang yang tersedia) <span class="text-danger">*</span></label>
                 <div class="row">
+                    <?php 
+                    // Array daftar kompartemen agar kode lebih rapi
+                    $kompartemen_items = [
+                        'Gutter Oil', 'Oil Trap', 'Gudang Alat', 'Gudang Oli', 
+                        'Gudang Sparepart', 'Demarkasi', 'Panel Listrik', 
+                        'Gudang B3 Cair', 'Gudang B3 Padat'
+                    ];
+                    
+                    foreach($kompartemen_items as $item): 
+                        // Generate ID unik
+                        $kid = 'k_' . strtolower(str_replace(' ', '_', $item));
+                    ?>
                     <div class="col-md-4">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Gutter Oil" id="k_gutter" <?= in_array('Gutter Oil', old('kompartemen') ?? []) ? 'checked' : '' ?>>
-                            <label class="form-check-label" for="k_gutter">Gutter Oil</label>
+                            <input class="form-check-input kompartemen-checkbox" type="checkbox" name="kompartemen[]" value="<?= $item ?>" id="<?= $kid ?>" <?= in_array($item, old('kompartemen') ?? []) ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="<?= $kid ?>"><?= $item ?></label>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Oil Trap" id="k_oiltrap" <?= in_array('Oil Trap', old('kompartemen') ?? []) ? 'checked' : '' ?>>
-                            <label class="form-check-label" for="k_oiltrap">Oil Trap</label>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Gudang Alat" id="k_gdg_alat" <?= in_array('Gudang Alat', old('kompartemen') ?? []) ? 'checked' : '' ?>>
-                            <label class="form-check-label" for="k_gdg_alat">Gudang Alat</label>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Gudang Oli" id="k_gdg_oli" <?= in_array('Gudang Oli', old('kompartemen') ?? []) ? 'checked' : '' ?>>
-                            <label class="form-check-label" for="k_gdg_oli">Gudang Oli</label>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Gudang Sparepart" id="k_gdg_spare" <?= in_array('Gudang Sparepart', old('kompartemen') ?? []) ? 'checked' : '' ?>>
-                            <label class="form-check-label" for="k_gdg_spare">Gudang Sparepart</label>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Demarkasi" id="k_demarkasi" <?= in_array('Demarkasi', old('kompartemen') ?? []) ? 'checked' : '' ?>>
-                            <label class="form-check-label" for="k_demarkasi">Demarkasi</label>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Panel Listrik" id="k_panel" <?= in_array('Panel Listrik', old('kompartemen') ?? []) ? 'checked' : '' ?>>
-                            <label class="form-check-label" for="k_panel">Panel Listrik</label>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Gudang B3 Cair" id="k_b3_cair" <?= in_array('Gudang B3 Cair', old('kompartemen') ?? []) ? 'checked' : '' ?>>
-                            <label class="form-check-label" for="k_b3_cair">Gudang B3 Cair</label>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="kompartemen[]" value="Gudang B3 Padat" id="k_b3_padat" <?= in_array('Gudang B3 Padat', old('kompartemen') ?? []) ? 'checked' : '' ?>>
-                            <label class="form-check-label" for="k_b3_padat">Gudang B3 Padat</label>
-                        </div>
-                    </div>
+                    <?php endforeach; ?>
                 </div>
+                <small class="text-danger d-none" id="kompartemen-error">Pilih minimal satu kompartemen</small>
             </div>
 
             <hr>
@@ -179,7 +168,7 @@
                 <a href="<?= base_url('workshop') ?>" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Kembali
                 </a>
-                <button type="submit" class="btn btn-primary">
+                <button type="submit" class="btn btn-primary" id="submitBtn">
                     <i class="fas fa-save"></i> Simpan Data
                 </button>
             </div>
@@ -191,19 +180,70 @@
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     
+    // --- 1. INISIALISASI TOM SELECT (SEARCH KARYAWAN) ---
+    new TomSelect("#employee_select", {
+        valueField: 'id',
+        labelField: 'text',
+        searchField: 'text',
+        placeholder: "Ketik nama atau NIK...",
+        maxOptions: 50,
+        
+        load: function(query, callback) {
+            if (query.length < 2) return callback(); 
+
+            var url = '<?= base_url('general-service/search-employees') ?>?search=' + encodeURIComponent(query);
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(json => {
+                    var results = json.map(function(item) {
+                        return {
+                            id: item.employee_number, 
+                            text: item.employee_name + ' (' + item.employee_number + ')',
+                            nama_asli: item.employee_name,
+                            nik_asli: item.employee_number
+                        };
+                    });
+                    callback(results);
+                })
+                .catch(() => { callback(); });
+        },
+        
+        render: {
+            option: function(data, escape) {
+                return '<div class="py-2 px-1">' +
+                        '<div class="font-weight-bold text-dark">' + escape(data.nama_asli) + '</div>' +
+                        '<div class="text-muted small">NIK: ' + escape(data.nik_asli) + '</div>' +
+                    '</div>';
+            },
+            item: function(data, escape) {
+                return '<div>' + escape(data.nama_asli) + ' (' + escape(data.nik_asli) + ')</div>';
+            }
+        },
+
+        onChange: function(value) {
+            var selectedData = this.options[value];
+            if(selectedData) {
+                document.getElementById('nama_karyawan').value = selectedData.nama_asli;
+                document.getElementById('nik_hidden').value = selectedData.nik_asli;
+                document.getElementById('nik_display').value = selectedData.nik_asli;
+            } else {
+                document.getElementById('nama_karyawan').value = '';
+                document.getElementById('nik_hidden').value = '';
+                document.getElementById('nik_display').value = '';
+            }
+        }
+    });
+
+    // --- 2. LOGIKA DIVISI & JOB SITE ---
     const divisiSelect = document.getElementById('divisi');
     const jobSiteSelect = document.getElementById('job_site');
-    const searchInput = document.getElementById('search_employee');
-    const employeeSelect = document.getElementById('employee_select');
-    const nikInput = document.getElementById('nik');
-    const namaInput = document.getElementById('nama_karyawan');
-    
-    let searchTimeout = null;
+    const siteIdInput = document.getElementById('site_id');
 
-    // ==================== DIVISI & JOB SITE ====================
     divisiSelect.addEventListener('change', function() {
         const divisiId = this.value;
         jobSiteSelect.innerHTML = '<option value="">Loading...</option>';
+        if(siteIdInput) siteIdInput.value = '';
 
         if (divisiId) {
             fetch('<?= base_url('general-service/get-site-by-divisi-code') ?>', {
@@ -218,7 +258,7 @@ document.addEventListener("DOMContentLoaded", function() {
             .then(data => {
                 let html = '<option value="">-- Pilih Job Site --</option>';
                 data.forEach(item => {
-                    html += `<option value="${item.name}">${item.name}</option>`;
+                    html += `<option value="${item.name}" data-site-id="${item.id || item.name}">${item.name}</option>`;
                 });
                 jobSiteSelect.innerHTML = html;
             })
@@ -231,103 +271,45 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
-    // ==================== EMPLOYEE SEARCH ====================
-    searchInput.addEventListener('input', function() {
-        const keyword = this.value.trim();
-        
-        // Clear timeout sebelumnya
-        clearTimeout(searchTimeout);
-        
-        // Jika kurang dari 2 karakter, reset dropdown
-        if (keyword.length < 2) {
-            employeeSelect.innerHTML = '<option value="">-- Ketik untuk mencari karyawan --</option>';
-            nikInput.value = '';
-            namaInput.value = '';
-            return;
-        }
-
-        // Show loading
-        employeeSelect.innerHTML = '<option value="">Mencari...</option>';
-
-        // Debounce: tunggu 300ms setelah user berhenti mengetik
-        searchTimeout = setTimeout(() => {
-            searchEmployees(keyword);
-        }, 300);
-    });
-
-    // Fungsi untuk search employees
-    function searchEmployees(keyword) {
-        console.log('Searching for:', keyword);
-        
-        fetch('<?= base_url('general-service/search-employees') ?>?search=' + encodeURIComponent(keyword), {
-            method: 'GET',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Results:', data);
-            
-            if (data.error) {
-                console.error('Error:', data.message);
-                employeeSelect.innerHTML = '<option value="">Error: ' + data.message + '</option>';
-                return;
-            }
-            
-            // Update dropdown dengan hasil
-            if (data.length === 0) {
-                employeeSelect.innerHTML = '<option value="">Tidak ada hasil ditemukan</option>';
-            } else {
-                let html = '<option value="">-- Pilih Karyawan --</option>';
-                data.forEach(emp => {
-                    html += `<option value="${emp.employee_number}" data-name="${emp.employee_name}">${emp.employee_name} (${emp.employee_number})</option>`;
-                });
-                employeeSelect.innerHTML = html;
-            }
-        })
-        .catch(error => {
-            console.error('Fetch error:', error);
-            employeeSelect.innerHTML = '<option value="">Error mengambil data</option>';
-        });
-    }
-
-    // Event ketika user memilih dari dropdown
-    employeeSelect.addEventListener('change', function() {
+    jobSiteSelect.addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
+        // Jika ada element site_id (hidden), isi nilainya
+        if(siteIdInput) {
+            siteIdInput.value = selectedOption.getAttribute('data-site-id') || this.value;
+        }
+    });
+
+    // --- 3. FORM VALIDATION ---
+    const form = document.getElementById('workshopForm');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', function(e) {
+        // Validasi Checkbox Kompartemen (Optional: jika wajib pilih minimal 1)
+        const checkboxes = document.querySelectorAll('.kompartemen-checkbox:checked');
+        const errorMsg = document.getElementById('kompartemen-error');
         
-        if (this.value) {
-            nikInput.value = this.value;
-            namaInput.value = selectedOption.getAttribute('data-name') || '';
-            console.log('Selected:', {
-                nik: this.value,
-                name: selectedOption.getAttribute('data-name')
-            });
+        /* Uncomment jika ingin mewajibkan minimal 1 checkbox
+        if (checkboxes.length === 0) {
+            e.preventDefault();
+            errorMsg.classList.remove('d-none');
+            // Scroll ke error message
+            errorMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
         } else {
-            nikInput.value = '';
-            namaInput.value = '';
+            errorMsg.classList.add('d-none');
         }
-    });
+        */
 
-    // ==================== PARKIR TOGGLE ====================
-    function toggleParkir(isAda) {
-        const inputLuas = document.getElementById('luasParkir');
-        if (isAda) {
-            inputLuas.readOnly = false;
-            inputLuas.focus();
-        } else {
-            inputLuas.value = 0;
-            inputLuas.readOnly = true;
+        // Validasi Karyawan
+        const employeeSelect = document.getElementById('employee_select');
+        if (!employeeSelect.value) {
+            e.preventDefault();
+            alert('Silakan pilih karyawan (PIC) terlebih dahulu!');
+            return false;
         }
-    }
 
-    // Event listener untuk radio parkir
-    document.getElementById('parkirAda')?.addEventListener('change', function() {
-        toggleParkir(true);
-    });
-    
-    document.getElementById('parkirTidak')?.addEventListener('change', function() {
-        toggleParkir(false);
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
     });
 });
 </script>

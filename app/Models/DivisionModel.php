@@ -5,6 +5,7 @@ use CodeIgniter\Model;
 
 class DivisionModel extends Model
 {
+    protected $DBGroup = 'pg';
     protected $table = 'divisions';
     protected $primaryKey = 'id';
     protected $returnType = 'array';
