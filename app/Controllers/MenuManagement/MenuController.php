@@ -19,18 +19,20 @@ class MenuController extends BaseController
 
     public function index()
     {
-        // Cek permission
         $permissions = session()->get('permissions') ?? [];
         if (!in_array('settings.view', $permissions) && !in_array('settings.edit', $permissions)) {
             return redirect()->to('/dashboard')->with('error', 'Anda tidak memiliki akses ke halaman ini');
         }
 
         $this->data['title'] = 'Manajemen Menu';
-        $this->data['menus'] = $this->menuModel
+
+        // ✅ Pakai key berbeda untuk data tabel di halaman ini
+        // $this->data['menus'] tetap dari BaseController untuk sidebar
+        $this->data['all_menus'] = $this->menuModel
             ->orderBy('parent_id', 'ASC')
             ->orderBy('sort_order', 'ASC')
             ->findAll();
-        
+
         return view('menus/index', $this->data);
     }
 

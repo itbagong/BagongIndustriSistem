@@ -107,11 +107,25 @@
                 <td class="item-value">Rp</td>
                 <td class="item-value"><?= number_format($karyawan['umk'], 0, ',', '.') ?></td>
             </tr>
+            <?php if($karyawan['tunjangan_tidak_tetap'] > 0): ?>
+            <tr>
+                <td class="item-label">Tunjangan Tidak Tetap</td>
+                <td class="item-value">Rp</td>
+                <td class="item-value"><?= number_format($karyawan['tunjangan_tidak_tetap'], 0, ',', '.') ?></td>
+            </tr>
+            <?php endif; ?>
             <?php if($karyawan['insentif_lain'] > 0): ?>
             <tr>
                 <td class="item-label">Insentif Lain</td>
                 <td class="item-value">Rp</td>
                 <td class="item-value"><?= number_format($karyawan['insentif_lain'], 0, ',', '.') ?></td>
+            </tr>
+            <?php endif; ?>
+            <?php if($karyawan['kompensasi'] > 0): ?>
+            <tr>
+                <td class="item-label">Kompensasi</td>
+                <td class="item-value">Rp</td>
+                <td class="item-value"><?= number_format($karyawan['kompensasi'], 0, ',', '.') ?></td>
             </tr>
             <?php endif; ?>
             <?php if(isset($karyawan['insentif_pulsa']) && $karyawan['insentif_pulsa'] > 0): ?>

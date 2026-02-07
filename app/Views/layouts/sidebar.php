@@ -10,44 +10,56 @@
         <?php foreach ($menus as $menu): ?>
 
             <?php
-            // Cek apakah menu ini aktif
             $currentUrl = uri_string();
-            $isActive = false;
-            
-            // Logika Active State
+            $isActive   = false;
+
             if (empty($menu['children'])) {
-                // Jika menu tunggal, cek route-nya persis atau mengandung
-                $isActive = (strpos($currentUrl, trim($menu['route'], '/')) !== false);
+                // Menu tunggal: cek route, skip kalau kosong atau '#'
+                $route = trim($menu['route'] ?? '', '/');
+                if ($route !== '' && $route !== '#') {
+                    $isActive = (strpos($currentUrl, $route) !== false);
+                }
             } else {
-                // Jika punya anak, Parent jadi aktif KALO salah satu anaknya aktif
+                // Parent: aktif kalau salah satu anak-nya aktif
                 foreach ($menu['children'] as $child) {
-                    if (strpos($currentUrl, trim($child['route'], '/')) !== false) {
-                        $isActive = true;
-                        break; 
+                    $childRoute = trim($child['route'] ?? '', '/');
+                    if ($childRoute !== '' && $childRoute !== '#') {
+                        if (strpos($currentUrl, $childRoute) !== false) {
+                            $isActive = true;
+                            break;
+                        }
                     }
                 }
             }
             ?>
 
             <?php if (empty($menu['children'])): ?>
-                <a href="<?= $menu['route'] ? base_url($menu['route']) : '#' ?>" class="menu-item <?= $isActive ? 'active' : '' ?>">
-                    <span class="icon"><i class="<?= esc($menu['icon']) ?>"></i></span> <span class="text"><?= esc($menu['name']) ?></span>
+                <!-- Menu tunggal (tanpa submenu) -->
+                <a href="<?= ($menu['route'] && $menu['route'] !== '#') ? base_url($menu['route']) : '#' ?>" 
+                   class="menu-item <?= $isActive ? 'active' : '' ?>">
+                    <span class="icon"><i class="<?= esc($menu['icon']) ?>"></i></span>
+                    <span class="text"><?= esc($menu['name']) ?></span>
                 </a>
 
             <?php else: ?>
-                <div class="menu-group <?= $isActive ? 'active open' : '' ?>"> 
+                <!-- Menu parent (ada submenu) -->
+                <div class="menu-group <?= $isActive ? 'active open' : '' ?>">
                     <div class="menu-item has-submenu" onclick="toggleMenu(this)">
                         <span class="icon"><i class="<?= esc($menu['icon']) ?>"></i></span>
                         <span class="text"><?= esc($menu['name']) ?></span>
-                        <span class="arrow">▼</span> 
+                        <span class="arrow">▼</span>
                     </div>
 
                     <div class="submenu" style="<?= $isActive ? 'display:block' : 'display:none' ?>">
                         <?php foreach ($menu['children'] as $child): ?>
-                            <?php 
-                            $childActive = (strpos($currentUrl, trim($child['route'], '/')) !== false); 
+                            <?php
+                            $childRoute  = trim($child['route'] ?? '', '/');
+                            $childActive = ($childRoute !== '' && $childRoute !== '#')
+                                ? (strpos($currentUrl, $childRoute) !== false)
+                                : false;
                             ?>
-                            <a href="<?= $child['route'] ? base_url($child['route']) : '#' ?>" class="menu-item <?= $childActive ? 'active' : '' ?>">
+                            <a href="<?= ($child['route'] && $child['route'] !== '#') ? base_url($child['route']) : '#' ?>" 
+                               class="menu-item <?= $childActive ? 'active' : '' ?>">
                                 <span class="icon"><i class="<?= esc($child['icon']) ?>"></i></span>
                                 <span class="text"><?= esc($child['name']) ?></span>
                             </a>
@@ -61,18 +73,15 @@
 
 <script>
 function toggleMenu(element) {
-    // Cari parent .menu-group
-    let parent = element.closest('.menu-group');
+    let parent  = element.closest('.menu-group');
     let submenu = parent.querySelector('.submenu');
-    
-    // Toggle class active
+
     parent.classList.toggle('active');
-    
-    // Toggle display submenu (bisa diganti dengan slideToggle jQuery kalau pakai)
-    if (submenu.style.display === "block") {
-        submenu.style.display = "none";
+
+    if (submenu.style.display === 'block') {
+        submenu.style.display = 'none';
     } else {
-        submenu.style.display = "block";
+        submenu.style.display = 'block';
     }
 }
 </script>

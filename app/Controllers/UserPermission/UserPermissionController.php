@@ -48,7 +48,7 @@ class UserPermissionController extends BaseController
      */
     public function edit($userId)
     {
-        if (!in_array('user_permission.view', session()->get('permissions') ?? [], true)) {
+        if (!in_array('userpermission.view', session()->get('permissions') ?? [], true)) {
             return redirect()->to('/dashboard')->with('error', 'Akses ditolak');
         }
 
@@ -85,7 +85,7 @@ class UserPermissionController extends BaseController
     public function update($userId)
     {
         // Cek permission
-        if (!in_array('user_permission.view', session()->get('permissions') ?? [], true)) {
+        if (!in_array('userpermission.view', session()->get('permissions') ?? [], true)) {
             return $this->response->setJSON([
                 'success' => false, 
                 'message' => 'Akses ditolak'
@@ -153,7 +153,7 @@ class UserPermissionController extends BaseController
      */
     public function remove($userId, $permissionId)
     {
-        if (!in_array('user_permission.view', session()->get('permissions') ?? [], true)) {
+        if (!in_array('userpermission.view', session()->get('permissions') ?? [], true)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Akses ditolak'])->setStatusCode(403);
         }
 

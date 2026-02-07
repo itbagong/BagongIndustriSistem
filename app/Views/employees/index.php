@@ -11,6 +11,10 @@
                     <h1>Manajemen Karyawan</h1>
                 </div>
                 <div class="header-actions">
+                    <button class="btn btn-warning" onclick="openImportModal()">
+                        <span class="btn-icon">📤</span>
+                        Import Excel
+                    </button>
                     <button class="btn btn-success" onclick="exportData()">
                         <span class="btn-icon">📥</span>
                         Export Excel
@@ -140,6 +144,85 @@
 
 
        
+    </div>
+
+    <!-- Import Excel Modal -->
+    <div class="modal" id="importModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📤 Import Data Karyawan dari Excel</h2>
+                <button class="modal-close" onclick="closeModal('importModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="import-info">
+                    <h4>📋 Petunjuk Import:</h4>
+                    <ul>
+                        <li>File harus berformat <strong>.xlsx</strong></li>
+                        <li>Sheet harus bernama <strong>"Employees"</strong></li>
+                        <li>Pastikan kolom sesuai dengan template yang disediakan</li>
+                        <li>Kolom wajib: NIK, Nama, Gender, Department</li>
+                    </ul>
+                    <a href="<?= base_url('assets/templates/template_employee_import.xlsx') ?>" class="btn btn-info btn-sm" download>
+                        <span class="btn-icon">📥</span>
+                        Download Template Excel
+                    </a>
+                </div>
+
+                <form id="importForm" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label>Pilih File Excel <span class="required">*</span></label>
+                        <div class="file-upload-wrapper">
+                            <input type="file" 
+                                   class="form-control" 
+                                   id="excelFile" 
+                                   name="file" 
+                                   accept=".xlsx,.xls" 
+                                   onchange="handleFileSelect(this)"
+                                   required>
+                            <div class="file-info" id="fileInfo" style="display:none; margin-top: 10px;">
+                                <span class="file-name"></span>
+                                <span class="file-size"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="overwriteData" name="overwrite" value="1">
+                            <span>Hapus semua data lama sebelum import (Truncate)</span>
+                        </label>
+                        <small class="text-warning">⚠️ Hati-hati! Opsi ini akan menghapus SEMUA data karyawan yang ada</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="verboseLog" name="verbose" value="1">
+                            <span>Tampilkan log detail (verbose mode)</span>
+                        </label>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div id="importProgress" style="display:none;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                        </div>
+                        <div class="progress-text" id="progressText">Memproses...</div>
+                    </div>
+
+                    <!-- Import Result -->
+                    <div id="importResult" style="display:none;">
+                        <!-- Result will be shown here -->
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('importModal')">Batal</button>
+                <button class="btn btn-primary" onclick="startImport()" id="btnImport">
+                    <span class="btn-icon">📤</span>
+                    Mulai Import
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Add/Edit Employee Modal -->
@@ -367,5 +450,290 @@
             </div>
         </div>
     </div>
-    <script src="<?= base_url('assets/js/employee.js?v=1') ?>"></script>
+
+    <script src="<?= base_url('assets/js/employee.js?v=2') ?>"></script>
+    <script>
+    // Import Modal Functions
+    function openImportModal() {
+        document.getElementById('importModal').classList.add('show');
+        resetImportForm();
+    }
+
+    function resetImportForm() {
+        document.getElementById('importForm').reset();
+        document.getElementById('fileInfo').style.display = 'none';
+        document.getElementById('importProgress').style.display = 'none';
+        document.getElementById('importResult').style.display = 'none';
+        document.getElementById('btnImport').disabled = false;
+    }
+
+    function handleFileSelect(input) {
+        const fileInfo = document.getElementById('fileInfo');
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const fileSize = (file.size / 1024).toFixed(2); // KB
+            
+            fileInfo.querySelector('.file-name').textContent = `📄 ${file.name}`;
+            fileInfo.querySelector('.file-size').textContent = `(${fileSize} KB)`;
+            fileInfo.style.display = 'block';
+        } else {
+            fileInfo.style.display = 'none';
+        }
+    }
+
+    async function startImport() {
+        const fileInput = document.getElementById('excelFile');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            alert('Pilih file Excel terlebih dahulu!');
+            return;
+        }
+
+        if (!file.name.match(/\.(xlsx|xls)$/)) {
+            alert('File harus berformat .xlsx atau .xls');
+            return;
+        }
+
+        const overwrite = document.getElementById('overwriteData').checked ? '1' : '0';
+        const verbose = document.getElementById('verboseLog').checked ? '1' : '0';
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // Show progress
+        document.getElementById('importProgress').style.display = 'block';
+        document.getElementById('importResult').style.display = 'none';
+        document.getElementById('btnImport').disabled = true;
+
+        updateProgress(10, 'Mengunggah file...');
+
+        try {
+            const response = await fetch(`<?= base_url('api/import-employee') ?>?overwrite=${overwrite}&verbose=${verbose}`, {
+                method: 'POST',
+                body: formData
+            });
+
+            updateProgress(90, 'Memproses data...');
+
+            const result = await response.json();
+
+            updateProgress(100, 'Selesai!');
+
+            setTimeout(() => {
+                showImportResult(result);
+            }, 500);
+
+        } catch (error) {
+            console.error('Import error:', error);
+            showImportError(error.message);
+        }
+    }
+
+    function updateProgress(percent, text) {
+        document.getElementById('progressFill').style.width = percent + '%';
+        document.getElementById('progressText').textContent = text + ' (' + percent + '%)';
+    }
+
+    function showImportResult(result) {
+        document.getElementById('importProgress').style.display = 'none';
+        const resultDiv = document.getElementById('importResult');
+        
+        if (result.success) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <h4>✅ Import Berhasil!</h4>
+                    <div class="import-stats">
+                        <div class="stat-item">
+                            <span class="label">Data Baru:</span>
+                            <span class="value">${result.data.inserted}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="label">Data Diupdate:</span>
+                            <span class="value">${result.data.updated}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="label">Data Dilewati:</span>
+                            <span class="value">${result.data.skipped}</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-success btn-sm" onclick="closeModal('importModal'); loadEmployees();">
+                        Tutup & Refresh Data
+                    </button>
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <h4>❌ Import Gagal</h4>
+                    <p>${result.message || 'Terjadi kesalahan saat import'}</p>
+                </div>
+            `;
+        }
+        
+        resultDiv.style.display = 'block';
+        document.getElementById('btnImport').disabled = false;
+    }
+
+    function showImportError(message) {
+        document.getElementById('importProgress').style.display = 'none';
+        const resultDiv = document.getElementById('importResult');
+        
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <h4>❌ Error</h4>
+                <p>${message}</p>
+            </div>
+        `;
+        
+        resultDiv.style.display = 'block';
+        document.getElementById('btnImport').disabled = false;
+    }
+    </script>
+
+    <style>
+    /* Import Modal Styles */
+    .import-info {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    .import-info h4 {
+        margin-top: 0;
+        color: #333;
+    }
+
+    .import-info ul {
+        margin: 10px 0;
+        padding-left: 20px;
+    }
+
+    .import-info li {
+        margin: 5px 0;
+        color: #666;
+    }
+
+    .file-upload-wrapper {
+        margin-top: 5px;
+    }
+
+    .file-info {
+        background: #e8f5e9;
+        padding: 10px;
+        border-radius: 5px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .file-name {
+        font-weight: 500;
+        color: #2e7d32;
+    }
+
+    .file-size {
+        color: #666;
+        font-size: 0.9em;
+    }
+
+    .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    .progress-bar {
+        width: 100%;
+        height: 30px;
+        background: #e0e0e0;
+        border-radius: 15px;
+        overflow: hidden;
+        margin-bottom: 10px;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #4CAF50, #66BB6A);
+        transition: width 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 500;
+    }
+
+    .progress-text {
+        text-align: center;
+        color: #666;
+        font-size: 0.9em;
+    }
+
+    .alert {
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 15px;
+    }
+
+    .alert-success {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+
+    .alert-danger {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+
+    .alert h4 {
+        margin-top: 0;
+        margin-bottom: 10px;
+    }
+
+    .import-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin: 15px 0;
+    }
+
+    .stat-item {
+        background: white;
+        padding: 10px;
+        border-radius: 5px;
+        text-align: center;
+    }
+
+    .stat-item .label {
+        display: block;
+        font-size: 0.85em;
+        color: #666;
+        margin-bottom: 5px;
+    }
+
+    .stat-item .value {
+        display: block;
+        font-size: 1.5em;
+        font-weight: bold;
+        color: #2e7d32;
+    }
+
+    .text-warning {
+        color: #856404;
+        font-size: 0.9em;
+        margin-top: 5px;
+        display: block;
+    }
+    </style>
+
  <?= $this->endSection() ?>

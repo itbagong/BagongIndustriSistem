@@ -6,168 +6,162 @@ use CodeIgniter\Model;
 
 class EmployeeModel extends Model
 {
-    protected $table = 'employees';
+    protected $DBGroup = 'pg';
+    protected $table = 'employees_recruitment';
     protected $primaryKey = 'id';
-    protected $useAutoIncrement = true;
     protected $returnType = 'array';
-    protected $useSoftDeletes = true;
+    protected $useSoftDeletes = false;
     protected $protectFields = true;
+
     protected $allowedFields = [
-        'nik', 'nama', 'gender', 'department_id', 'division_id', 'position_id',
-        'golongan', 'employment_type_id', 'employee_status', 'tanggal_pkwt',
-        'tanggal_resign', 'tanggal_join', 'tanggal_permanent', 'national_id',
-        'phone_number', 'email_personal', 'place_of_birth', 'birth_date',
-        'religion', 'marital_status', 'blood_type', 'last_education',
-        'education_major', 'address_ktp', 'address_domicile', 'city',
-        'province', 'postal_code', 'site_id', 'place_of_hire',
-        'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relation',
-        'bank_name', 'bank_account_number', 'bank_account_name',
-        'bpjs_kesehatan', 'bpjs_ketenagakerjaan', 'npwp', 'photo_url',
-        'notes', 'created_by', 'updated_by'
+        'bis_id',
+        'employee_number',
+        'employee_name',
+        'employee_national_id',
+        'gender',
+        'department',
+        'division',
+        'job_level',
+        'sub_job_level',
+        'group_level',
+        'employment_status',
+        'employee_status',
+        'join_date',
+        'site_name',
+        'place_of_hire',
+        'phone_number',
+        'place_of_birth',
+        'birth_date',
+        'address',
+        'employment_status_remark',
+        'emergency_contact_name',
+        'emergency_number',
+        'blood_type',
+        'marital_status',
+        'religion'
     ];
 
-    protected $useTimestamps = true;
-    protected $createdField = 'created_at';
-    protected $updatedField = 'updated_at';
-    protected $deletedField = 'deleted_at';
-
-    /**
-     * Get filtered employees with joins
-     */
-    public function getFilteredWithJoins($filters = [])
+    /* =====================================================
+     * LIST + FILTER + PAGINATION
+     * ===================================================== */
+    public function getFiltered(array $filters = []): array
     {
-        $builder = $this->db->table($this->table)
-            ->select('employees.*, 
-                     departments.name as department_name,
-                     divisions.name as division_name,
-                     positions.name as position_name,
-                     employment_types.name as employment_type_name,
-                     sites.name as site_name')
-            ->join('departments', 'departments.id = employees.department_id', 'left')
-            ->join('divisions', 'divisions.id = employees.division_id', 'left')
-            ->join('positions', 'positions.id = employees.position_id', 'left')
-            ->join('employment_types', 'employment_types.id = employees.employment_type_id', 'left')
-            ->join('sites', 'sites.id = employees.site_id', 'left')
-            ->where('employees.deleted_at', null);
+        $builder = $this->db->table('employees_recruitment e')
+            ->select([
+                'e.id',
+                'e.employee_number',
+                'e.employee_name',
+                'g.name AS gender',
+                'd.name AS department',
+                'dv.name AS division',
+                'e.job_level',
+                'e.group_level',
+                'es.name AS employment_status',
+                'est.name AS employee_status',
+                "to_char(e.join_date,'YYYY-MM-DD') AS join_date",
+                'e.site_name'
+            ])
+            ->join('genders g', 'g.id = e.gender', 'left')
+            ->join('departments d', 'd.id = e.department', 'left')
+            ->join('divisions dv', 'dv.id = e.division', 'left')
+            ->join('employment_statuses es', 'es.id = e.employment_status', 'left')
+            ->join('employee_statuses est', 'est.id = e.employee_status', 'left');
 
-        // Search
+        /* ---------- SEARCH ---------- */
         if (!empty($filters['search'])) {
-            $search = $filters['search'];
+            $q = strtolower(trim($filters['search']));
             $builder->groupStart()
-                    ->like('employees.nik', $search)
-                    ->orLike('employees.nama', $search)
-                    ->orLike('positions.name', $search)
-                    ->orLike('departments.name', $search)
-                    ->groupEnd();
+                ->like('LOWER(e.employee_name)', $q)
+                ->orLike('LOWER(e.employee_number)', $q)
+                ->orLike('LOWER(e.bis_id)', $q)
+                ->groupEnd();
         }
 
-        // Filters
+        /* ---------- FILTER ---------- */
         if (!empty($filters['department'])) {
-            $builder->where('employees.department_id', $filters['department']);
+            $builder->where('e.department', $filters['department']);
         }
 
         if (!empty($filters['employment_status'])) {
-            $builder->where('employees.employment_type_id', $filters['employment_status']);
+            $builder->where('e.employment_status', $filters['employment_status']);
         }
 
         if (!empty($filters['employee_status'])) {
-            $builder->where('employees.employee_status', $filters['employee_status']);
+            $builder->where('e.employee_status', $filters['employee_status']);
         }
 
+        /* ---------- COUNT ---------- */
         $total = $builder->countAllResults(false);
 
-        // Pagination
-        $perPage = $filters['per_page'] ?? 10;
-        $page = $filters['page'] ?? 1;
-        $offset = ($page - 1) * $perPage;
+        /* ---------- PAGINATION ---------- */
+        $page    = (int)($filters['page'] ?? 1);
+        $perPage = (int)($filters['per_page'] ?? 10);
+        $offset  = ($page - 1) * $perPage;
 
-        $data = $builder->limit($perPage, $offset)->get()->getResultArray();
+        $data = $builder
+            ->orderBy('e.employee_name', 'ASC')
+            ->limit($perPage, $offset)
+            ->get()
+            ->getResultArray();
 
         return [
             'data' => $data,
-            'total' => $total
+            'pagination' => [
+                'page' => $page,
+                'per_page' => $perPage,
+                'total' => $total,
+                'total_pages' => (int) ceil($total / max(1, $perPage))
+            ]
         ];
     }
 
-    /**
-     * Get employee detail with all relations
-     */
-    public function getEmployeeDetailWithRelations($id)
+    /* =====================================================
+     * DETAIL
+     * ===================================================== */
+    public function getDetail(string $id): ?array
     {
-        return $this->db->table($this->table)
-            ->select('employees.*, 
-                     departments.name as department_name,
-                     divisions.name as division_name,
-                     positions.name as position_name, positions.level as position_level,
-                     employment_types.name as employment_type_name,
-                     sites.name as site_name, sites.type as site_type,
-                     creator.username as created_by_name,
-                     updater.username as updated_by_name')
-            ->join('departments', 'departments.id = employees.department_id', 'left')
-            ->join('divisions', 'divisions.id = employees.division_id', 'left')
-            ->join('positions', 'positions.id = employees.position_id', 'left')
-            ->join('employment_types', 'employment_types.id = employees.employment_type_id', 'left')
-            ->join('sites', 'sites.id = employees.site_id', 'left')
-            ->join('users as creator', 'creator.id = employees.created_by', 'left')
-            ->join('users as updater', 'updater.id = employees.updated_by', 'left')
-            ->where('employees.id', $id)
-            ->where('employees.deleted_at', null)
+        return $this->db->table('employees_recruitment e')
+            ->select([
+                'e.*',
+                'd.name AS department',
+                'dv.name AS division',
+                'es.name AS employment_status',
+                'est.name AS employee_status'
+            ])
+            ->join('departments d', 'd.id = e.department', 'left')
+            ->join('divisions dv', 'dv.id = e.division', 'left')
+            ->join('employment_statuses es', 'es.id = e.employment_status', 'left')
+            ->join('employee_statuses est', 'est.id = e.employee_status', 'left')
+            ->where('e.id', $id)
             ->get()
             ->getRowArray();
     }
 
-    /**
-     * Get statistics
-     */
-    public function getStatistics()
+    /* =====================================================
+     * STATISTICS
+     * ===================================================== */
+    public function getStatistics(): array
     {
-        $total = $this->countAllResults(false);
-        $active = $this->where('employee_status', 'Active')->countAllResults(false);
-        $inactive = $this->where('employee_status', 'Inactive')->countAllResults(false);
-        
-        $firstDayOfMonth = date('Y-m-01');
-        $newThisMonth = $this->where('tanggal_join >=', $firstDayOfMonth)
-                             ->countAllResults();
+        $total = (int) $this->countAllResults();
+
+        $active = (int) ($this->db->query("
+            SELECT COUNT(*) cnt
+            FROM employees_recruitment e
+            JOIN employee_statuses es ON es.id = e.employee_status
+            WHERE UPPER(es.name) LIKE '%ACTIVE%'
+        ")->getRow()->cnt ?? 0);
+
+        $newThisMonth = (int) ($this->db->query("
+            SELECT COUNT(*) cnt
+            FROM employees_recruitment
+            WHERE to_char(join_date,'YYYY-MM') = to_char(NOW(),'YYYY-MM')
+        ")->getRow()->cnt ?? 0);
 
         return [
             'total' => $total,
             'active' => $active,
-            'inactive' => $inactive,
+            'inactive' => max(0, $total - $active),
             'new_this_month' => $newThisMonth
         ];
-    }
-
-    /**
-     * Export data with filters
-     */
-    public function exportData($filters = [])
-    {
-        $builder = $this->db->table($this->table)
-            ->select('employees.*, 
-                     departments.name as department_name,
-                     divisions.name as division_name,
-                     positions.name as position_name,
-                     employment_types.name as employment_type_name,
-                     sites.name as site_name')
-            ->join('departments', 'departments.id = employees.department_id', 'left')
-            ->join('divisions', 'divisions.id = employees.division_id', 'left')
-            ->join('positions', 'positions.id = employees.position_id', 'left')
-            ->join('employment_types', 'employment_types.id = employees.employment_type_id', 'left')
-            ->join('sites', 'sites.id = employees.site_id', 'left')
-            ->where('employees.deleted_at', null);
-
-        if (!empty($filters['search'])) {
-            $builder->like('employees.nama', $filters['search']);
-        }
-
-        if (!empty($filters['department'])) {
-            $builder->where('employees.department_id', $filters['department']);
-        }
-
-        if (!empty($filters['employee_status'])) {
-            $builder->where('employees.employee_status', $filters['employee_status']);
-        }
-
-        return $builder->get()->getResultArray();
     }
 }
