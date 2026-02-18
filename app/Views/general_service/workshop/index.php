@@ -165,7 +165,7 @@
             </div>
 
             <div class="form-group mt-4 text-right">
-                <a href="<?= base_url('workshop') ?>" class="btn btn-secondary">
+                <a href="<?= base_url('general-service?tab=workshop') ?>" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Kembali
                 </a>
                 <button type="submit" class="btn btn-primary" id="submitBtn">
@@ -191,7 +191,7 @@ document.addEventListener("DOMContentLoaded", function() {
         load: function(query, callback) {
             if (query.length < 2) return callback(); 
 
-            var url = '<?= base_url('general-service/search-employees') ?>?search=' + encodeURIComponent(query);
+            var url = '<?= base_url('general-service/ajax/search-employees') ?>?search=' + encodeURIComponent(query);
             
             fetch(url)
                 .then(response => response.json())
@@ -246,7 +246,7 @@ document.addEventListener("DOMContentLoaded", function() {
         if(siteIdInput) siteIdInput.value = '';
 
         if (divisiId) {
-            fetch('<?= base_url('general-service/get-site-by-divisi-code') ?>', {
+            fetch('<?= base_url('general-service/ajax/get-site-by-divisi-code') ?>', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -258,7 +258,7 @@ document.addEventListener("DOMContentLoaded", function() {
             .then(data => {
                 let html = '<option value="">-- Pilih Job Site --</option>';
                 data.forEach(item => {
-                    html += `<option value="${item.name}" data-site-id="${item.id || item.name}">${item.name}</option>`;
+                    html += `<option value="${item.id}" data-site-id="${item.id || item.name}">${item.name}</option>`;
                 });
                 jobSiteSelect.innerHTML = html;
             })

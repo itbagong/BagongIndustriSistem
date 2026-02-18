@@ -9,11 +9,34 @@ class SlipGajiModel extends Model
     protected $table = 'slip_gaji';
     protected $primaryKey = 'id';
     protected $allowedFields = [
-        'nomor_slip','tanggal_slip', 'nik', 'nama', 'jabatan', 'status', 'bulan', 'site',
-        'umk','tunjangan_tidak_tetap', 'insentif_lain', 'kompensasi',
-        'insentif_lembur', 'insentif_makan', 'uang_tunggu', 'gaji_prorate',
-        'total_pendapatan', 'bpjs_kes', 'bpjs_tk', 'pot_pph21', 'lainnya',
-        'total_pot', 'gaji_bersih', 'email', 'status_kirim', 'tanggal_kirim'
+        'nomor_slip',
+        'tanggal_slip', 
+        'nik', 
+        'nama', 
+        'jabatan', 
+        'status', 
+        'bulan', 
+        'site',
+        'umk',
+        'tunjangan_tidak_tetap',
+        'insentif_pulsa', 
+        'insentif_cuci_unit',
+        'insentif_lain', 
+        'kompensasi',
+        'insentif_lembur', 
+        'insentif_makan', 
+        'uang_tunggu', 
+        'gaji_prorate',
+        'total_pendapatan', 
+        'bpjs_kes', 
+        'bpjs_tk', 
+        'pot_pph21', 
+        'lainnya',
+        'total_pot', 
+        'gaji_bersih', 
+        'email', 
+        'status_kirim', 
+        'tanggal_kirim'
     ];
     protected $useTimestamps = true;
 }

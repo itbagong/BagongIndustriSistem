@@ -26,12 +26,31 @@ class MenuController extends BaseController
 
         $this->data['title'] = 'Manajemen Menu';
 
-        // ✅ Pakai key berbeda untuk data tabel di halaman ini
-        // $this->data['menus'] tetap dari BaseController untuk sidebar
-        $this->data['all_menus'] = $this->menuModel
-            ->orderBy('parent_id', 'ASC')
+        // ✅ Ambil parent menu dulu
+        $parents = $this->menuModel
+            ->where('parent_id', null)
             ->orderBy('sort_order', 'ASC')
             ->findAll();
+
+        // ✅ Untuk setiap parent, ambil child-nya
+        $allMenus = [];
+        foreach ($parents as $parent) {
+            // Tambahkan parent ke array
+            $allMenus[] = $parent;
+            
+            // Ambil semua child dari parent ini
+            $children = $this->menuModel
+                ->where('parent_id', $parent['id'])
+                ->orderBy('sort_order', 'ASC')
+                ->findAll();
+            
+            // Tambahkan semua children ke array
+            foreach ($children as $child) {
+                $allMenus[] = $child;
+            }
+        }
+
+        $this->data['all_menus'] = $allMenus;
 
         return view('menus/index', $this->data);
     }

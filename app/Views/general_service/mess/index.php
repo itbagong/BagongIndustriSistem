@@ -213,7 +213,7 @@ document.addEventListener("DOMContentLoaded", function() {
             if (query.length < 2) return callback(); 
 
             // URL Endpoint API
-            var url = '<?= base_url('general-service/search-employees') ?>?search=' + encodeURIComponent(query);
+            var url = '<?= base_url('general-service/ajax/search-employees') ?>?search=' + encodeURIComponent(query);
             
             fetch(url)
                 .then(response => response.json())
@@ -281,7 +281,7 @@ document.addEventListener("DOMContentLoaded", function() {
         siteIdInput.value = '';
 
         if (divisiId) {
-            fetch('<?= base_url('general-service/get-site-by-divisi-code') ?>', {
+            fetch('<?= base_url('general-service/ajax/get-site-by-divisi-code') ?>', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',

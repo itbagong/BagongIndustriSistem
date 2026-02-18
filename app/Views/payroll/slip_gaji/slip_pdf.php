@@ -128,13 +128,6 @@
                 <td class="item-value"><?= number_format($karyawan['kompensasi'], 0, ',', '.') ?></td>
             </tr>
             <?php endif; ?>
-            <?php if(isset($karyawan['insentif_pulsa']) && $karyawan['insentif_pulsa'] > 0): ?>
-            <tr>
-                <td class="item-label">Insentif Pulsa</td>
-                <td class="item-value">Rp</td>
-                <td class="item-value"><?= number_format($karyawan['insentif_pulsa'], 0, ',', '.') ?></td>
-            </tr>
-            <?php endif; ?>
             <?php if(isset($karyawan['kompensasi_cuti']) && $karyawan['kompensasi_cuti'] > 0): ?>
             <tr>
                 <td class="item-label">Kompensasi Cuti</td>
@@ -154,6 +147,20 @@
                 <td class="item-label">Insentif Makan</td>
                 <td class="item-value">Rp</td>
                 <td class="item-value"><?= number_format($karyawan['insentif_makan'], 0, ',', '.') ?></td>
+            </tr>
+            <?php endif; ?>
+            <?php if(isset($karyawan['insentif_pulsa']) && $karyawan['insentif_pulsa'] > 0): ?>
+            <tr>
+                <td class="item-label">Insentif Pulsa</td>
+                <td class="item-value">Rp</td>
+                <td class="item-value"><?= number_format($karyawan['insentif_pulsa'], 0, ',', '.') ?></td>
+            </tr>
+            <?php endif; ?>
+            <?php if(isset($karyawan['insentif_cuci_unit']) && $karyawan['insentif_cuci_unit'] > 0): ?>
+            <tr>
+                <td class="item-label">Insentif Cuci Unit</td>
+                <td class="item-value">Rp</td>
+                <td class="item-value"><?= number_format($karyawan['insentif_cuci_unit'], 0, ',', '.') ?></td>
             </tr>
             <?php endif; ?>
             <?php if(isset($karyawan['uang_tunggu']) && $karyawan['uang_tunggu'] > 0): ?>
@@ -239,7 +246,7 @@
                         <?php endif; ?>
 
                         <div style="padding-right:25px;">
-                            ( Tis'ah Amalia )
+                            ( Zahwa Salsabila )
                         </div>
                     </td>
                 </tr>

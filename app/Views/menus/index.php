@@ -25,19 +25,20 @@
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($menus as $m): ?>
-                    <tr style="<?= $m['parent_id'] ? 'background-color: #f9f9f9;' : '' ?>">
+                <?php foreach ($all_menus as $m): ?>
+                    <tr style="<?= !empty($m['parent_id']) ? 'background-color: #f9f9f9;' : '' ?>">
                         <td class="text-center">
                             <i class="<?= esc($m['icon']) ?> fa-lg text-secondary"></i>
                         </td>
                         <td>
-                            <?php if($m['parent_id']): ?>
-                                <span class="text-muted ml-3">↳ </span> <?php endif; ?>
+                            <?php if(!empty($m['parent_id'])): ?>
+                                <span class="text-muted ml-3">↳ </span>
+                            <?php endif; ?>
                             <strong><?= esc($m['name']) ?></strong>
                         </td>
                         <td><code><?= esc($m['route']) ?></code></td>
                         <td>
-                            <?php if($m['permission']): ?>
+                            <?php if(!empty($m['permission'])): ?>
                                 <span class="badge badge-warning"><?= esc($m['permission']) ?></span>
                             <?php else: ?>
                                 <span class="badge badge-success">Public</span>

@@ -30,8 +30,9 @@ class FasilityController extends BaseApiController {
 
         // ================= MESS =================
         $messBuilder = $this->messModel
-            ->select('mess_data.*, divisions.name AS divisi_name')
+            ->select('mess_data.*, divisions.name AS divisi_name, sites.name AS site_name')
             ->join('divisions', 'divisions.id = mess_data.divisi_id', 'left')
+            ->join('sites', 'sites.id = mess_data.site_id', 'left')
             ->where('mess_data.is_deleted', false);
 
         if ($this->request->getGet('mess_divisi')) {
@@ -64,8 +65,9 @@ class FasilityController extends BaseApiController {
 
         // ================= WORKSHOP =================
         $workshopBuilder = $this->workshopModel
-            ->select('workshop.*, divisions.name AS divisi_name')
+            ->select('workshop.*, divisions.name AS divisi_name, sites.name AS site_name')
             ->join('divisions', 'divisions.id = workshop.divisi_id', 'left')
+            ->join('sites', 'sites.id = workshop.site_id', 'left')
             ->where('workshop.is_deleted', false);
 
         if ($this->request->getGet('workshop_divisi')) {
