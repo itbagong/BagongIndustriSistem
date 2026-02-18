@@ -4,15 +4,24 @@ namespace App\Controllers\GeneralService;
 
 use App\Controllers\BaseController;
 use App\Models\MessModel;
+use App\Services\Code\CodeGeneratorService;
+use App\Models\RepairRequestModel;
+use App\Models\DivisionModel;
 
 class MessController extends BaseController
 {
     protected $messModel;
     protected $helpers = ['form', 'url', 'security'];
+    protected $codeService;
+    protected $repairRequestModel;
+    protected $divisiModel;
     
     public function __construct()
     {
         $this->messModel = new MessModel();
+        $this->codeService = new CodeGeneratorService();
+        $this->repairRequestModel = new RepairRequestModel();
+        $this->divisiModel = new DivisionModel();
     }
 
     /* =========================
@@ -30,8 +39,9 @@ class MessController extends BaseController
     {
         try {
             $mess = $this->messModel
-                ->select('mess_data.*, divisions.name AS divisi_name')
+                ->select('mess_data.*, divisions.name AS divisi_name, sites.name AS site_name')
                 ->join('divisions', 'divisions.id = mess_data.divisi_id', 'left')
+                ->join('sites', 'sites.id = mess_data.site_id', 'left')
                 ->where('mess_data.id', $id)
                 ->where('mess_data.is_deleted', 0)
                 ->first();
@@ -66,7 +76,6 @@ class MessController extends BaseController
             'divisi'              => 'required',
             'job_site'            => 'required',
             'site_id'             => 'permit_empty',
-            'employee_id'         => 'required',
             'nik'                 => 'required',
             'nama_karyawan'       => 'required',
             'luasan_mess'         => 'required|numeric|greater_than[0]',
@@ -85,9 +94,6 @@ class MessController extends BaseController
             ],
             'job_site' => [
                 'required' => 'Job Site harus dipilih'
-            ],
-            'employee_id' => [
-                'required' => 'Karyawan harus dipilih'
             ],
             'nik' => [
                 'required' => 'NIK karyawan harus terisi'
@@ -162,6 +168,17 @@ class MessController extends BaseController
 
         $now = date('Y-m-d H:i:s');
 
+        // ================= GENERATE CODE =================
+        try {
+            $messCode = $this->codeService->generateMess();
+        } catch (\Exception $e) {
+            log_message('error', 'Generate mess code failed: ' . $e->getMessage());
+            return redirect()->back()
+                ->withInput()
+                ->with('errors', ['general' => 'Gagal membuat kode mess. Hubungi admin.']);
+        }
+
+
         // ================= DATA INSERT =================
         $dataInsert = [
             'divisi_id'          => $divisiId,
@@ -178,7 +195,8 @@ class MessController extends BaseController
             'status_renovasi'    => $statusRenovasi,
             'created_at'         => $now,
             'updated_at'         => $now,
-            'is_deleted'         => 0
+            'is_deleted'         => 0,
+            'mess_code'          => $messCode,
         ];
 
         try {
@@ -210,7 +228,8 @@ class MessController extends BaseController
      * ========================= */
     public function edit($id)
     {
-        $divisiModel = new \App\Models\DivisionModel();
+        $divisiModel = new \App\Models\DivisionModel(); // atau sesuaikan nama model Anda
+        $repairModel = new \App\Models\RepairRequestModel(); // TAMBAHKAN INI
 
         $mess = $this->messModel
             ->select('mess_data.*, divisions.name AS divisi_name')
@@ -224,20 +243,72 @@ class MessController extends BaseController
                 ->with('error', 'Data mess tidak ditemukan');
         }
 
+        // ========================================
+        // AMBIL RIWAYAT PERBAIKAN UNTUK MESS INI
+        // ========================================
+        $existing_perbaikan = $repairModel
+            ->select('repair_requests.*, users.username as created_by_name')
+            ->join('users', 'users.id = repair_requests.created_by', 'left')
+            ->where('repair_requests.tipe_aset', 'Mess')
+            ->where('repair_requests.aset_id', $id)
+            ->where('repair_requests.deleted_at IS NULL', null, false) // Exclude soft deleted
+            ->orderBy('repair_requests.created_at', 'DESC')
+            ->findAll();
+
+        // Parse JSON fields untuk setiap item
+        if (!empty($existing_perbaikan)) {
+            foreach ($existing_perbaikan as &$item) {
+                // Parse foto_kerusakan
+                if (!empty($item['foto_kerusakan'])) {
+                    $decoded = json_decode($item['foto_kerusakan'], true);
+                    $item['foto_kerusakan_parsed'] = is_array($decoded) ? $decoded : [];
+                } else {
+                    $item['foto_kerusakan_parsed'] = [];
+                }
+
+                // Parse lampiran
+                if (!empty($item['lampiran'])) {
+                    $decoded = json_decode($item['lampiran'], true);
+                    $item['lampiran_parsed'] = is_array($decoded) ? $decoded : [];
+                } else {
+                    $item['lampiran_parsed'] = [];
+                }
+
+                // Parse foto_progress (jika ada)
+                if (!empty($item['foto_progress'])) {
+                    $decoded = json_decode($item['foto_progress'], true);
+                    $item['foto_progress_parsed'] = is_array($decoded) ? $decoded : [];
+                } else {
+                    $item['foto_progress_parsed'] = [];
+                }
+
+                // Parse foto_selesai (jika ada)
+                if (!empty($item['foto_selesai'])) {
+                    $decoded = json_decode($item['foto_selesai'], true);
+                    $item['foto_selesai_parsed'] = is_array($decoded) ? $decoded : [];
+                } else {
+                    $item['foto_selesai_parsed'] = [];
+                }
+            }
+        }
+
         // Data untuk form
         $this->data['title']       = 'Edit Data Mess';
         $this->data['mess']        = $mess;
         $this->data['divisi_list'] = $divisiModel->where('is_deleted', false)->findAll();
         
         // Job sites distinct untuk dropdown
-        $this->data['job_sites'] = $this->messModel
+        $this->data['site_list'] = $this->messModel
             ->select('site_id')
             ->where('site_id IS NOT NULL')
             ->where('site_id !=', '')
             ->distinct()
             ->findAll();
 
-        return view('general_service/mess_form', $this->data);
+        // TAMBAHKAN RIWAYAT PERBAIKAN KE DATA
+        $this->data['existing_perbaikan'] = $existing_perbaikan;
+
+        return view('general_service/mess/edit', $this->data);
     }
 
     /* =========================

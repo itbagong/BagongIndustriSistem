@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= esc($title ?? 'Dashboard') ?> - Bagong Industri Sistem</title>
+    
+    <!-- ATAU jika pakai PNG -->
+    <link rel="icon" type="image/png" sizes="32x32" href="<?= base_url('assets/images/logo.png') ?>">
 
     <!-- CUSTOM CSS -->
     <link rel="stylesheet" href="<?= base_url('assets/css/dashboard.css?v=1') ?>">
@@ -13,8 +16,6 @@
 
     <!-- BOOTSTRAP 4 CSS (WAJIB) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
-
-
 
     <!-- FONT AWESOME -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">

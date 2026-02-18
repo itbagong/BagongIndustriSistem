@@ -14,7 +14,7 @@ use Psr\Log\LoggerInterface;
 abstract class BaseController extends Controller
 {
     protected $request;
-    protected $helpers = ['url', 'form', 'text']; // Pastikan helper url dimuat
+    protected $helpers = ['url', 'form', 'text', 'api_response']; // Pastikan helper url dimuat
     
     // Variabel global agar bisa diakses di semua view
     protected $data = []; 

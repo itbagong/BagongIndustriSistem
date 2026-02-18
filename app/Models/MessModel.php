@@ -24,6 +24,7 @@ class MessModel extends Model
         'status_renovasi',
         'created_at',
         'updated_at',
-        'is_deleted'
+        'is_deleted',
+        'mess_code'
     ];
 }

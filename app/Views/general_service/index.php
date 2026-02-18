@@ -6,10 +6,10 @@
         <div class="d-flex justify-content-between align-items-center">
             <h1><i class="fas fa-building mr-2"></i>Data Aset General Service</h1>
             <div>
-                <button class="btn btn-primary" id="btnAddMess">
+                <button type="button" class="btn btn-primary" id="btnAddMess">
                     <i class="fas fa-plus"></i> Tambah Mess
                 </button>
-                <button class="btn btn-success" id="btnAddWorkshop">
+                <button type="button" class="btn btn-success" id="btnAddWorkshop">
                     <i class="fas fa-plus"></i> Tambah Workshop
                 </button>
             </div>
@@ -169,7 +169,7 @@
                             <thead class="table-light">
                                 <tr>
                                     <th width="40">No</th>
-                                    <th>Divisi</th>
+                                    <th>ID Mess</th>
                                     <th>Job Site</th>
                                     <th>Karyawan</th>
                                     <th>NIK</th>
@@ -192,8 +192,8 @@
                                     <?php foreach ($mess_data as $i => $mess): ?>
                                     <tr>
                                         <td><?= $i + 1 ?></td>
-                                        <td><small><?= esc($mess['divisi_name'] ?? '-') ?></small></td>
-                                        <td><small class="text-muted"><?= esc($mess['site_id'] ?? '-') ?></small></td>
+                                        <td><small><?= esc($mess['mess_code'] ?? '-') ?></small></td>
+                                        <td><small class="text-muted"><?= esc($mess['site_name'] ?? '-') ?></small></td>
                                         <td><strong><?= esc($mess['nama_karyawan'] ?? '-') ?></strong></td>
                                         <td><span class="badge badge-secondary"><?= esc($mess['nik'] ?? '-') ?></span></td>
                                         <td class="text-center"><strong><?= number_format($mess['luasan_mess'] ?? 0, 0) ?></strong> m²</td>
@@ -235,6 +235,12 @@
                                                         onclick="deleteMessData(<?= $mess['id'] ?>, '<?= esc($mess['nama_karyawan'] ?? '') ?>')"
                                                         data-toggle="tooltip" title="Hapus">
                                                     <i class="fas fa-trash"></i>
+                                                </button>
+                                                <!-- button download pengajuan perbaikan -->
+                                                <button type="button" class="btn btn-secondary btn-sm" 
+                                                        onclick="downloadPerbaikan(<?= $mess['id'] ?>)"
+                                                        data-toggle="tooltip" title="Download Pengajuan Perbaikan">
+                                                    <i class="fas fa-download"></i>
                                                 </button>
                                             </div>
                                         </td>
@@ -330,7 +336,7 @@
                             <thead class="table-light">
                                 <tr>
                                     <th width="40">No</th>
-                                    <th>Divisi</th>
+                                    <th>ID Workshop</th>
                                     <th>Job Site</th>
                                     <th>Karyawan</th>
                                     <th>NIK</th>
@@ -353,8 +359,8 @@
                                     <?php foreach($workshop_data as $index => $workshop): ?>
                                         <tr>
                                             <td><?= $index + 1 ?></td>
-                                            <td><small><?= esc($workshop['divisi_name'] ?? '-') ?></small></td>
-                                            <td><small class="text-muted"><?= esc($workshop['site_id'] ?? '-') ?></small></td>
+                                            <td><small><?= esc($workshop['workshop_code'] ?? '-') ?></small></td>
+                                            <td><small class="text-muted"><?= esc($workshop['site_name'] ?? '-') ?></small></td>
                                             
                                             <td><strong><?= esc($workshop['name_karyawan'] ?? '-') ?></strong></td>
                                             
@@ -399,6 +405,12 @@
                                                             onclick="deleteWorkshopData(<?= $workshop['id'] ?>, '<?= esc($workshop['name_karyawan'] ?? '') ?>')"
                                                             data-toggle="tooltip" title="Hapus">
                                                         <i class="fas fa-trash"></i>
+                                                    </button>
+                                                    <!-- button download pengajuan perbaikan -->
+                                                    <button type="button" class="btn btn-secondary btn-sm" 
+                                                            onclick="downloadPerbaikan(<?= $mess['id'] ?>)"
+                                                            data-toggle="tooltip" title="Download Pengajuan Perbaikan">
+                                                        <i class="fas fa-download"></i>
                                                     </button>
                                                 </div>
                                             </td>
@@ -479,6 +491,26 @@
             </button>
         </div>
     <?php endif; ?>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+
+            const btnMess = document.getElementById('btnAddMess');
+            const btnWorkshop = document.getElementById('btnAddWorkshop');
+
+            if (btnMess) {
+                btnMess.addEventListener('click', function () {
+                    window.location.href = '<?= base_url('general-service/mess') ?>';
+                });
+            }
+
+            if (btnWorkshop) {
+                btnWorkshop.addEventListener('click', function () {
+                    window.location.href = '<?= base_url('general-service/workshop') ?>';
+                });
+            }
+
+        });
+    </script>
 
     <script>
     $(document).ready(function() {
@@ -517,10 +549,7 @@
         }, 5000);
     });
 
-    // MESS Functions
-    document.getElementById('btnAddMess')?.addEventListener('click', function() {
-        window.location.href = '<?= base_url('general-service/mess/create') ?>';
-    });
+    
 
     function viewMessDetail(id) {
         $('#detailMessModal').modal('show');
@@ -542,7 +571,7 @@
                                     <tr><td width="140"><strong>Nama</strong></td><td>: ${mess.nama_karyawan || '-'}</td></tr>
                                     <tr><td><strong>NIK</strong></td><td>: ${mess.nik || '-'}</td></tr>
                                     <tr><td><strong>Divisi</strong></td><td>: ${mess.divisi_name || '-'}</td></tr>
-                                    <tr><td><strong>Job Site</strong></td><td>: ${mess.site_id || '-'}</td></tr>
+                                    <tr><td><strong>Job Site</strong></td><td>: ${mess.site_name || '-'}</td></tr>
                                 </table>
                             </div>
                             <div class="col-md-6">
@@ -586,11 +615,6 @@
         }
     }
 
-    // WORKSHOP Functions
-    document.getElementById('btnAddWorkshop')?.addEventListener('click', function() {
-        window.location.href = '<?= base_url('general-service/workshop/create') ?>';
-    });
-
     function viewWorkshopDetail(id) {
         $('#detailWorkshopModal').modal('show');
         
@@ -611,7 +635,7 @@
                                     <tr><td width="140"><strong>Nama</strong></td><td>: ${workshop.name_karyawan || '-'}</td></tr>
                                     <tr><td><strong>NIK</strong></td><td>: ${workshop.nik || '-'}</td></tr>
                                     <tr><td><strong>Divisi</strong></td><td>: ${workshop.divisi_name || '-'}</td></tr>
-                                    <tr><td><strong>Job Site</strong></td><td>: ${workshop.site_id || '-'}</td></tr>
+                                    <tr><td><strong>Job Site</strong></td><td>: ${workshop.site_name || '-'}</td></tr>
                                 </table>
                             </div>
                             <div class="col-md-6">

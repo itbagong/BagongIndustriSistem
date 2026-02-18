@@ -4,15 +4,19 @@ namespace App\Controllers\GeneralService;
 
 use App\Controllers\BaseController;
 use App\Models\WorkshopModel;
+use App\Services\Code\CodeGeneratorService;
+use App\Services\PermissionService;
 
 class WorkshopController extends BaseController
 {
     protected $workshopModel;
     protected $helpers = ['form', 'url', 'security'];
+    protected $codeService;
 
     public function __construct()
     {
         $this->workshopModel = new WorkshopModel();
+        $this->codeService = new CodeGeneratorService();
     }
 
     /* =========================
@@ -30,8 +34,9 @@ class WorkshopController extends BaseController
     {
         try {
             $workshopData = $this->workshopModel
-                ->select('workshop.*, divisions.name AS divisi_name')
+                ->select('workshop.*, divisions.name AS divisi_name, sites.name AS site_name')
                 ->join('divisions', 'divisions.id = workshop.divisi_id', 'left')
+                ->join('sites', 'sites.id = workshop.site_id', 'left')
                 ->where('workshop.id', $id)
                 ->where('workshop.is_deleted', 0)
                 ->first();
@@ -138,10 +143,21 @@ class WorkshopController extends BaseController
 
         $kompartemenJson = json_encode($kompartemenArr, JSON_UNESCAPED_UNICODE);
 
+        // generate code workshop
+        try {
+            $workshopCode = $this->codeService->generateWorkshop();
+        } catch (\Exception $e) {
+            log_message('error', 'Generate workshop code failed: ' . $e->getMessage());
+            return redirect()->back()
+                ->withInput()
+                ->with('errors', ['general' => 'Gagal membuat kode workshop. Hubungi admin.']);
+        }
+
         $now = date('Y-m-d H:i:s');
 
         // ================= INSERT =================
         $dataInsert = [
+            'workshop_code'  => $workshopCode,
             'divisi_id'      => $divisiId,
             'site_id'        => $siteId,
             'name_karyawan'  => $namaKaryawan,
@@ -153,7 +169,7 @@ class WorkshopController extends BaseController
             'status_lahan'   => $statusLahan,
             'created_at'     => $now,
             'updated_at'     => $now,
-            'is_deleted'     => 0,
+            'is_deleted'     => 0
         ];
 
         try {
@@ -186,12 +202,13 @@ class WorkshopController extends BaseController
     public function edit($id)
     {
         $divisiModel = new \App\Models\DivisionModel();
+        $repairModel = new \App\Models\RepairRequestModel(); // TAMBAHKAN INI
 
         $workshop = $this->workshopModel
             ->select('workshop.*, divisions.name AS divisi_name')
             ->join('divisions', 'divisions.id = workshop.divisi_id', 'left')
             ->where('workshop.id', $id)
-            ->where('workshop.is_deleted', 0)
+            ->where('workshop.is_deleted', false)
             ->first();
 
         if (!$workshop) {
@@ -199,10 +216,59 @@ class WorkshopController extends BaseController
                 ->with('error', 'Data workshop tidak ditemukan');
         }
 
+        // ========================================
+        // GET RIWAYAT PERBAIKAN UNTUK WORKSHOP INI
+        // ========================================
+        $existing_perbaikan = $repairModel
+            ->select('repair_requests.*, users.username as created_by_name')
+            ->join('users', 'users.id = repair_requests.created_by', 'left')
+            ->where('repair_requests.tipe_aset', 'Workshop')
+            ->where('repair_requests.aset_id', $id)
+            ->where('repair_requests.deleted_at', null)
+            ->orderBy('repair_requests.created_at', 'DESC')
+            ->findAll();
+
+        // Parse JSON fields untuk setiap item
+        if (!empty($existing_perbaikan)) {
+            foreach ($existing_perbaikan as &$item) {
+                // Parse foto_kerusakan
+                if (!empty($item['foto_kerusakan'])) {
+                    $decoded = json_decode($item['foto_kerusakan'], true);
+                    $item['foto_kerusakan_parsed'] = is_array($decoded) ? $decoded : [];
+                } else {
+                    $item['foto_kerusakan_parsed'] = [];
+                }
+
+                // Parse lampiran
+                if (!empty($item['lampiran'])) {
+                    $decoded = json_decode($item['lampiran'], true);
+                    $item['lampiran_parsed'] = is_array($decoded) ? $decoded : [];
+                } else {
+                    $item['lampiran_parsed'] = [];
+                }
+
+                // Parse foto_progress
+                if (!empty($item['foto_progress'])) {
+                    $decoded = json_decode($item['foto_progress'], true);
+                    $item['foto_progress_parsed'] = is_array($decoded) ? $decoded : [];
+                } else {
+                    $item['foto_progress_parsed'] = [];
+                }
+
+                // Parse foto_selesai
+                if (!empty($item['foto_selesai'])) {
+                    $decoded = json_decode($item['foto_selesai'], true);
+                    $item['foto_selesai_parsed'] = is_array($decoded) ? $decoded : [];
+                } else {
+                    $item['foto_selesai_parsed'] = [];
+                }
+            }
+        }
+
         // Data untuk form
         $this->data['title']       = 'Edit Data Workshop';
         $this->data['workshop']    = $workshop;
-        $this->data['divisi_list'] = $divisiModel->where('is_deleted', 0)->findAll();
+        $this->data['divisi_list'] = $divisiModel->where('is_deleted', false)->findAll();
         
         // Job sites distinct untuk dropdown
         $this->data['job_sites'] = $this->workshopModel
@@ -212,7 +278,10 @@ class WorkshopController extends BaseController
             ->distinct()
             ->findAll();
 
-        return view('general_service/workshop_form', $this->data);
+        // TAMBAHKAN RIWAYAT PERBAIKAN
+        $this->data['existing_perbaikan'] = $existing_perbaikan;
+
+        return view('general_service/workshop/edit', $this->data);
     }
 
     /* =========================

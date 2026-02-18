@@ -37,6 +37,8 @@ class PayrollModel extends Model
         'status_kirim',
         'tanggal_kirim',
         'created_at',
+        'insentif_pulsa',
+        'insentif_cuci_unit',
         'updated_at'
     ];
 

@@ -5,95 +5,118 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Preview Slip Gaji - <?= esc($karyawan['nama'] ?? '') ?></title>
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 20px; 
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
             background: #f5f5f5;
         }
-        .container { 
-            max-width: 800px; 
-            margin: 0 auto; 
-            border: 2px solid #000; 
-            padding: 20px; 
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            border: 2px solid #000;
+            padding: 20px;
             background: white;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        .header { 
-            display: flex; 
-            justify-content: space-between; 
-            border-bottom: 2px solid #000; 
-            padding-bottom: 15px; 
-            margin-bottom: 20px; 
+        .header {
+            display: table;
+            width: 100%;
+            border-bottom: 2px solid #000;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
         }
         .logo {
-            display: flex;
-            align-items: center;
-        }
-        .logo-img {
-            width: 80px;
-            height: 80px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 10px;
-            overflow: hidden;
-        }
-        .logo-img img {
+            display: table-cell;
             width: 70%;
-            height: auto;
+            vertical-align: middle;
         }
-        .company-name { font-size: 32px; font-weight: bold; color: #C41E3A; }
-        .company-subtitle { font-size: 14px; color: #000; }
-        .contact-info { text-align: right; font-size: 11px; line-height: 1.6; }
-        .employee-info { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 10px; 
-            margin-bottom: 20px; 
-            font-size: 13px; 
+        .logo-content {
+            width: 100%;
         }
-        .info-row { display: flex; }
-        .info-label { width: 120px; font-weight: bold; }
-        .section-title { 
-            background: #E5E5E5; 
-            padding: 8px; 
-            font-weight: bold; 
-            margin: 15px 0 5px 0; 
-            font-size: 13px; 
+        .contact-info {
+            display: table-cell;
+            width: 30%;
+            text-align: right;
+            font-size: 11px;
+            line-height: 1.6;
+            vertical-align: top;
         }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 10px; }
-        td { padding: 5px; }
-        .item-label { width: 60%; }
-        .item-value { text-align: right; }
-        .total-row { 
-            font-weight: bold; 
-            border-top: 1px solid #000; 
-            border-bottom: 1px solid #000; 
+        .employee-info {
+            margin-bottom: 20px;
+            font-size: 13px;
         }
-        .gaji-diterima { font-weight: bold; font-size: 14px; margin-top: 10px; }
+        .info-table {
+            width: 100%;
+        }
+        .info-table td {
+            padding: 3px 0;
+        }
+        .info-label {
+            width: 120px;
+            font-weight: bold;
+        }
+        .section-title {
+            background: #E5E5E5;
+            padding: 8px;
+            font-weight: bold;
+            margin: 15px 0 5px 0;
+            font-size: 13px;
+        }
+        table.data {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+        table.data td {
+            padding: 5px;
+        }
+        .item-label {
+            width: 60%;
+        }
+        .item-value {
+            text-align: right;
+        }
+        .total-row {
+            font-weight: bold;
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+        }
+        .gaji-diterima {
+            font-weight: bold;
+            font-size: 14px;
+            margin-top: 10px;
+        }
         .footer {
-            font-family: Arial, sans-serif;
-            margin-left: auto;
-            text-align: center; 
+            text-align: right;
             margin-top: 40px;
-            width: 220px;
+            font-size: 12px;
         }
-        .signature {
-            font-family: Arial, sans-serif;
-            margin-top: 60px;
-            width: 220px;
-            margin-left: auto;
+        /* NOTE RAHASIA */
+        .secret-note {
+            width: 80%;
+            margin: 18px auto 0 auto;
             text-align: center;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 10px 12px;
+            border: 2px dashed #a00000;
+            background: #fff0f0;
+            color: #8b0000;
+            letter-spacing: 1px;
+            border-radius: 6px;
         }
         .action-buttons {
+            max-width: 800px;
+            margin: 0 auto 20px auto;
             text-align: center;
-            margin: 20px 0;
             padding: 15px;
             background: #f9f9f9;
             border-radius: 5px;
         }
-        .action-buttons button, .action-buttons a {
+        .action-buttons button,
+        .action-buttons a {
             padding: 10px 20px;
             margin: 0 5px;
             border: none;
@@ -103,244 +126,275 @@
             display: inline-block;
             font-size: 14px;
         }
-        .btn-print { background: #4CAF50; color: white; }
+        .btn-print    { background: #4CAF50; color: white; }
         .btn-download { background: #2196F3; color: white; }
-        .btn-back { background: #9E9E9E; color: white; }
+        .btn-back     { background: #9E9E9E; color: white; }
+
         @media print {
             .action-buttons { display: none; }
-            body { background: white; }
+            body { background: white; padding: 0; }
             .container { box-shadow: none; }
+            .secret-note { page-break-before: always; }
         }
     </style>
 </head>
 <body>
+
     <div class="action-buttons">
-        <button onclick="window.print()" class="btn-print">
-            🖨️ Print / Save as PDF
-        </button>
-        <a href="<?= base_url('slip-gaji/generate-pdf/' . ($karyawan['id'] ?? '')) ?>" class="btn-download">
-            📥 Download PDF
-        </a>
-        <a href="<?= base_url('slip-gaji') ?>" class="btn-back">
-            ← Kembali
-        </a>
+        <button onclick="window.print()" class="btn-print">🖨️ Print / Save as PDF</button>
+        <a href="<?= base_url('slip-gaji/generate-pdf/' . ($karyawan['id'] ?? '')) ?>" class="btn-download">📥 Download PDF</a>
+        <a href="<?= base_url('slip-gaji') ?>" class="btn-back">← Kembali</a>
     </div>
 
     <?php
-    // Proteksi & normalisasi field agar tidak muncul notice
-    $get = function($key) use ($karyawan) {
-        return $karyawan[$key] ?? 0;
-    };
+        // Path logo & barcode — sama persis dengan versi PDF
+        $logoHeader = WRITEPATH . 'barcode/logo_header.png';
+        $barcodePath = WRITEPATH . 'barcode/barcode_ttd.png';
 
-    // Beberapa kemungkinan nama kolom (tunjangan typo protection)
-    $tunjanagan = $karyawan['tunjanagan_tidak_tetap'] ?? ($karyawan['tunjangan_tidak_tetap'] ?? 0);
+        if (!file_exists($logoHeader)) {
+            $logoHeader = FCPATH . 'assets/img/logo_header.png';
+        }
+        if (!file_exists($barcodePath)) {
+            $barcodePath = WRITEPATH . 'uploads/barcode_ttd.png';
+        }
 
-    // Ambil semua nilai numeric sebagai float agar pengecekan mudah
-    $umk               = (float) ($karyawan['umk'] ?? 0);
-    $insentif_lain     = (float) ($karyawan['insentif_lain'] ?? 0);
-    $insentif_lembur   = (float) ($karyawan['insentif_lembur'] ?? 0);
-    $kompensasi        = (float) ($karyawan['kompensasi'] ?? 0);
-    $uang_tunggu       = (float) ($karyawan['uang_tunggu'] ?? 0);
-    $gaji_prorate      = (float) ($karyawan['gaji_prorate'] ?? 0);
-    $total_pendapatan  = (float) ($karyawan['total_pendapatan'] ?? 0);
-
-    $bpjs_kes          = (float) ($karyawan['bpjs_kes'] ?? 0);
-    $bpjs_tk           = (float) ($karyawan['bpjs_tk'] ?? 0);
-    $pot_pph21         = (float) ($karyawan['pot_pph21'] ?? 0);
-    $lainnya           = (float) ($karyawan['lainnya'] ?? 0);
-    $total_pot         = (float) ($karyawan['total_pot'] ?? 0);
-    $gaji_bersih       = (float) ($karyawan['gaji_bersih'] ?? 0);
-
-    // Helper format rupiah
-    function fmtIDR($v) {
-        return number_format((float)$v, 0, ',', '.');
-    }
-
-    // Count visible rows for sections (opsional — bisa pakai kalau mau sembunyikan title saat kosong)
-    $pendapatan_rows = 0;
-    foreach ([$umk, $insentif_lain, $insentif_lembur, $tunjanagan, $kompensasi, $uang_tunggu, $gaji_prorate] as $val) {
-        if ((float)$val != 0) $pendapatan_rows++;
-    }
-    $potongan_rows = 0;
-    foreach ([$bpjs_kes, $bpjs_tk, $pot_pph21, $lainnya] as $val) {
-        if ((float)$val != 0) $potongan_rows++;
-    }
+        // Helper format rupiah
+        function fmtIDR($v) {
+            return number_format((float)$v, 0, ',', '.');
+        }
     ?>
 
     <div class="container">
+
+        <!-- HEADER -->
         <div class="header">
             <div class="logo">
-                <div class="logo-img">
-                    <img src="<?= base_url('assets/img/logo.png') ?>" alt="Logo" onerror="this.style.display='none'">
-                </div>
-                <div>
-                    <div class="company-name">BAGONG</div>
-                    <div class="company-subtitle">PT. BAGONG DEKAKA MAKMUR</div>
+                <div class="logo-content">
+                    <?php if (file_exists($logoHeader)): 
+                        $logoData = base64_encode(file_get_contents($logoHeader));
+                        $logoSrc  = 'data:image/png;base64,' . $logoData;
+                    ?>
+                    <img src="<?= $logoSrc ?>" alt="Logo Header"
+                        style="display:block; max-width:400px; height:auto;">
+                    <?php endif; ?>
                 </div>
             </div>
             <div class="contact-info">
                 Jl. Panglima Sudirman No. 8 Kepanjen - Malang<br>
                 Jawa Timur - Indonesia 65163<br>
-                ☎ : 62 341 395 524, 393 382<br>
+                Telp : 62 341 395 524, 393 382<br>
                 Fax. : 62 341 395 724<br>
-                📧 : info@bagongbis.com<br>
-                🌐 : www.bagongbis.com
+                Email : info@bagongbis.com<br>
+                Web : www.bagongbis.com
             </div>
         </div>
 
+        <!-- INFO KARYAWAN -->
         <div class="employee-info">
-            <div>
-                <div class="info-row">
-                    <span class="info-label">NIK</span>
-                    <span>: <?= esc($karyawan['nik'] ?? '') ?></span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">NAMA</span>
-                    <span>: <?= esc($karyawan['nama'] ?? '') ?></span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">JABATAN</span>
-                    <span>: <?= esc($karyawan['jabatan'] ?? '') ?></span>
-                </div>
-            </div>
-            <div>
-                <div class="info-row">
-                    <span class="info-label">SITE</span>
-                    <span>: <?= esc($karyawan['site'] ?? '') ?></span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">BULAN</span>
-                    <span>: <?= esc($karyawan['bulan'] ?? '') ?></span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">NO.</span>
-                    <span>: <?= esc($karyawan['nomor_slip'] ?? '') ?></span>
-                </div>
-            </div>
+            <table class="info-table">
+                <tr>
+                    <td class="info-label">NIK</td>
+                    <td>: <?= esc($karyawan['nik'] ?? '') ?></td>
+                    <td class="info-label">SITE</td>
+                    <td>: <?= esc($karyawan['site'] ?? '') ?></td>
+                </tr>
+                <tr>
+                    <td class="info-label">NAMA</td>
+                    <td>: <?= esc($karyawan['nama'] ?? '') ?></td>
+                    <td class="info-label">BULAN</td>
+                    <td>: <?= esc($karyawan['bulan'] ?? '') ?></td>
+                </tr>
+                <tr>
+                    <td class="info-label">JABATAN</td>
+                    <td>: <?= esc($karyawan['jabatan'] ?? '') ?></td>
+                    <td class="info-label">NO SLIP</td>
+                    <td>: <?= esc($karyawan['nomor_slip'] ?? '') ?></td>
+                </tr>
+            </table>
         </div>
 
+        <!-- PENDAPATAN -->
         <div class="section-title">PENDAPATAN</div>
-        <table>
-            <?php if ($umk != 0): ?>
+        <table class="data">
             <tr>
                 <td class="item-label">UMK</td>
                 <td class="item-value">Rp</td>
-                <td class="item-value"><?= fmtIDR($umk) ?></td>
+                <td class="item-value"><?= fmtIDR($karyawan['umk'] ?? 0) ?></td>
             </tr>
-            <?php endif; ?>
 
-            <?php if ($tunjanagan != 0): ?>
+            <?php if (($karyawan['tunjangan_tidak_tetap'] ?? 0) > 0): ?>
             <tr>
                 <td class="item-label">Tunjangan Tidak Tetap</td>
                 <td class="item-value">Rp</td>
-                <td class="item-value"><?= fmtIDR($tunjanagan) ?></td>
+                <td class="item-value"><?= fmtIDR($karyawan['tunjangan_tidak_tetap']) ?></td>
             </tr>
             <?php endif; ?>
 
-            <?php if ($insentif_lain != 0): ?>
+            <?php if (($karyawan['insentif_lain'] ?? 0) > 0): ?>
             <tr>
                 <td class="item-label">Insentif Lain</td>
                 <td class="item-value">Rp</td>
-                <td class="item-value"><?= fmtIDR($insentif_lain) ?></td>
+                <td class="item-value"><?= fmtIDR($karyawan['insentif_lain']) ?></td>
             </tr>
             <?php endif; ?>
 
-            <?php if ($insentif_lembur != 0): ?>
-            <tr>
-                <td class="item-label">Insentif Lembur</td>
-                <td class="item-value">Rp</td>
-                <td class="item-value"><?= fmtIDR($insentif_lembur) ?></td>
-            </tr>
-            <?php endif; ?>
-
-            <?php if ($kompensasi != 0): ?>
+            <?php if (($karyawan['kompensasi'] ?? 0) > 0): ?>
             <tr>
                 <td class="item-label">Kompensasi</td>
                 <td class="item-value">Rp</td>
-                <td class="item-value"><?= fmtIDR($kompensasi) ?></td>
+                <td class="item-value"><?= fmtIDR($karyawan['kompensasi']) ?></td>
             </tr>
             <?php endif; ?>
 
-            <?php if ($uang_tunggu != 0): ?>
+            <?php if (($karyawan['insentif_pulsa'] ?? 0) > 0): ?>
+            <tr>
+                <td class="item-label">Insentif Pulsa</td>
+                <td class="item-value">Rp</td>
+                <td class="item-value"><?= fmtIDR($karyawan['insentif_pulsa']) ?></td>
+            </tr>
+            <?php endif; ?>
+
+            <?php if (($karyawan['kompensasi_cuti'] ?? 0) > 0): ?>
+            <tr>
+                <td class="item-label">Kompensasi Cuti</td>
+                <td class="item-value">Rp</td>
+                <td class="item-value"><?= fmtIDR($karyawan['kompensasi_cuti']) ?></td>
+            </tr>
+            <?php endif; ?>
+
+            <?php if (($karyawan['insentif_lembur'] ?? 0) > 0): ?>
+            <tr>
+                <td class="item-label">Insentif Lembur</td>
+                <td class="item-value">Rp</td>
+                <td class="item-value"><?= fmtIDR($karyawan['insentif_lembur']) ?></td>
+            </tr>
+            <?php endif; ?>
+
+            <?php if (($karyawan['insentif_makan'] ?? 0) > 0): ?>
+            <tr>
+                <td class="item-label">Insentif Makan</td>
+                <td class="item-value">Rp</td>
+                <td class="item-value"><?= fmtIDR($karyawan['insentif_makan']) ?></td>
+            </tr>
+            <?php endif; ?>
+
+            <?php if (($karyawan['insentif_cuci_unit'] ?? 0) > 0): ?>
+            <tr>
+                <td class="item-label">Insentif Cuci Unit</td>
+                <td class="item-value">Rp</td>
+                <td class="item-value"><?= fmtIDR($karyawan['insentif_cuci_unit']) ?></td>
+            </tr>
+            <?php endif; ?>
+
+            <?php if (($karyawan['uang_tunggu'] ?? 0) > 0): ?>
             <tr>
                 <td class="item-label">Uang Tunggu</td>
                 <td class="item-value">Rp</td>
-                <td class="item-value"><?= fmtIDR($uang_tunggu) ?></td>
+                <td class="item-value"><?= fmtIDR($karyawan['uang_tunggu']) ?></td>
             </tr>
             <?php endif; ?>
 
-            <?php if ($gaji_prorate != 0): ?>
+            <?php if (($karyawan['gaji_prorate'] ?? 0) > 0): ?>
             <tr>
                 <td class="item-label">Gaji Prorate</td>
                 <td class="item-value">Rp</td>
-                <td class="item-value"><?= fmtIDR($gaji_prorate) ?></td>
+                <td class="item-value"><?= fmtIDR($karyawan['gaji_prorate']) ?></td>
             </tr>
             <?php endif; ?>
 
             <tr class="total-row">
                 <td class="item-label">TOTAL PENDAPATAN</td>
                 <td class="item-value">Rp</td>
-                <td class="item-value"><?= fmtIDR($total_pendapatan) ?></td>
+                <td class="item-value"><?= fmtIDR($karyawan['total_pendapatan'] ?? 0) ?></td>
             </tr>
         </table>
 
+        <!-- POTONGAN -->
         <div class="section-title">POTONGAN</div>
-        <table>
-            <?php if ($bpjs_kes != 0): ?>
+        <table class="data">
+            <?php if (($karyawan['bpjs_kes'] ?? 0) > 0): ?>
             <tr>
                 <td class="item-label">BPJS Kesehatan</td>
                 <td class="item-value">Rp</td>
-                <td class="item-value"><?= fmtIDR($bpjs_kes) ?></td>
+                <td class="item-value"><?= fmtIDR($karyawan['bpjs_kes']) ?></td>
             </tr>
             <?php endif; ?>
 
-            <?php if ($bpjs_tk != 0): ?>
+            <?php if (($karyawan['bpjs_tk'] ?? 0) > 0): ?>
             <tr>
                 <td class="item-label">BPJS Ketenagakerjaan</td>
                 <td class="item-value">Rp</td>
-                <td class="item-value"><?= fmtIDR($bpjs_tk) ?></td>
+                <td class="item-value"><?= fmtIDR($karyawan['bpjs_tk']) ?></td>
             </tr>
             <?php endif; ?>
 
-            <?php if ($pot_pph21 != 0): ?>
+            <?php if (($karyawan['pot_pph21'] ?? 0) > 0): ?>
             <tr>
                 <td class="item-label">PPh 21</td>
                 <td class="item-value">Rp</td>
-                <td class="item-value"><?= fmtIDR($pot_pph21) ?></td>
+                <td class="item-value"><?= fmtIDR($karyawan['pot_pph21']) ?></td>
             </tr>
             <?php endif; ?>
 
-            <?php if ($lainnya != 0): ?>
+            <?php if (($karyawan['lainnya'] ?? 0) > 0): ?>
             <tr>
                 <td class="item-label">Lainnya</td>
                 <td class="item-value">Rp</td>
-                <td class="item-value"><?= fmtIDR($lainnya) ?></td>
+                <td class="item-value"><?= fmtIDR($karyawan['lainnya']) ?></td>
             </tr>
             <?php endif; ?>
 
             <tr class="total-row">
                 <td class="item-label">TOTAL POTONGAN</td>
                 <td class="item-value">Rp</td>
-                <td class="item-value"><?= fmtIDR($total_pot) ?></td>
+                <td class="item-value"><?= fmtIDR($karyawan['total_pot'] ?? 0) ?></td>
             </tr>
         </table>
 
+        <!-- GAJI DITERIMA -->
         <div class="gaji-diterima">
-            <table>
+            <table class="data">
                 <tr class="total-row">
                     <td class="item-label">GAJI DITERIMA</td>
                     <td class="item-value">Rp</td>
-                    <td class="item-value"><?= fmtIDR($gaji_bersih) ?></td>
+                    <td class="item-value"><?= fmtIDR($karyawan['gaji_bersih'] ?? 0) ?></td>
                 </tr>
             </table>
         </div>
 
+        <!-- FOOTER / TANDA TANGAN -->
         <div class="footer">
-            Malang, <?= date('d F Y') ?><br>
-            <div class="signature">
-                ( Tis'ah Amalia )
-            </div>
+            <table style="width:100%; border-collapse:collapse;">
+                <tr>
+                    <td style="text-align:right; vertical-align:bottom;">
+                        <div style="margin-bottom:6px;">
+                            Malang, <?= date('d F Y') ?>
+                        </div>
+
+                        <?php if (file_exists($barcodePath)): 
+                            $ttdData = base64_encode(file_get_contents($barcodePath));
+                            $ttdSrc  = 'data:image/png;base64,' . $ttdData;
+                        ?>
+                        <img src="<?= $ttdSrc ?>" alt="Tanda Tangan Digital"
+                            style="display:block; margin:0 0 6px auto; max-width:80px; height:auto; padding-right:25px;">
+                        <?php endif; ?>
+
+
+                        <div style="padding-right:25px;">
+                            ( Zahwa Salsabila )
+                        </div>
+                    </td>
+                </tr>
+            </table>
         </div>
+
+    </div><!-- /.container -->
+
+    <!-- NOTE RAHASIA -->
+    <div class="secret-note">
+        DOKUMEN INI SANGAT RAHASIA<br>
+        TIDAK UNTUK DISEBAR LUASKAN KE PIHAK LAIN
     </div>
+
 </body>
 </html>
