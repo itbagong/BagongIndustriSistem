@@ -102,11 +102,13 @@
 
         <div class="section-title">PENDAPATAN</div>
         <table class="data">
+            <?php if($karyawan['umk'] > 0): ?>
             <tr>
                 <td class="item-label">UMK</td>
                 <td class="item-value">Rp</td>
                 <td class="item-value"><?= number_format($karyawan['umk'], 0, ',', '.') ?></td>
             </tr>
+            <?php endif; ?>
             <?php if($karyawan['tunjangan_tidak_tetap'] > 0): ?>
             <tr>
                 <td class="item-label">Tunjangan Tidak Tetap</td>
@@ -168,6 +170,13 @@
                 <td class="item-label">Uang Tunggu</td>
                 <td class="item-value">Rp</td>
                 <td class="item-value"><?= number_format($karyawan['uang_tunggu'], 0, ',', '.') ?></td>
+            </tr>
+            <?php endif; ?>
+            <?php if(isset($karyawan['kekurangan_gaji']) && $karyawan['kekurangan_gaji'] > 0): ?>
+            <tr>
+                <td class="item-label">Kekurangan Gaji</td>
+                <td class="item-value">Rp</td>
+                <td class="item-value"><?= number_format($karyawan['kekurangan_gaji'], 0, ',', '.') ?></td>
             </tr>
             <?php endif; ?>
             <?php if(isset($karyawan['gaji_prorate']) && $karyawan['gaji_prorate'] > 0): ?>
@@ -235,11 +244,32 @@
             <table style="width:100%; border-collapse:collapse;">
                 <tr>
                     <td style="text-align:right; vertical-align:bottom;">
+                        <?php
+                            $bulan_id = [
+                                1  => 'Januari',   2  => 'Februari', 3  => 'Maret',
+                                4  => 'April',     5  => 'Mei',      6  => 'Juni',
+                                7  => 'Juli',      8  => 'Agustus',  9  => 'September',
+                                10 => 'Oktober',   11 => 'November', 12 => 'Desember'
+                            ];
+
+                            $tanggal = date('d') . ' ' . $bulan_id[(int)date('n')] . ' ' . date('Y');
+                        ?>
+
                         <div style="margin-bottom:6px;">
-                            Malang, <?= date('d F Y') ?>
+                            Malang, <?= $tanggal ?>
                         </div>
 
-                        <?php if (file_exists($barcodePath)): ?>
+                        <div style="display:inline-block; text-align:center; width:130px;">
+                            <?php if (file_exists($barcodePath)): ?>
+                            <img src="<?= $barcodePath ?>"
+                                alt="Tanda Tangan Digital"
+                                style="display:block; margin:0 auto 6px auto; max-width:80px; height:auto;">
+                            <?php endif; ?>
+
+                            <div>( Zahwa Salsabila )</div>
+                        </div>
+
+                        <!-- <?php if (file_exists($barcodePath)): ?>
                         <img src="<?= $barcodePath ?>"
                              alt="Tanda Tangan Digital"
                              style="display:block; margin:0 0 6px auto; max-width:80px; height:auto; padding-right:25px;">
@@ -247,7 +277,7 @@
 
                         <div style="padding-right:25px;">
                             ( Zahwa Salsabila )
-                        </div>
+                        </div> -->
                     </td>
                 </tr>
             </table>

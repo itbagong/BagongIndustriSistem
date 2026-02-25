@@ -517,18 +517,18 @@
                             <div class="d-inline-flex align-items-center" style="gap: 4px;">
                                 <button type="button" class="btn-action btn-action-view" 
                                         onclick="viewDetail(<?= $item['id'] ?>)"
-                                        data-toggle="tooltip" title="Lihat Detail">
+                                        data-toggle="tooltip" title="Detail">
                                     <i class="fas fa-eye"></i>
                                 </button>
                                 <?php if($item['status'] == 'Pending'): ?>
                                 <button type="button" class="btn-action btn-action-edit"
                                     onclick="window.location.href='<?= base_url('general-service/repair-request/edit/' . $item['id']) ?>'"
-                                    data-toggle="tooltip" title="Edit Data">
+                                    data-toggle="tooltip" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </button>
                                 <button type="button" class="btn-action btn-action-delete" 
                                         onclick="deletePengajuan(<?= $item['id'] ?>, '<?= esc($item['kode_pengajuan'] ?? '') ?>')"
-                                        data-toggle="tooltip" title="Hapus Data">
+                                        data-toggle="tooltip" title="Hapus">
                                     <i class="fas fa-trash"></i>
                                 </button>
                                 <?php endif; ?>
@@ -621,7 +621,30 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 });
+function viewDetail(id) {
+    window.location.href = '<?= base_url('general-service/repair-request/detail/') ?>' + id;
+}
+function deletePengajuan(id, kode) {
+    if (!confirm('Yakin ingin menghapus pengajuan ' + kode + '?')) return;
 
+    fetch('<?= base_url('general-service/repair-request/delete/') ?>' + id, {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Gagal: ' + data.message);
+        }
+    })
+    .catch(() => alert('Terjadi kesalahan jaringan'));
+}
 function changePerPage(limit) {
     const url = new URL(window.location.href);
     url.searchParams.set('per_page', limit);

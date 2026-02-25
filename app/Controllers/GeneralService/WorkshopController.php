@@ -6,17 +6,20 @@ use App\Controllers\BaseController;
 use App\Models\WorkshopModel;
 use App\Services\Code\CodeGeneratorService;
 use App\Services\PermissionService;
+use App\Models\RepairRequestModel;
 
 class WorkshopController extends BaseController
 {
     protected $workshopModel;
     protected $helpers = ['form', 'url', 'security'];
     protected $codeService;
+    protected $repairRequestModel;
 
     public function __construct()
     {
         $this->workshopModel = new WorkshopModel();
         $this->codeService = new CodeGeneratorService();
+        $this->repairRequestModel = new RepairRequestModel();
     }
 
     /* =========================
@@ -30,36 +33,126 @@ class WorkshopController extends BaseController
     /* =========================
      * DETAIL - Get single workshop data
      * ========================= */
-    public function detail($id) 
+    public function getRepairDetail($id)
+{
+    try {
+        $db = \Config\Database::connect();
+        
+        $sql = "
+            SELECT rr.*, 
+                creator.username as created_by_name,
+                approver.username as disetujui_oleh_name,
+                w.name_karyawan, w.nik
+            FROM repair_requests rr
+            LEFT JOIN users as creator ON creator.id = rr.created_by
+            LEFT JOIN users as approver ON approver.id = rr.disetujui_oleh
+            LEFT JOIN workshop w ON w.id = rr.aset_id AND rr.tipe_aset = 'Workshop'
+            WHERE rr.id = ?
+            LIMIT 1
+        ";
+
+        $repair = $db->query($sql, [$id])->getRowArray();
+
+        if (!$repair) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Data tidak ditemukan']);
+        }
+
+        $repair['foto_kerusakan'] = !empty($repair['foto_kerusakan']) ? json_decode($repair['foto_kerusakan'], true) : [];
+        $repair['foto_progress']  = !empty($repair['foto_progress'])  ? json_decode($repair['foto_progress'], true)  : [];
+        $repair['foto_selesai']   = !empty($repair['foto_selesai'])   ? json_decode($repair['foto_selesai'], true)   : [];
+        $repair['lampiran']       = !empty($repair['lampiran'])       ? json_decode($repair['lampiran'], true)       : [];
+
+        return $this->response->setJSON(['success' => true, 'data' => $repair]);
+
+    } catch (\Exception $e) {
+        return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
+    }
+}
+    public function detail($id)
     {
         try {
-            $workshopData = $this->workshopModel
-                ->select('workshop.*, divisions.name AS divisi_name, sites.name AS site_name')
-                ->join('divisions', 'divisions.id = workshop.divisi_id', 'left')
-                ->join('sites', 'sites.id = workshop.site_id', 'left')
-                ->where('workshop.id', $id)
-                ->where('workshop.is_deleted', 0)
-                ->first();
-            
-            if (!$workshopData) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => "Data workshop dengan ID {$id} tidak ditemukan."
-                ])->setStatusCode(404);   
+            $sql = "
+                SELECT 
+                    rr.*,
+                    creator.username as created_by_name,
+                    approver.username as disetujui_oleh_name,
+                    CASE 
+                        WHEN rr.tipe_aset = 'Mess' THEN m.nama_karyawan
+                        WHEN rr.tipe_aset = 'Workshop' THEN w.name_karyawan
+                        ELSE NULL
+                    END as nama_karyawan,
+                    CASE 
+                        WHEN rr.tipe_aset = 'Mess' THEN m.nik
+                        WHEN rr.tipe_aset = 'Workshop' THEN w.nik
+                        ELSE NULL
+                    END as nik,
+                    CASE 
+                        WHEN rr.tipe_aset = 'Mess' THEN m.site_id
+                        WHEN rr.tipe_aset = 'Workshop' THEN w.site_id
+                        ELSE NULL
+                    END as site_id,
+                    CASE 
+                        WHEN rr.tipe_aset = 'Mess' THEN md.name
+                        WHEN rr.tipe_aset = 'Workshop' THEN wd.name
+                        ELSE NULL
+                    END as divisi_name,
+                    CASE 
+                        WHEN rr.tipe_aset = 'Mess' THEN m.luasan_mess
+                        WHEN rr.tipe_aset = 'Workshop' THEN w.luasan
+                        ELSE NULL
+                    END as luas,
+                    CASE 
+                        WHEN rr.tipe_aset = 'Mess' THEN m.mess_code
+                        WHEN rr.tipe_aset = 'Workshop' THEN w.workshop_code
+                        ELSE NULL
+                    END as aset_code
+                FROM repair_requests rr
+                LEFT JOIN users as creator ON creator.id = rr.created_by
+                LEFT JOIN users as approver ON approver.id = rr.disetujui_oleh
+                LEFT JOIN mess_data m ON m.id = rr.aset_id AND rr.tipe_aset = 'Mess'
+                LEFT JOIN divisions md ON md.id = m.divisi_id
+                LEFT JOIN workshop w ON w.id = rr.aset_id AND rr.tipe_aset = 'Workshop'
+                LEFT JOIN divisions wd ON wd.id = w.divisi_id
+                WHERE rr.id = ?
+                LIMIT 1
+            ";
+
+            $repair = $this->repairRequestModel->query($sql, [$id])->getRowArray();
+
+        if (!$repair) {
+            if ($this->request->isAJAX() || $this->request->getGet('format') === 'json') {
+                return $this->response->setJSON(['success' => false, 'message' => 'Data tidak ditemukan']);
             }
-            
-            return $this->response->setJSON([
-                'success' => true,
-                'data' => $workshopData
-            ]);
-        } catch (\Exception $e) {
-            log_message('error', 'Workshop detail error: ' . $e->getMessage());
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Terjadi kesalahan saat mengambil data'
-            ])->setStatusCode(500);
+            return redirect()->to(base_url('general-service/w'))->with('error', 'Data tidak ditemukan');
         }
+
+        // Parse JSON fields
+        $repair['foto_kerusakan'] = !empty($repair['foto_kerusakan']) ? json_decode($repair['foto_kerusakan'], true) : [];
+        $repair['foto_progress']  = !empty($repair['foto_progress'])  ? json_decode($repair['foto_progress'], true)  : [];
+        $repair['foto_selesai']   = !empty($repair['foto_selesai'])   ? json_decode($repair['foto_selesai'], true)   : [];
+        $repair['lampiran']       = !empty($repair['lampiran'])       ? json_decode($repair['lampiran'], true)       : [];
+
+        // ← PAKAI CEK FORMAT JUGA, bukan cuma isAJAX()
+        if ($this->request->isAJAX() || $this->request->getGet('format') === 'json') {
+            return $this->response->setJSON(['success' => true, 'data' => $repair]);
+        }
+
+        $pic_list = $this->repairRequestModel->where('is_deleted', 0)->where('is_active', 1)->findAll();
+
+        return view('general_service/perbaikan/detail', [
+            'repair'   => $repair,
+            'pic_list' => $pic_list,
+            'title'    => 'Detail Pengajuan Perbaikan'
+        ]);
+
+    } catch (\Exception $e) {
+        log_message('error', 'Get repair detail failed: ' . $e->getMessage());
+        if ($this->request->isAJAX() || $this->request->getGet('format') === 'json') {
+            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
+        }
+        return redirect()->back()->with('error', 'Gagal memuat detail: ' . $e->getMessage());
     }
+}
 
     /* =========================
      * SAVE DATA
