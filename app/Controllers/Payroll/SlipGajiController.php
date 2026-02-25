@@ -137,6 +137,7 @@ class SlipGajiController extends BaseController
                     'insentif_pulsa'        => normalize_number($row[$map['Insentif Pulsa']]) ?? 0,
                     'insentif_cuci_unit'    => normalize_number($row[$map['Insentif Cuci Unit']]) ?? 0,
                     'insentif_lembur'       => normalize_number($row[$map['Insentif Lembur']]) ?? 0,
+                    'kekurangan_gaji'       => normalize_number($row[$map['Kekurangan Gaji']]) ?? 0,
                     'gaji_prorate'          => normalize_number($row[$map['Gaji Prorate']]) ?? 0,
                     'total_pendapatan'      => normalize_number($row[$map['Total Pendapatan']]) ?? 0,
                     'bpjs_kes'              => normalize_number($row[$map['BPJS Kes']]) ?? 0,

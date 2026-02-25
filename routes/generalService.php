@@ -8,6 +8,7 @@ $routes->group('general-service', ['filter' => 'permission:general.service'], fu
     $routes->get('/', 'GeneralService\FasilityController::index');
     $routes->get('mess', 'GeneralService\FasilityController::mess');
     $routes->get('workshop', 'GeneralService\FasilityController::workshop');
+    $routes->get('asset', 'GeneralService\FasilityController::asset');
 
     // =========================
     // AJAX
@@ -23,6 +24,8 @@ $routes->group('general-service', ['filter' => 'permission:general.service'], fu
     $routes->group('mess', function ($routes) {
         $routes->post('save', 'GeneralService\MessController::save');
         $routes->get('detail/(:segment)', 'GeneralService\MessController::detail/$1');
+        $routes->get('repair-detail/(:segment)', 'GeneralService\WorkshopController::getRepairDetail/$1');
+        $routes->get('repair-list/(:segment)', 'GeneralService\MessController::getRepairList/$1');
         $routes->get('edit/(:segment)', 'GeneralService\MessController::edit/$1');
         $routes->put('update/(:segment)', 'GeneralService\MessController::update/$1');
         $routes->post('delete/(:segment)', 'GeneralService\MessController::delete/$1');
@@ -34,6 +37,7 @@ $routes->group('general-service', ['filter' => 'permission:general.service'], fu
     $routes->group('workshop', function ($routes) {
         $routes->post('save', 'GeneralService\WorkshopController::save');
         $routes->get('detail/(:segment)', 'GeneralService\WorkshopController::detail/$1');
+        $routes->get('repair-detail/(:segment)', 'GeneralService\WorkshopController::getRepairDetail/$1');
         $routes->get('edit/(:segment)', 'GeneralService\WorkshopController::edit/$1');
         $routes->post('update/(:segment)', 'GeneralService\WorkshopController::update/$1');
         $routes->post('delete/(:segment)', 'GeneralService\WorkshopController::delete/$1');
@@ -110,5 +114,7 @@ $routes->group('general-service', ['filter' => 'permission:general.service'], fu
         $routes->post('complete/(:segment)', 'GeneralService\RepairRequestController::complete/$1');
         $routes->post('cancel/(:segment)', 'GeneralService\RepairRequestController::cancel/$1');
         $routes->post('update-progress/(:segment)', 'GeneralService\RepairRequestController::updateProgress/$1');
+
+        $routes->get('repair-list/(:alpha)/(:segment)', 'GeneralService\RepairRequestController::repairList/$1/$2');
     });
 });

@@ -25,6 +25,7 @@ class PayrollModel extends Model
         'insentif_lembur',
         'insentif_makan',
         'uang_tunggu',
+        'kekurangan_gaji',
         'gaji_prorate',
         'total_pendapatan',
         'bpjs_kes',

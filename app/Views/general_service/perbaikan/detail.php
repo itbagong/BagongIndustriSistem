@@ -138,7 +138,7 @@
                 <p><?= esc($repair['jenis_kerusakan']) ?></p>
 
                 <h6><strong>Deskripsi Detail:</strong></h6>
-                <p><?= esc($repair['deskripsi_detail']) ?></p>
+                <p><?= esc($repair['deskripsi_kerusakan']) ?></p>
 
                 <?php if(!empty($repair['catatan'])): ?>
                 <h6><strong>Catatan Tambahan:</strong></h6>
@@ -154,7 +154,7 @@
             </div>
             <div class="card-body">
                 <?php 
-                $fotoKerusakan = !empty($repair['foto_kerusakan']) ? json_decode($repair['foto_kerusakan'], true) : [];
+                $fotoKerusakan = (isset($repair['foto_kerusakan']) && is_array($repair['foto_kerusakan'])) ? $repair['foto_kerusakan'] : [];
                 if (!empty($fotoKerusakan) && is_array($fotoKerusakan)): 
                 ?>
                 <div class="row">

@@ -216,11 +216,13 @@
         <!-- PENDAPATAN -->
         <div class="section-title">PENDAPATAN</div>
         <table class="data">
+            <?php if (($karyawan['umk'] ?? 0) > 0): ?>
             <tr>
                 <td class="item-label">UMK</td>
                 <td class="item-value">Rp</td>
                 <td class="item-value"><?= fmtIDR($karyawan['umk'] ?? 0) ?></td>
             </tr>
+            <?php endif; ?>
 
             <?php if (($karyawan['tunjangan_tidak_tetap'] ?? 0) > 0): ?>
             <tr>
@@ -293,7 +295,13 @@
                 <td class="item-value"><?= fmtIDR($karyawan['uang_tunggu']) ?></td>
             </tr>
             <?php endif; ?>
-
+            <?php if (($karyawan['kekurangan_gaji'] ?? 0) > 0): ?>
+            <tr>
+                <td class="item-label">Kekurangan Gaji</td>
+                <td class="item-value">Rp</td>
+                <td class="item-value"><?= fmtIDR($karyawan['kekurangan_gaji']) ?></td>
+            </tr>
+            <?php endif; ?>
             <?php if (($karyawan['gaji_prorate'] ?? 0) > 0): ?>
             <tr>
                 <td class="item-label">Gaji Prorate</td>

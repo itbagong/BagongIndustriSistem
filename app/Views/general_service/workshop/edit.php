@@ -312,7 +312,6 @@
                             <th width="12%">Kode</th>
                             <th width="10%">Kategori</th>
                             <th width="18%">Deskripsi</th>
-                            <th width="10%">Prioritas</th>
                             <th width="10%">Status</th>
                             <th width="10%">Tgl Ajuan</th>
                             <th width="12%">Est. Biaya</th>
@@ -342,19 +341,6 @@
                             </td>
                             <td>
                                 <small><?= esc(substr($item['deskripsi_kerusakan'], 0, 50)) ?><?= strlen($item['deskripsi_kerusakan']) > 50 ? '...' : '' ?></small>
-                            </td>
-                            <td class="text-center">
-                                <?php
-                                $prioritas = $item['prioritas'] ?? 'Sedang';
-                                $prioritasColor = [
-                                    'Rendah' => 'secondary',
-                                    'Sedang' => 'info',
-                                    'Tinggi' => 'warning',
-                                    'Urgent' => 'danger'
-                                ];
-                                $pColor = $prioritasColor[$prioritas] ?? 'secondary';
-                                ?>
-                                <span class="badge badge-<?= $pColor ?>"><?= esc($prioritas) ?></span>
                             </td>
                             <td class="text-center">
                                 <?php
@@ -413,22 +399,183 @@
     </div>
 </div>
 
-<!-- Modal Detail -->
+<!-- Modal Detail Perbaikan -->
 <div class="modal fade" id="modalDetailPerbaikan" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header bg-info text-white">
-                <h5 class="modal-title"><i class="fas fa-info-circle"></i> Detail Pengajuan Perbaikan</h5>
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-clipboard-list mr-2"></i> 
+                    Detail Pengajuan — <span id="modalKodePengajuan"></span>
+                </h5>
                 <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
             </div>
-            <div class="modal-body" id="modalDetailContent">
-                <div class="text-center py-5">
+            <div class="modal-body p-0" id="modalDetailContent">
+                <!-- Loading State -->
+                <div id="modalLoading" class="text-center py-5">
                     <i class="fas fa-spinner fa-spin fa-3x text-primary"></i>
-                    <p class="mt-3">Memuat data...</p>
+                    <p class="mt-3 text-muted">Memuat data...</p>
+                </div>
+
+                <!-- Content (hidden saat loading) -->
+                <div id="modalContent" style="display:none;">
+                    
+                    <!-- TIMELINE PROGRESS (atas) -->
+                    <div class="px-4 pt-4 pb-3 border-bottom bg-light">
+                        <h6 class="text-muted text-uppercase font-weight-bold mb-3" style="font-size:0.75rem; letter-spacing:0.05em;">
+                            <i class="fas fa-route mr-1"></i> Progress Perbaikan
+                        </h6>
+                        <div id="timelineContainer"></div>
+                        
+                        <!-- Progress Bar (muncul kalau In Progress) -->
+                        <div id="progressBarContainer" style="display:none;" class="mt-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <small class="font-weight-bold text-primary">Progress Pengerjaan</small>
+                                <small id="progressPercent" class="font-weight-bold text-primary">0%</small>
+                            </div>
+                            <div class="progress" style="height: 10px; border-radius: 10px;">
+                                <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
+                                     style="width: 0%; border-radius: 10px;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TABS -->
+                    <ul class="nav nav-tabs px-3 pt-2 bg-white border-bottom" id="detailTabs">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-toggle="tab" href="#tabInfo">
+                                <i class="fas fa-info-circle mr-1"></i> Info
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-toggle="tab" href="#tabFoto">
+                                <i class="fas fa-images mr-1"></i> Foto 
+                                <span id="fotoCount" class="badge badge-secondary ml-1">0</span>
+                            </a>
+                        </li>
+                        <li class="nav-item" id="tabRatingNav" style="display:none;">
+                            <a class="nav-link" data-toggle="tab" href="#tabRating">
+                                <i class="fas fa-star mr-1"></i> Rating
+                            </a>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content p-4">
+                        <!-- TAB INFO -->
+                        <div class="tab-pane fade show active" id="tabInfo">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <table class="table table-sm table-borderless">
+                                        <tr>
+                                            <td class="text-muted" width="45%">Tipe Aset</td>
+                                            <td><strong id="dTipeAset">-</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted">Kategori</td>
+                                            <td><span id="dKategori" class="badge badge-info">-</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted">Tanggal Ajuan</td>
+                                            <td id="dTanggal">-</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <table class="table table-sm table-borderless">
+                                        <tr>
+                                            <td class="text-muted" width="45%">Estimasi Biaya</td>
+                                            <td id="dEstimasi">-</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted">Biaya Aktual</td>
+                                            <td id="dBiayaAktual">-</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted">Penanggung Jawab</td>
+                                            <td id="dPIC">-</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted">Diproses Oleh</td>
+                                            <td id="dApprover">-</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="mt-2">
+                                <p class="text-muted mb-1"><small class="font-weight-bold text-uppercase">Deskripsi Kerusakan</small></p>
+                                <div id="dDeskripsi" class="p-3 bg-light rounded" style="font-size:0.9rem; line-height:1.6;"></div>
+                            </div>
+
+                            <!-- Catatan Persetujuan / Penolakan -->
+                            <div id="dCatatanBox" class="mt-3" style="display:none;">
+                                <p class="text-muted mb-1"><small class="font-weight-bold text-uppercase" id="dCatatanLabel">Catatan</small></p>
+                                <div id="dCatatan" class="p-3 rounded" style="font-size:0.9rem;"></div>
+                            </div>
+                        </div>
+
+                        <!-- TAB FOTO -->
+                        <div class="tab-pane fade" id="tabFoto">
+                            <div id="fotoKerusakanSection">
+                                <h6 class="text-muted text-uppercase mb-2" style="font-size:0.75rem;">Foto Kerusakan</h6>
+                                <div id="fotoKerusakanList" class="d-flex flex-wrap gap-2 mb-4"></div>
+                            </div>
+                            <div id="fotoProgressSection" style="display:none;">
+                                <h6 class="text-muted text-uppercase mb-2" style="font-size:0.75rem;">Foto Progress</h6>
+                                <div id="fotoProgressList" class="d-flex flex-wrap gap-2 mb-4"></div>
+                            </div>
+                            <div id="fotoSelesaiSection" style="display:none;">
+                                <h6 class="text-muted text-uppercase mb-2" style="font-size:0.75rem;">Foto Selesai</h6>
+                                <div id="fotoSelesaiList" class="d-flex flex-wrap gap-2"></div>
+                            </div>
+                            <div id="noFotoMsg" class="text-center text-muted py-4" style="display:none;">
+                                <i class="fas fa-image fa-2x mb-2"></i><br>Belum ada foto
+                            </div>
+                        </div>
+
+                        <!-- TAB RATING -->
+                        <div class="tab-pane fade" id="tabRating">
+                            <div id="ratingExisting" style="display:none;">
+                                <div class="text-center py-3">
+                                    <p class="text-muted mb-1">Rating yang diberikan</p>
+                                    <div id="ratingStarsDisplay" class="mb-2" style="font-size:2rem; color:#f59e0b;"></div>
+                                    <p id="ratingKomentar" class="text-gray-600"></p>
+                                </div>
+                            </div>
+                            <div id="ratingForm">
+                                <p class="text-muted mb-3">Berikan penilaian untuk pekerjaan perbaikan ini:</p>
+                                <div class="text-center mb-3">
+                                    <div class="star-rating d-flex justify-content-center" style="gap:8px; font-size:2.5rem; cursor:pointer;">
+                                        <?php for($s=1; $s<=5; $s++): ?>
+                                        <i class="fas fa-star star-btn text-muted" data-value="<?= $s ?>" 
+                                           onmouseover="hoverStar(<?= $s ?>)" 
+                                           onmouseout="resetStars()" 
+                                           onclick="selectStar(<?= $s ?>)"></i>
+                                        <?php endfor; ?>
+                                    </div>
+                                    <small id="ratingLabel" class="text-muted mt-1 d-block">Pilih bintang</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Komentar (opsional)</label>
+                                    <textarea id="ratingKomentarInput" class="form-control" rows="3" 
+                                              placeholder="Bagaimana hasil perbaikannya?"></textarea>
+                                </div>
+                                <button type="button" class="btn btn-warning btn-block" onclick="submitRating()">
+                                    <i class="fas fa-star mr-1"></i> Kirim Rating
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer">
+
+            <div class="modal-footer" id="modalFooter">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+                <!-- Tombol Cancel muncul dinamis kalau status Pending -->
+                <button type="button" class="btn btn-danger" id="btnCancelPengajuan" 
+                        style="display:none;" onclick="cancelPengajuan()">
+                    <i class="fas fa-times-circle mr-1"></i> Batalkan Pengajuan
+                </button>
             </div>
         </div>
     </div>
@@ -607,16 +754,7 @@ function createPerbaikanCard(index) {
                 </div>
             </div>
             <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label font-weight-bold">Prioritas <span class="text-danger">*</span></label>
-                    <select id="prioritas_${index}" class="form-control perbaikan-field" required>
-                        <option value="">-- Pilih --</option>
-                        <option value="Segera">Segera (< 3 hari)</option>
-                        <option value="Normal">Normal (< 1 minggu)</option>
-                        <option value="Rendah">Rendah (> 1 minggu)</option>
-                    </select>
-                </div>
-                <div class="col-md-6 mb-3">
+                <div class="col-md-12 mb-3">
                     <label class="form-label font-weight-bold">Catatan</label>
                     <textarea id="catatan_${index}" class="form-control" rows="2" placeholder="Opsional"></textarea>
                 </div>
@@ -687,12 +825,11 @@ function updatePerbaikanCount() {
 function submitPerbaikan(index) {
     const deskripsi = document.getElementById(`deskripsi_${index}`).value;
     const kategori = document.getElementById(`kategori_${index}`).value;
-    const prioritas = document.getElementById(`prioritas_${index}`).value;
     const estimasi = document.getElementById(`estimasi_biaya_${index}`).value;
     const catatan = document.getElementById(`catatan_${index}`).value;
     const files = document.getElementById(`files_${index}`).files;
 
-    if (!deskripsi || !kategori || !prioritas) {
+    if (!deskripsi || !kategori) {
         showAlert('error', 'Lengkapi semua field wajib!');
         return;
     }
@@ -711,7 +848,6 @@ function submitPerbaikan(index) {
     formData.append('kategori_kerusakan', kategori);
     formData.append('jenis_kerusakan', 'Perbaikan Bangunan Workshop');
     formData.append('deskripsi_kerusakan', deskripsi);
-    formData.append('prioritas', prioritas);
     formData.append('estimasi_biaya', estimasi || 0);
     formData.append('catatan', catatan);
 
@@ -729,13 +865,19 @@ function submitPerbaikan(index) {
     })
     .then(res => res.json())
     .then(data => {
-        if (data.success) {
-            showAlert('success', data.message);
-            removePerbaikan(index);
-            location.reload();
+        console.log(data); // ← lihat di F12 Console
+        
+        // Coba cek berbagai kemungkinan struktur
+        const isSuccess = data.success === true 
+            || data.status === 201 
+            || (data.data && data.data.success === true);
+        
+        if (isSuccess) {
+            showAlert('success', data.message || 'Berhasil');
+            requestAnimationFrame(() => location.reload());
         } else {
-            console.error(data.errors);
             showAlert('error', data.message || 'Validasi gagal');
+            console.error('Errors:', data.errors);
         }
     })
     .catch(() => {
@@ -755,43 +897,298 @@ function showAlert(type, message) {
     alertDiv.scrollIntoView({behavior: 'smooth', block: 'center'});
 }
 
+let currentRepairId = null;
+let selectedRating = 0;
+
 function viewDetailPerbaikan(id) {
+    currentRepairId = id;
+    selectedRating = 0;
+
+    // Reset modal
+    document.getElementById('modalLoading').style.display = 'block';
+    document.getElementById('modalContent').style.display = 'none';
+    document.getElementById('btnCancelPengajuan').style.display = 'none';
+    document.getElementById('modalKodePengajuan').textContent = '';
+
     $('#modalDetailPerbaikan').modal('show');
-    
-    fetch('<?= base_url('general-service/repair-request/detail/') ?>' + id)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const item = data.data;
-                document.getElementById('modalDetailContent').innerHTML = `
-                    <table class="table table-sm">
-                        <tr><th width="30%">Kode</th><td>${item.kode_pengajuan || '-'}</td></tr>
-                        <tr><th>Deskripsi</th><td>${item.deskripsi_kerusakan || '-'}</td></tr>
-                        <tr><th>Kategori</th><td><span class="badge badge-info">${item.kategori_kerusakan || '-'}</span></td></tr>
-                        <tr><th>Prioritas</th><td><span class="badge badge-warning">${item.prioritas || '-'}</span></td></tr>
-                        <tr><th>Status</th><td><span class="badge badge-primary">${item.status || '-'}</span></td></tr>
-                        <tr><th>Estimasi Biaya</th><td>Rp ${parseInt(item.estimasi_biaya || 0).toLocaleString('id-ID')}</td></tr>
-                        <tr><th>Tanggal</th><td>${new Date(item.tanggal_pengajuan).toLocaleString('id-ID')}</td></tr>
-                        <tr><th>Catatan</th><td>${item.catatan || '-'}</td></tr>
-                    </table>
-                `;
+
+    fetch('<?= base_url('general-service/workshop/detail/') ?>' + id, {
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+})
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById('modalLoading').style.display = 'none';
+
+        if (!data.success) {
+            document.getElementById('modalContent').innerHTML = `
+                <div class="alert alert-danger m-4">
+                    <i class="fas fa-exclamation-triangle"></i> ${data.message}
+                </div>`;
+            document.getElementById('modalContent').style.display = 'block';
+            return;
+        }
+
+        const item = data.data;
+        document.getElementById('modalContent').style.display = 'block';
+        document.getElementById('modalKodePengajuan').textContent = item.kode_pengajuan || '';
+
+        // ===== TIMELINE =====
+        renderTimeline(item);
+
+        // ===== PROGRESS BAR =====
+        if (item.status === 'In Progress') {
+            const pct = item.progress_percentage || 0;
+            document.getElementById('progressBarContainer').style.display = 'block';
+            document.getElementById('progressBar').style.width = pct + '%';
+            document.getElementById('progressPercent').textContent = pct + '%';
+        } else {
+            document.getElementById('progressBarContainer').style.display = 'none';
+        }
+
+        // ===== TAB INFO =====
+        document.getElementById('dTipeAset').textContent = item.tipe_aset || '-';
+        document.getElementById('dKategori').textContent = item.kategori_kerusakan || '-';
+        document.getElementById('dTanggal').textContent = formatDate(item.tanggal_pengajuan);
+        document.getElementById('dDeskripsi').textContent = item.deskripsi_kerusakan || '-';
+        document.getElementById('dPIC').textContent = item.penanggung_jawab || '-';
+        document.getElementById('dApprover').textContent = item.disetujui_oleh_name || '-';
+        document.getElementById('dEstimasi').textContent = item.estimasi_biaya > 0 
+            ? 'Rp ' + parseInt(item.estimasi_biaya).toLocaleString('id-ID') : '-';
+        document.getElementById('dBiayaAktual').textContent = item.biaya_aktual > 0 
+            ? 'Rp ' + parseInt(item.biaya_aktual).toLocaleString('id-ID') : '-';
+
+        // Catatan
+        if (item.status === 'Approved' && item.catatan_persetujuan) {
+            document.getElementById('dCatatanBox').style.display = 'block';
+            document.getElementById('dCatatanLabel').textContent = 'Catatan Persetujuan';
+            document.getElementById('dCatatan').className = 'p-3 rounded bg-success text-white';
+            document.getElementById('dCatatan').textContent = item.catatan_persetujuan;
+        } else if (item.status === 'Rejected' && item.alasan_penolakan) {
+            document.getElementById('dCatatanBox').style.display = 'block';
+            document.getElementById('dCatatanLabel').textContent = 'Alasan Penolakan';
+            document.getElementById('dCatatan').className = 'p-3 rounded bg-danger text-white';
+            document.getElementById('dCatatan').textContent = item.alasan_penolakan;
+        } else {
+            document.getElementById('dCatatanBox').style.display = 'none';
+        }
+
+        // ===== TAB FOTO =====
+        renderFoto(item);
+
+        // ===== TAB RATING =====
+        const tabRatingNav = document.getElementById('tabRatingNav');
+        if (item.status === 'Completed') {
+            tabRatingNav.style.display = 'block';
+            if (item.rating) {
+                document.getElementById('ratingForm').style.display = 'none';
+                document.getElementById('ratingExisting').style.display = 'block';
+                document.getElementById('ratingStarsDisplay').innerHTML = '★'.repeat(item.rating) + '☆'.repeat(5 - item.rating);
+                document.getElementById('ratingKomentar').textContent = item.komentar_rating || '-';
             } else {
-                document.getElementById('modalDetailContent').innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle"></i> ${data.message || 'Data tidak ditemukan'}
-                    </div>
-                `;
+                document.getElementById('ratingForm').style.display = 'block';
+                document.getElementById('ratingExisting').style.display = 'none';
             }
-        })
-        .catch(() => {
-            document.getElementById('modalDetailContent').innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle"></i> Error memuat data
-                </div>
-            `;
-        });
+        } else {
+            tabRatingNav.style.display = 'none';
+        }
+
+        // ===== TOMBOL CANCEL =====
+        if (item.status === 'Pending') {
+            document.getElementById('btnCancelPengajuan').style.display = 'inline-block';
+        }
+    })
+    .catch(() => {
+        document.getElementById('modalLoading').style.display = 'none';
+        document.getElementById('modalContent').innerHTML = `
+            <div class="alert alert-danger m-4">
+                <i class="fas fa-exclamation-triangle"></i> Gagal memuat data
+            </div>`;
+        document.getElementById('modalContent').style.display = 'block';
+    });
 }
 
+function renderTimeline(item) {
+    const steps = [
+        { 
+            key: 'pending', label: 'Pengajuan Dibuat', 
+            date: item.tanggal_pengajuan, by: item.created_by_name,
+            icon: 'fa-file-alt', color: 'primary',
+            active: true
+        },
+        { 
+            key: 'approved', label: item.status === 'Rejected' ? 'Ditolak' : 'Disetujui', 
+            date: item.tanggal_disetujui || item.tanggal_ditolak, 
+            by: item.disetujui_oleh_name,
+            icon: item.status === 'Rejected' ? 'fa-times-circle' : 'fa-check-circle', 
+            color: item.status === 'Rejected' ? 'danger' : 'success',
+            active: ['Approved', 'In Progress', 'Completed', 'Rejected'].includes(item.status)
+        },
+        { 
+            key: 'inprogress', label: 'Dikerjakan', 
+            date: item.tanggal_mulai, by: item.penanggung_jawab,
+            icon: 'fa-tools', color: 'info',
+            active: ['In Progress', 'Completed'].includes(item.status)
+        },
+        { 
+            key: 'completed', label: 'Selesai', 
+            date: item.tanggal_selesai, by: null,
+            icon: 'fa-flag-checkered', color: 'success',
+            active: item.status === 'Completed'
+        },
+    ];
+
+    // Skip step approved/rejected kalau Cancelled
+    if (item.status === 'Cancelled') {
+        steps[1] = { key: 'cancelled', label: 'Dibatalkan', date: item.tanggal_dibatalkan, 
+                     by: null, icon: 'fa-ban', color: 'secondary', active: true };
+        steps.splice(2); // hapus in progress & completed
+    }
+
+    let html = '<div class="d-flex align-items-start justify-content-between" style="position:relative;">';
+    
+    // Garis connector
+    html += `<div style="position:absolute; top:20px; left:20px; right:20px; height:2px; 
+                         background: linear-gradient(to right, #e5e7eb 0%, #e5e7eb 100%); z-index:0;"></div>`;
+
+    steps.forEach((step, idx) => {
+        const opacity = step.active ? '1' : '0.35';
+        html += `
+        <div class="text-center" style="flex:1; position:relative; z-index:1; opacity:${opacity};">
+            <div class="mx-auto d-flex align-items-center justify-content-center rounded-circle bg-${step.active ? step.color : 'light'}" 
+                 style="width:40px; height:40px; border: 2px solid ${step.active ? '' : '#dee2e6'}; margin-bottom:8px;">
+                <i class="fas ${step.icon} text-${step.active ? 'white' : 'muted'}" style="font-size:0.9rem;"></i>
+            </div>
+            <div style="font-size:0.75rem; font-weight:600; color: ${step.active ? '#111827' : '#9ca3af'};">
+                ${step.label}
+            </div>
+            ${step.date ? `<div style="font-size:0.7rem; color:#6b7280;">${formatDate(step.date)}</div>` : 
+                          `<div style="font-size:0.7rem; color:#d1d5db;">Menunggu</div>`}
+            ${step.by ? `<div style="font-size:0.65rem; color:#9ca3af;">oleh: ${step.by}</div>` : ''}
+        </div>`;
+    });
+
+    html += '</div>';
+    document.getElementById('timelineContainer').innerHTML = html;
+}
+
+function renderFoto(item) {
+    const baseUrl = '<?= base_url() ?>';
+    let totalFoto = 0;
+
+    function buildFotoHtml(arr) {
+        if (!arr || arr.length === 0) return '';
+        return arr.map(f => `
+            <a href="${baseUrl}${f.path}" target="_blank" 
+               style="display:inline-block; margin:4px; border-radius:8px; overflow:hidden; 
+                      border:1px solid #e5e7eb; width:80px; height:80px;">
+                ${f.type && f.type.startsWith('image/') 
+                    ? `<img src="${baseUrl}${f.path}" style="width:100%; height:100%; object-fit:cover;">`
+                    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#f3f4f6;">
+                         <i class="fas fa-file-alt fa-2x text-muted"></i>
+                       </div>`}
+            </a>
+        `).join('');
+    }
+
+    // Foto kerusakan
+    const fk = buildFotoHtml(item.foto_kerusakan);
+    document.getElementById('fotoKerusakanList').innerHTML = fk || '<small class="text-muted">Tidak ada foto</small>';
+    totalFoto += (item.foto_kerusakan || []).length;
+
+    // Foto progress
+    if (item.foto_progress && item.foto_progress.length > 0) {
+        document.getElementById('fotoProgressSection').style.display = 'block';
+        document.getElementById('fotoProgressList').innerHTML = buildFotoHtml(item.foto_progress);
+        totalFoto += item.foto_progress.length;
+    }
+
+    // Foto selesai
+    if (item.foto_selesai && item.foto_selesai.length > 0) {
+        document.getElementById('fotoSelesaiSection').style.display = 'block';
+        document.getElementById('fotoSelesaiList').innerHTML = buildFotoHtml(item.foto_selesai);
+        totalFoto += item.foto_selesai.length;
+    }
+
+    document.getElementById('fotoCount').textContent = totalFoto;
+    document.getElementById('noFotoMsg').style.display = totalFoto === 0 ? 'block' : 'none';
+}
+
+function cancelPengajuan() {
+    if (!confirm('Yakin ingin membatalkan pengajuan ini?')) return;
+
+    fetch('<?= base_url('general-service/repair-request/cancel/') ?>' + currentRepairId, {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            $('#modalDetailPerbaikan').modal('hide');
+            showAlert('success', 'Pengajuan berhasil dibatalkan');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('error', data.message || 'Gagal membatalkan');
+        }
+    })
+    .catch(() => showAlert('error', 'Terjadi kesalahan'));
+}
+
+// ===== RATING =====
+function hoverStar(val) {
+    document.querySelectorAll('.star-btn').forEach((s, i) => {
+        s.style.color = i < val ? '#f59e0b' : '#9ca3af';
+    });
+}
+function resetStars() {
+    document.querySelectorAll('.star-btn').forEach((s, i) => {
+        s.style.color = i < selectedRating ? '#f59e0b' : '#9ca3af';
+    });
+}
+function selectStar(val) {
+    selectedRating = val;
+    const labels = ['', 'Sangat Buruk', 'Buruk', 'Cukup', 'Baik', 'Sangat Baik'];
+    document.getElementById('ratingLabel').textContent = labels[val];
+    resetStars();
+}
+function submitRating() {
+    if (selectedRating === 0) {
+        alert('Pilih bintang terlebih dahulu!');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('rating', selectedRating);
+    formData.append('komentar_rating', document.getElementById('ratingKomentarInput').value);
+
+    fetch('<?= base_url('general-service/repair-request/rate/') ?>' + currentRepairId, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            '<?= csrf_header() ?>': '<?= csrf_hash() ?>'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', 'Rating berhasil dikirim, terima kasih!');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('error', data.message || 'Gagal mengirim rating');
+        }
+    })
+    .catch(() => showAlert('error', 'Terjadi kesalahan'));
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' }) 
+           + ' ' + d.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
+}
 document.getElementById('btnAddPerbaikan').addEventListener('click', addPerbaikan);
 </script>
 
