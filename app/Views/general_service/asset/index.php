@@ -1,4 +1,4 @@
-    <?= $this->extend('layouts/main') ?>
+<?= $this->extend('layouts/main') ?>
 
     <?= $this->section('content') ?>
     <style>
@@ -160,15 +160,6 @@
                         </div>
                     </div>
 
-                    <!-- <div class="d-flex justify-content-end mb-3">
-                        <button class="btn btn-sm btn-outline-success mr-2" onclick="exportMessToExcel()">
-                            <i class="fas fa-file-excel"></i> Export Excel
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="exportMessToPDF()">
-                            <i class="fas fa-file-pdf"></i> Export PDF
-                        </button>
-                    </div> -->
-
                     <div class="table-responsive">
                         <table class="table table-hover table-striped table-sm mb-0">
                             <thead class="table-light">
@@ -182,13 +173,14 @@
                                     <th class="text-center">Kamar</th>
                                     <th class="text-center">Fasilitas</th>
                                     <th>Status</th>
+                                    <th class="text-center">Dokumen</th>
                                     <th class="text-center" width="120">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php if (empty($mess_data)): ?>
                                     <tr>
-                                        <td colspan="10" class="text-center py-4">
+                                        <td colspan="11" class="text-center py-4">
                                             <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
                                             <p class="text-muted mb-0">Belum ada data mess</p>
                                         </td>
@@ -225,6 +217,13 @@
                                             <?php endif; ?>
                                         </td>
                                         <td class="text-center">
+                                            <button type="button" class="btn btn-xs btn-outline-success" 
+                                                    onclick="viewAssetDocuments('mess', <?= $mess['id'] ?>, '<?= esc($mess['nama_karyawan'] ?? '') ?>')"
+                                                    title="Lihat Dokumen">
+                                                <i class="fas fa-file-pdf"></i>
+                                            </button>
+                                        </td>
+                                        <td class="text-center">
                                             <div class="btn-group btn-group-sm" role="group">
                                                 <button type="button" class="btn btn-info btn-sm" 
                                                         onclick="viewMessDetail(<?= $mess['id'] ?>)" title="Detail">
@@ -235,12 +234,7 @@
                                                 data-toggle="tooltip" title="Edit">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
-                                                <!-- button download pengajuan perbaikan -->
-                                                <button type="button" class="btn btn-secondary btn-sm" 
-                                                       
-                                                        data-toggle="tooltip" title="Download Pengajuan Perbaikan">
-                                                    <i class="fas fa-download"></i>
-                                                </button>
+                                                
                                                 <button type="button" class="btn btn-danger btn-sm" 
                                                         onclick="deleteMessData(<?= $mess['id'] ?>, '<?= esc($mess['nama_karyawan'] ?? '') ?>')"
                                                         data-toggle="tooltip" title="Hapus">
@@ -326,15 +320,6 @@
                         </div>
                     </div>
 
-                    <!-- <div class="d-flex justify-content-end mb-3">
-                        <button class="btn btn-sm btn-outline-success mr-2" onclick="exportWorkshopToExcel()">
-                            <i class="fas fa-file-excel"></i> Export Excel
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="exportWorkshopToPDF()">
-                            <i class="fas fa-file-pdf"></i> Export PDF
-                        </button>
-                    </div> -->
-
                     <div class="table-responsive">
                         <table class="table table-hover table-striped table-sm mb-0">
                             <thead class="table-light">
@@ -348,13 +333,14 @@
                                     <th class="text-center">Bays</th>
                                     <th class="text-center">Kompartemen</th>
                                     <th>Status</th>
+                                    <th class="text-center">Dokumen</th>
                                     <th class="text-center" width="120">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php if(empty($workshop_data)): ?>
                                     <tr>
-                                        <td colspan="10" class="text-center py-4">
+                                        <td colspan="11" class="text-center py-4">
                                             <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
                                             <p class="text-muted mb-0">Belum ada data workshop</p>
                                         </td>
@@ -394,6 +380,13 @@
                                                 <?php endif; ?>
                                             </td>
                                             <td class="text-center">
+                                                <button type="button" class="btn btn-xs btn-outline-success" 
+                                                        onclick="viewAssetDocuments('workshop', <?= $workshop['id'] ?>, '<?= esc($workshop['name_karyawan'] ?? '') ?>')"
+                                                        title="Lihat Dokumen">
+                                                    <i class="fas fa-file-pdf"></i>
+                                                </button>
+                                            </td>
+                                            <td class="text-center">
                                                 <div class="btn-group btn-group-sm" role="group">
                                                     <button type="button" class="btn btn-info btn-sm" 
                                                             onclick="viewWorkshopDetail(<?= $workshop['id'] ?>)" title="Detail">
@@ -404,11 +397,6 @@
                                                     data-toggle="tooltip" title="Edit">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
-                                                    <!-- button download pengajuan perbaikan -->
-                                                    <button type="button" class="btn btn-secondary btn-sm"
-                                                            data-toggle="tooltip" title="Download Pengajuan Perbaikan">
-                                                        <i class="fas fa-download"></i>
-                                                    </button>
                                                     <button type="button" class="btn btn-danger btn-sm" 
                                                             onclick="deleteWorkshopData(<?= $workshop['id'] ?>, '<?= esc($workshop['name_karyawan'] ?? '') ?>')"
                                                             data-toggle="tooltip" title="Hapus">
@@ -439,7 +427,6 @@
         </div>
     </div>
 
-    <!-- SATU MODAL UNTUK MESS & WORKSHOP -->
     <div class="modal fade" id="modalRiwayatPerbaikan" tabindex="-1">
         <div class="modal-dialog modal-lg modal-dialog-scrollable" style="max-width:700px;">
             <div class="modal-content" style="border-radius:12px;overflow:hidden;">
@@ -452,7 +439,6 @@
                     <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
                 </div>
 
-                <!-- Search & Filter — sticky -->
                 <div style="padding:12px 16px; border-bottom:1px solid #f0f0f0; background:#fafafa; position:sticky; top:0; z-index:10;">
                     <div class="d-flex" style="gap:8px; flex-wrap:wrap;">
                         <div style="position:relative; flex:1; min-width:160px;">
@@ -482,10 +468,8 @@
                     <div id="modalFilterInfo" style="font-size:0.75rem;color:#9ca3af;margin-top:6px;"></div>
                 </div>
 
-                <!-- List -->
                 <div class="modal-body" style="padding:12px 16px; background:#f8fafc; min-height:300px;">
                     
-                    <!-- Skeleton Loading -->
                     <div id="modalSkeleton">
                         <?php for($sk=0; $sk<4; $sk++): ?>
                         <div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-bottom:8px;background:#fff;">
@@ -496,7 +480,6 @@
                         <?php endfor; ?>
                     </div>
 
-                    <!-- Empty State -->
                     <div id="modalEmptyState" style="display:none; text-align:center; padding:48px 0;">
                         <div style="width:64px;height:64px;background:#f3f4f6;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
                             <i class="fas fa-clipboard-list" style="font-size:1.5rem;color:#d1d5db;"></i>
@@ -504,10 +487,8 @@
                         <p style="color:#6b7280;font-size:0.88rem;margin:0;" id="modalEmptyMsg">Belum ada riwayat perbaikan</p>
                     </div>
 
-                    <!-- Card List -->
                     <div id="modalCardList"></div>
 
-                    <!-- Load More -->
                     <div id="modalLoadMore" style="display:none; text-align:center; padding:8px 0;">
                         <button type="button" onclick="loadMoreItems()"
                                 style="padding:7px 20px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;font-size:0.82rem;color:#374151;cursor:pointer;">
@@ -524,6 +505,25 @@
         </div>
     </div>
 
+    <div class="modal fade" id="modalViewDocuments" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content" style="border-radius:12px; overflow:hidden;">
+                <div class="modal-header bg-light border-bottom">
+                    <div>
+                        <h6 class="modal-title font-weight-bold mb-0"><i class="fas fa-file-pdf mr-2 text-danger"></i>Dokumen Lampiran</h6>
+                        <small id="docModalSubtitle" class="text-muted"></small>
+                    </div>
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                </div>
+                <div class="modal-body p-3" id="docListContainer" style="background:#f8fafc; min-height:150px;">
+                    </div>
+                <div class="modal-footer bg-white border-top">
+                    <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <?php if(session()->getFlashdata('success')): ?>
         <div class="alert alert-success alert-dismissible fade show position-fixed" style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
             <i class="fas fa-check-circle"></i> <?= session()->getFlashdata('success') ?>
@@ -532,7 +532,58 @@
             </button>
         </div>
     <?php endif; ?>
+
     <script>
+    // ===== FUNGSI LIHAT DOKUMEN ASET =====
+    function viewAssetDocuments(tipe, id, nama) {
+        const container = document.getElementById('docListContainer');
+        const subtitle = document.getElementById('docModalSubtitle');
+        
+        subtitle.textContent = nama;
+        container.innerHTML = '<div class="text-center py-4"><i class="fas fa-circle-notch fa-spin fa-2x text-muted"></i><p class="small mt-2">Memuat dokumen...</p></div>';
+        
+        $('#modalViewDocuments').modal('show');
+
+        // Note: URL ini harus disesuaikan dengan controller Anda
+        fetch(`<?= base_url('general-service/repair-request/upload-dokumen/') ?>${id}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (!res.success || !res.data || res.data.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-folder-open fa-2x text-muted mb-2"></i>
+                        <p class="text-muted small mb-0">Belum ada dokumen yang diunggah.</p>
+                    </div>`;
+                return;
+            }
+
+            let html = '';
+            res.data.forEach(doc => {
+                const date = new Date(doc.uploaded_at).toLocaleDateString('id-ID', {day:'2-digit', month:'short', year:'numeric'});
+                html += `
+                <div class="d-flex align-items-center justify-content-between border rounded p-3 mb-2 bg-white shadow-sm">
+                    <div class="d-flex align-items-center" style="min-width:0;">
+                        <i class="fas fa-file-pdf text-danger mr-3" style="font-size:1.5rem;"></i>
+                        <div style="min-width:0;">
+                            <div class="font-weight-bold text-truncate small" style="max-width:220px;" title="${doc.file_name}">${doc.file_name}</div>
+                            <small class="text-muted">${date} • ${(doc.file_size/1024).toFixed(0)} KB</small>
+                        </div>
+                    </div>
+                    <div class="btn-group btn-group-sm ml-2">
+                        <a href="<?= base_url() ?>/${doc.file_path}" target="_blank" class="btn btn-outline-primary" title="Lihat"><i class="fas fa-eye"></i></a>
+                        <a href="<?= base_url() ?>/${doc.file_path}" download class="btn btn-outline-secondary" title="Download"><i class="fas fa-download"></i></a>
+                    </div>
+                </div>`;
+            });
+            container.innerHTML = html;
+        })
+        .catch(err => {
+            container.innerHTML = '<div class="alert alert-danger small">Gagal mengambil data dokumen.</div>';
+        });
+    }
+
     // ===== RIWAYAT PERBAIKAN MODAL =====
     const ITEMS_PER_PAGE = 20;
     let _allData = [];
@@ -693,10 +744,6 @@
                     <div style="text-align:right;white-space:nowrap;">
                         <div style="font-size:0.73rem;color:#9ca3af;">${tgl}</div>
                         ${biaya ? `<div style="font-size:0.75rem;font-weight:600;color:#059669;margin-top:2px;">${biaya}</div>` : ''}
-                        <!-- <button onclick="goToDetail(${item.id})"
-                                style="margin-top:6px;padding:3px 10px;border-radius:6px;border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;font-size:0.72rem;cursor:pointer;">
-                            <i class="fas fa-eye" style="font-size:0.65rem;"></i> Detail
-                        </button> -->
                     </div>
                 </div>
             `;
@@ -1015,6 +1062,122 @@
     }
 
     })();
+    function viewAssetDocuments(tipe, id, nama) {
+    const container = document.getElementById('docListContainer');
+    const subtitle  = document.getElementById('docModalSubtitle');
+
+    subtitle.textContent = nama;
+    container.innerHTML  = `
+        <div class="text-center py-4">
+            <i class="fas fa-circle-notch fa-spin fa-2x text-muted"></i>
+            <p class="small mt-2 text-muted">Memuat dokumen...</p>
+        </div>`;
+
+    $('#modalViewDocuments').modal('show');
+
+    fetch(`<?= base_url('general-service/repair-request/asset-documents/') ?>${tipe}/${id}`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (!res.success || !res.data || res.data.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="fas fa-folder-open fa-2x text-muted mb-2"></i>
+                    <p class="text-muted small mb-0">Belum ada dokumen yang diunggah.</p>
+                </div>`;
+            return;
+        }
+
+        // Ambil dokumen terbaru untuk preview
+        const latest = res.data[0];
+        const baseUrl = '<?= base_url() ?>';
+
+        let html = '';
+
+        // ── PREVIEW INLINE PDF (dokumen terbaru) ──
+        html += `
+        <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="font-weight-bold small text-success">
+                    <i class="fas fa-file-pdf mr-1"></i> Dokumen Terbaru
+                </span>
+                <div>
+                    <a href="${baseUrl}/${latest.file_path}" target="_blank"
+                       class="btn btn-sm btn-outline-primary mr-1">
+                        <i class="fas fa-external-link-alt"></i> Buka
+                    </a>
+                    <a href="${baseUrl}/${latest.file_path}" download="${latest.file_name}"
+                       class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-download"></i> Download
+                    </a>
+                </div>
+            </div>
+            <iframe
+                src="${baseUrl}/${latest.file_path}#toolbar=0&navpanes=0"
+                style="width:100%; height:420px; border:1px solid #dee2e6; border-radius:6px;"
+                title="Preview Dokumen">
+            </iframe>
+            <small class="text-muted">
+                ${latest.kode_pengajuan} &middot;
+                ${new Date(latest.uploaded_at).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'})}
+                &middot; ${(latest.file_size/1024).toFixed(0)} KB
+                ${latest.keterangan ? '&middot; <em>' + latest.keterangan + '</em>' : ''}
+            </small>
+        </div>`;
+
+        // ── LIST SEMUA DOKUMEN (jika lebih dari 1) ──
+        if (res.data.length > 1) {
+            html += `
+            <hr>
+            <p class="small font-weight-bold text-muted mb-2">
+                <i class="fas fa-history mr-1"></i> Semua Dokumen (${res.data.length})
+            </p>`;
+
+            res.data.forEach((doc, idx) => {
+                const tgl = new Date(doc.uploaded_at).toLocaleDateString('id-ID', {
+                    day: '2-digit', month: 'short', year: 'numeric'
+                });
+                html += `
+                <div class="d-flex align-items-center justify-content-between
+                            border rounded p-2 mb-2 bg-white shadow-sm">
+                    <div class="d-flex align-items-center" style="min-width:0;">
+                        <i class="fas fa-file-pdf text-danger mr-2"></i>
+                        <div style="min-width:0;">
+                            <div class="small font-weight-bold text-truncate"
+                                 style="max-width:200px;" title="${doc.file_name}">
+                                ${doc.file_name}
+                                ${idx === 0 ? '<span class="badge badge-success ml-1" style="font-size:0.65rem;">Terbaru</span>' : ''}
+                            </div>
+                            <small class="text-muted">
+                                ${doc.kode_pengajuan} &middot; ${tgl} &middot; ${(doc.file_size/1024).toFixed(0)} KB
+                                ${doc.keterangan ? '&middot; <em>' + doc.keterangan + '</em>' : ''}
+                            </small>
+                        </div>
+                    </div>
+                    <div class="btn-group btn-group-sm ml-2">
+                        <a href="${baseUrl}/${doc.file_path}" target="_blank"
+                           class="btn btn-outline-primary" title="Preview">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="${baseUrl}/${doc.file_path}" download="${doc.file_name}"
+                           class="btn btn-outline-secondary" title="Download">
+                            <i class="fas fa-download"></i>
+                        </a>
+                    </div>
+                </div>`;
+            });
+        }
+
+        container.innerHTML = html;
+    })
+    .catch(() => {
+        container.innerHTML = `
+            <div class="alert alert-danger small">
+                <i class="fas fa-exclamation-circle mr-1"></i> Gagal mengambil data dokumen.
+            </div>`;
+    });
+}
     </script>
 
     <style>

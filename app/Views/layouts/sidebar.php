@@ -85,11 +85,4 @@ function toggleMenu(element) {
     }
 }
 </script>
-
-    <div class="sidebar-footer">
-        <a href="<?= base_url('logout') ?>" class="menu-item logout">
-            <span class="icon">🚪</span>
-            <span class="text">Logout</span>
-        </a>
-    </div>
 </aside>

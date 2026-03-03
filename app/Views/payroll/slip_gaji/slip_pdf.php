@@ -104,7 +104,7 @@
         <table class="data">
             <?php if($karyawan['umk'] > 0): ?>
             <tr>
-                <td class="item-label">UMK</td>
+                <td class="item-label">Gaji Pokok</td>
                 <td class="item-value">Rp</td>
                 <td class="item-value"><?= number_format($karyawan['umk'], 0, ',', '.') ?></td>
             </tr>

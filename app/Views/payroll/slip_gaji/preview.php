@@ -218,7 +218,7 @@
         <table class="data">
             <?php if (($karyawan['umk'] ?? 0) > 0): ?>
             <tr>
-                <td class="item-label">UMK</td>
+                <td class="item-label">Gaji Pokok</td>
                 <td class="item-value">Rp</td>
                 <td class="item-value"><?= fmtIDR($karyawan['umk'] ?? 0) ?></td>
             </tr>

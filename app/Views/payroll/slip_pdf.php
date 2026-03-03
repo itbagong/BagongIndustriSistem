@@ -86,7 +86,7 @@
     <div class="section-title">PENDAPATAN</div>
     <table class="data">
         <tr>
-            <td class="item-label">UMK</td>
+            <td class="item-label">Gaji Pokok</td>
             <td class="item-value">Rp</td>
             <td class="item-value"><?= number_format($karyawan['umk'], 0, ',', '.') ?></td>
         </tr>

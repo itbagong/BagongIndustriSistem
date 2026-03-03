@@ -5,92 +5,31 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
 
     <style>
-        /* Custom Scrollbar */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f1f1; 
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #c1c1c1; 
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8; 
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
 
-        /* PAGINATION STYLE */
-        .custom-pager ul {
-            display: flex;
-            gap: 0.25rem;
-            margin: 0;
-            padding: 0;
-            list-style: none;
-        }
+        .custom-pager ul { display: flex; gap: 0.25rem; margin: 0; padding: 0; list-style: none; }
         .custom-pager li a, .custom-pager li span {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 2rem;
-            height: 2rem;
-            padding: 0 0.5rem;
-            border-radius: 0.375rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-            text-decoration: none;
-            transition: all 0.2s;
-            border: 1px solid #e5e7eb;
-            background-color: #fff;
-            color: #374151;
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 2rem; height: 2rem; padding: 0 0.5rem; border-radius: 0.375rem;
+            font-size: 0.875rem; font-weight: 500; text-decoration: none; transition: all 0.2s;
+            border: 1px solid #e5e7eb; background-color: #fff; color: #374151;
         }
-        .custom-pager li a:hover:not(.active) {
-            background-color: #f9fafb;
-            border-color: #d1d5db;
+        .custom-pager li a:hover:not(.active) { background-color: #f9fafb; border-color: #d1d5db; }
+        .custom-pager li.active a, .custom-pager li.active span, .custom-pager li a.active {
+            background-color: #3b82f6 !important; color: white !important; border-color: #3b82f6 !important;
         }
-        .custom-pager li.active a, 
-        .custom-pager li.active span,
-        .custom-pager li a.active {
-            background-color: #3b82f6 !important;
-            color: white !important;
-            border-color: #3b82f6 !important;
-        }
-        .custom-pager li.disabled span {
-            color: #9ca3af;
-            cursor: not-allowed;
-            background-color: #f3f4f6;
-        }
+        .custom-pager li.disabled span { color: #9ca3af; cursor: not-allowed; background-color: #f3f4f6; }
 
-        /* --- FITUR RESIZE KOLOM (KAYAK EXCEL) --- */
-        table {
-            table-layout: fixed; /* Penting agar resize mulus */
-            width: 100%;
-        }
-        
-        th {
-            position: relative; /* Agar resizer menempel di th */
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
+        table { table-layout: fixed; width: 100%; }
+        th { position: relative; overflow: hidden; text-overflow: ellipsis; }
         .resizer {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 5px;
-            height: 100%;
-            cursor: col-resize;
-            user-select: none;
-            touch-action: none;
-            z-index: 20;
+            position: absolute; top: 0; right: 0; width: 5px; height: 100%;
+            cursor: col-resize; user-select: none; touch-action: none; z-index: 20;
         }
-
-        /* Garis biru saat dihover atau ditarik */
-        .resizer:hover, .resizing {
-            background-color: #3b82f6; 
-            width: 7px; /* Sedikit melebar saat disentuh */
-        }
+        .resizer:hover, .resizing { background-color: #3b82f6; width: 7px; }
     </style>
 
 <body class="bg-gray-100">
@@ -126,9 +65,7 @@
                         </label>
                     </div>
                     <p class="text-sm text-gray-500" id="file-name">Belum ada file dipilih</p>
-                    <p class="text-xs text-gray-400 mt-2">
-                        Format: No, Tanggal Slip, NIK, Nama, Jabatan, Status, Bulan, Site, UMK, Insentif, dll.
-                    </p>
+                    <p class="text-xs text-gray-400 mt-2">Format: No, Tanggal Slip, NIK, Nama, Jabatan, Status, Bulan, Site, UMK, Insentif, dll.</p>
                     <button type="submit" class="mt-4 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
                         <i class="fas fa-cloud-upload-alt mr-2"></i>Upload Data
                     </button>
@@ -167,7 +104,6 @@
                         <i class="fas fa-times"></i> Tutup
                     </button>
                 </div>
-                
                 <div class="grid grid-cols-5 gap-3 mb-3">
                     <div class="text-center p-2 bg-white rounded"><div class="text-2xl font-bold text-gray-700" id="stat-total">0</div><div class="text-xs text-gray-500">Total</div></div>
                     <div class="text-center p-2 bg-white rounded"><div class="text-2xl font-bold text-green-600" id="stat-sent">0</div><div class="text-xs text-gray-500">Terkirim</div></div>
@@ -175,7 +111,6 @@
                     <div class="text-center p-2 bg-white rounded"><div class="text-2xl font-bold text-yellow-600" id="stat-pending">0</div><div class="text-xs text-gray-500">Menunggu</div></div>
                     <div class="text-center p-2 bg-white rounded"><div class="text-2xl font-bold text-purple-600" id="stat-processing">0</div><div class="text-xs text-gray-500">Diproses</div></div>
                 </div>
-                
                 <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
                     <div id="progress-bar" class="h-4 bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500" style="width:0%"></div>
                 </div>
@@ -187,7 +122,7 @@
 
             <div class="mb-4 relative">
                 <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-                <input type="text" id="searchInput" placeholder="Cari NIK, nama, jabatan, site..." 
+                <input type="text" id="searchInput" placeholder="Cari NIK, nama, jabatan, site..."
                     class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     onkeyup="searchTable()">
             </div>
@@ -212,7 +147,6 @@
                         <option value="sent" <?= ($filters['status_kirim'] ?? '')=='sent'?'selected':'' ?>>Sent</option>
                         <option value="failed" <?= ($filters['status_kirim'] ?? '')=='failed'?'selected':'' ?>>Failed</option>
                     </select>
-                    
                     <a href="<?= base_url('slip-gaji') ?>" class="bg-gray-200 text-gray-700 px-3 py-2 rounded text-sm hover:bg-gray-300">Reset</a>
                 </form>
 
@@ -229,9 +163,9 @@
             </div>
 
             <div class="bg-white border rounded-lg shadow-sm flex flex-col">
-                
                 <div class="overflow-x-auto overflow-y-auto max-h-[60vh] custom-scrollbar rounded-t-lg">
-                    <table class="w-full min-w-[1200px]" id="dataTable"> <thead class="bg-gray-50 border-b sticky top-0 z-10">
+                    <table class="w-full min-w-[1200px]" id="dataTable">
+                        <thead class="bg-gray-50 border-b sticky top-0 z-10">
                             <tr>
                                 <th class="px-4 py-3 bg-gray-50 border-b w-12 text-center">
                                     <input type="checkbox" id="select-all" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
@@ -249,20 +183,18 @@
                                 <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-50 border-b w-48">Email</th>
                                 <th class="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-50 border-b w-36">Gaji Bersih</th>
                                 <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-50 border-b w-28">Status</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-50 border-b w-28">Time Update</th>
                                 <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-50 border-b w-40">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200 bg-white">
-                            <?php 
-                                // Perhitungan Offset Data
+                            <?php
                                 $currentPage = $pager->getCurrentPage();
-                                $perPage = $pager->getPerPage();
-                                $total = $pager->getTotal();
-                                $offset = ($currentPage - 1) * $perPage;
-                                
-                                // Hitung range data
-                                $startItem = ($total == 0) ? 0 : $offset + 1;
-                                $endItem = min($offset + $perPage, $total);
+                                $perPage     = $pager->getPerPage();
+                                $total       = $pager->getTotal();
+                                $offset      = ($currentPage - 1) * $perPage;
+                                $startItem   = ($total == 0) ? 0 : $offset + 1;
+                                $endItem     = min($offset + $perPage, $total);
                             ?>
                             <?php foreach($karyawan as $index => $k): ?>
                             <tr class="hover:bg-blue-50 transition duration-150 ease-in-out" id="row-<?= $k['id'] ?>">
@@ -274,31 +206,28 @@
                                 <td class="px-4 py-3 text-sm font-semibold text-gray-700 truncate"><?= $k['nama'] ?></td>
                                 <td class="px-4 py-3 text-sm text-gray-600 truncate"><?= $k['jabatan'] ?></td>
                                 <td class="px-4 py-3 text-sm text-gray-600">
-                                    <span class="px-2 py-0.5 inline-flex text-xs font-medium rounded-full bg-gray-100 text-gray-800">
-                                        <?= $k['site'] ?>
-                                    </span>
+                                    <span class="px-2 py-0.5 inline-flex text-xs font-medium rounded-full bg-gray-100 text-gray-800"><?= $k['site'] ?></span>
                                 </td>
                                 <td class="px-4 py-3 text-sm text-gray-600 truncate"><?= $k['bulan'] ?></td>
-                                <td class="px-4 py-3 text-sm text-blue-600 truncate" title="<?= $k['email'] ?>">
-                                    <?= $k['email'] ?>
-                                </td>
+                                <td class="px-4 py-3 text-sm text-blue-600 truncate" title="<?= $k['email'] ?>"><?= $k['email'] ?></td>
                                 <td class="px-4 py-3 text-sm text-right font-mono text-gray-700">
                                     Rp <?= number_format($k['gaji_bersih'], 0, ',', '.') ?>
                                 </td>
                                 <td class="px-4 py-3 text-center">
                                     <?php if($k['status_kirim'] == 'sent'): ?>
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 border border-green-200">
-                                            Terkirim
-                                        </span>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 border border-green-200">Terkirim</span>
                                     <?php elseif($k['status_kirim'] == 'failed'): ?>
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200">
-                                            Gagal
-                                        </span>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200">Gagal</span>
                                     <?php else: ?>
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">
-                                            Pending
-                                        </span>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">Pending</span>
                                     <?php endif; ?>
+                                </td>
+                                <td class="px-4 py-3 text-center text-sm text-gray-500">
+                                    <?php
+                                    $months = [1=>'Jan',2=>'Feb',3=>'Mar',4=>'Apr',5=>'Mei',6=>'Jun',7=>'Jul',8=>'Agu',9=>'Sep',10=>'Okt',11=>'Nov',12=>'Des'];
+                                    $ts = strtotime($k['updated_at']);
+                                    echo date('d', $ts) . ' ' . $months[(int)date('n', $ts)] . ' ' . date('Y H:i', $ts) . ' WIB';
+                                    ?>
                                 </td>
                                 <td class="px-4 py-3 text-center whitespace-nowrap">
                                     <div class="flex items-center justify-center gap-2">
@@ -316,7 +245,8 @@
 
                 <div class="px-4 py-3 border-t bg-white rounded-b-lg flex flex-col md:flex-row justify-between items-center gap-4">
                     <div class="text-sm text-gray-600">
-                        Menampilkan <span class="font-semibold text-gray-900"><?= $startItem ?> - <?= $endItem ?></span> dari <span class="font-semibold text-gray-900"><?= $total ?></span> data
+                        Menampilkan <span class="font-semibold text-gray-900"><?= $startItem ?> - <?= $endItem ?></span>
+                        dari <span class="font-semibold text-gray-900"><?= $total ?></span> data
                     </div>
                     <div class="custom-pager">
                         <?= $pager->links('default', 'default_full') ?>
@@ -335,13 +265,15 @@
         <?php endif; ?>
     </div>
 
+    <!-- EDIT MODAL -->
     <div id="editModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div class="bg-blue-600 text-white px-6 py-4 rounded-t-lg flex justify-between items-center">
                 <h3 class="text-xl font-semibold"><i class="fas fa-edit mr-2"></i>Edit Data Karyawan</h3>
                 <button onclick="closeEditModal()" class="text-white hover:text-gray-200"><i class="fas fa-times text-2xl"></i></button>
             </div>
-            <form id="editForm" method="post" class="p-6">
+            <!-- Hapus method="post" dan action — dihandle AJAX -->
+            <form id="editForm" class="p-6">
                 <?= csrf_field() ?>
                 <input type="hidden" id="edit_id" name="id">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -352,25 +284,31 @@
                     <div><label class="block text-sm font-medium text-gray-700 mb-2">Bulan <span class="text-red-500">*</span></label><input type="text" id="edit_bulan" name="bulan" required class="w-full px-3 py-2 border rounded-lg"></div>
                     <div><label class="block text-sm font-medium text-gray-700 mb-2">Email <span class="text-red-500">*</span></label><input type="email" id="edit_email" name="email" required class="w-full px-3 py-2 border rounded-lg"></div>
                     <div><label class="block text-sm font-medium text-gray-700 mb-2">Gaji Bersih</label><input type="text" id="edit_gaji_bersih" readonly class="w-full px-3 py-2 border rounded-lg bg-gray-100"></div>
-                    <input id="edit_status_kirim" type="hidden" name="status_kirim" value="pending">
                 </div>
+
+                <!-- Alert error di dalam modal -->
+                <div id="editAlert" class="hidden mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm"></div>
+
                 <div class="mt-6 flex gap-3 justify-end">
                     <button type="button" onclick="closeEditModal()" class="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-50">Batal</button>
-                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Simpan Perubahan</button>
+                    <button type="submit" id="editSubmitBtn" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        <i class="fas fa-save mr-1"></i> Simpan Perubahan
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-        function showFileName(input) { document.getElementById('file-name').textContent = input.files[0]?.name || 'Belum ada file dipilih'; }
+        function showFileName(input) {
+            document.getElementById('file-name').textContent = input.files[0]?.name || 'Belum ada file dipilih';
+        }
 
         // --- SORTING ---
         function sortTable(n) {
             var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
             table = document.getElementById("dataTable");
-            switching = true;
-            dir = "asc";
+            switching = true; dir = "asc";
             while (switching) {
                 switching = false;
                 rows = table.rows;
@@ -378,134 +316,146 @@
                     shouldSwitch = false;
                     x = rows[i].getElementsByTagName("TD")[n];
                     y = rows[i + 1].getElementsByTagName("TD")[n];
-                    if (dir == "asc") {
-                        if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) { shouldSwitch = true; break; }
-                    } else if (dir == "desc") {
-                        if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) { shouldSwitch = true; break; }
-                    }
+                    if (dir == "asc") { if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) { shouldSwitch = true; break; } }
+                    else if (dir == "desc") { if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) { shouldSwitch = true; break; } }
                 }
-                if (shouldSwitch) {
-                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-                    switching = true;
-                    switchcount++;
-                } else {
-                    if (switchcount == 0 && dir == "asc") { dir = "desc"; switching = true; }
-                }
+                if (shouldSwitch) { rows[i].parentNode.insertBefore(rows[i + 1], rows[i]); switching = true; switchcount++; }
+                else { if (switchcount == 0 && dir == "asc") { dir = "desc"; switching = true; } }
             }
         }
 
         // --- SEARCH ---
         function searchTable() {
-            var input, filter, table, tr, td, i, txtValue;
-            input = document.getElementById("searchInput");
-            filter = input.value.toUpperCase();
-            table = document.getElementById("dataTable");
-            tr = table.getElementsByTagName("tr");
-            for (i = 1; i < tr.length; i++) { 
+            var input = document.getElementById("searchInput");
+            var filter = input.value.toUpperCase();
+            var table = document.getElementById("dataTable");
+            var tr = table.getElementsByTagName("tr");
+            for (var i = 1; i < tr.length; i++) {
                 var match = false;
                 var tds = tr[i].getElementsByTagName("td");
-                for (var j = 1; j < tds.length; j++) { 
+                for (var j = 1; j < tds.length; j++) {
                     if (tds[j]) {
-                        txtValue = tds[j].textContent || tds[j].innerText;
-                        if (txtValue.toUpperCase().indexOf(filter) > -1) {
-                            match = true;
-                            break;
-                        }
+                        var txtValue = tds[j].textContent || tds[j].innerText;
+                        if (txtValue.toUpperCase().indexOf(filter) > -1) { match = true; break; }
                     }
                 }
                 tr[i].style.display = match ? "" : "none";
             }
         }
 
-        // --- COLUMN RESIZE LOGIC ---
-        document.addEventListener('DOMContentLoaded', function() {
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', function () {
             const table = document.getElementById('dataTable');
-            if(table) enableColumnResizing(table);
-            
-            // Checkbox logic init
+            if (table) enableColumnResizing(table);
             checkboxInit();
-            
-            // Initial Status Check
             checkInitialQueueStatus();
+
+            // ============================================
+            // EDIT FORM — AJAX SUBMIT (FIX UTAMA)
+            // ============================================
+            document.getElementById('editForm').addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                const id = document.getElementById('edit_id').value;
+                const submitBtn = document.getElementById('editSubmitBtn');
+                const alertBox = document.getElementById('editAlert');
+
+                alertBox.classList.add('hidden');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...';
+
+                try {
+                    const formData = new FormData(this);
+                    // FormData tidak bisa langsung ke URLSearchParams kalau ada file,
+                    // tapi karena tidak ada file di sini, pakai URLSearchParams saja
+                    const params = new URLSearchParams();
+                    formData.forEach((val, key) => params.append(key, val));
+
+                    const res = await fetch(`<?= base_url('slip-gaji/update/') ?>${id}`, {
+                        method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        body: params
+                    });
+
+                    const data = await res.json();
+
+                    if (data.success) {
+                        closeEditModal();
+                        location.reload();
+                    } else {
+                        alertBox.textContent = data.message || 'Terjadi kesalahan.';
+                        alertBox.classList.remove('hidden');
+                    }
+                } catch (err) {
+                    alertBox.textContent = 'Error koneksi: ' + err;
+                    alertBox.classList.remove('hidden');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-save mr-1"></i> Simpan Perubahan';
+                }
+            });
         });
 
+        // --- COLUMN RESIZE ---
         function enableColumnResizing(table) {
             const cols = table.querySelectorAll('th');
-            [].forEach.call(cols, function(col) {
-                // Add resizer only if not already present
-                if(col.querySelector('.resizer')) return;
-
+            [].forEach.call(cols, function (col) {
+                if (col.querySelector('.resizer')) return;
                 const resizer = document.createElement('div');
                 resizer.classList.add('resizer');
                 resizer.style.height = `${table.offsetHeight}px`;
                 col.appendChild(resizer);
-
                 createResizableColumn(col, resizer);
             });
         }
 
         function createResizableColumn(col, resizer) {
-            let x = 0;
-            let w = 0;
-
-            const mouseDownHandler = function(e) {
+            let x = 0, w = 0;
+            resizer.addEventListener('mousedown', function (e) {
                 x = e.clientX;
-                const styles = window.getComputedStyle(col);
-                w = parseInt(styles.width, 10);
-
+                w = parseInt(window.getComputedStyle(col).width, 10);
                 document.addEventListener('mousemove', mouseMoveHandler);
                 document.addEventListener('mouseup', mouseUpHandler);
                 resizer.classList.add('resizing');
-            };
-
-            const mouseMoveHandler = function(e) {
-                const dx = e.clientX - x;
-                col.style.width = `${w + dx}px`;
-            };
-
-            const mouseUpHandler = function() {
+            });
+            const mouseMoveHandler = function (e) { col.style.width = `${w + (e.clientX - x)}px`; };
+            const mouseUpHandler = function () {
                 document.removeEventListener('mousemove', mouseMoveHandler);
                 document.removeEventListener('mouseup', mouseUpHandler);
                 resizer.classList.remove('resizing');
             };
-
-            resizer.addEventListener('mousedown', mouseDownHandler);
         }
 
+        // --- CHECKBOX ---
         function checkboxInit() {
             const selectAll = document.getElementById('select-all');
             const btnDelete = document.getElementById('btn-delete-selected');
-            
+
             function updateBtnState() {
-                const checkboxes = document.querySelectorAll('.row-checkbox');
-                const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
-                if(btnDelete) btnDelete.disabled = !anyChecked;
+                const anyChecked = Array.from(document.querySelectorAll('.row-checkbox')).some(cb => cb.checked);
+                if (btnDelete) btnDelete.disabled = !anyChecked;
             }
 
             if (selectAll) {
-                selectAll.addEventListener('change', function() {
-                    const checkboxes = document.querySelectorAll('.row-checkbox');
-                    checkboxes.forEach(cb => cb.checked = this.checked);
+                selectAll.addEventListener('change', function () {
+                    document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = this.checked);
                     updateBtnState();
                 });
             }
 
-            document.getElementById('dataTable')?.addEventListener('change', function(e) {
+            document.getElementById('dataTable')?.addEventListener('change', function (e) {
                 if (e.target.classList.contains('row-checkbox')) {
-                    const checkboxes = document.querySelectorAll('.row-checkbox');
-                    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-                    if(selectAll) selectAll.checked = allChecked;
+                    const allChecked = Array.from(document.querySelectorAll('.row-checkbox')).every(cb => cb.checked);
+                    if (selectAll) selectAll.checked = allChecked;
                     updateBtnState();
                 }
             });
 
-            btnDelete?.addEventListener('click', async function() {
-                const checkboxes = document.querySelectorAll('.row-checkbox:checked');
-                const ids = Array.from(checkboxes).map(cb => cb.value);
+            btnDelete?.addEventListener('click', async function () {
+                const ids = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
                 if (ids.length === 0) return;
-                
                 if (!confirm(`Hapus ${ids.length} data terpilih?`)) return;
-                
+
                 const originalHtml = btnDelete.innerHTML;
                 btnDelete.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                 btnDelete.disabled = true;
@@ -517,19 +467,20 @@
 
                     const res = await fetch('<?= base_url('slip-gaji/delete-multiple') ?>', {
                         method: 'POST',
-                        headers: {'X-Requested-With': 'XMLHttpRequest'},
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
                         body: data
                     });
                     const json = await res.json();
-                    if(json.success) { alert(json.message); location.reload(); } 
+                    if (json.success) { alert(json.message); location.reload(); }
                     else { alert('Gagal: ' + json.message); }
-                } catch(err) { alert('Error: ' + err); } 
+                } catch (err) { alert('Error: ' + err); }
                 finally { btnDelete.innerHTML = originalHtml; btnDelete.disabled = false; }
             });
         }
 
-        // --- EMAIL & EDIT LOGIC (Standard) ---
+        // --- QUEUE / EMAIL ---
         let pollInterval = null;
+
         async function checkInitialQueueStatus() {
             try {
                 const r = await fetch('<?= base_url('slip-gaji/queue-status') ?>');
@@ -539,7 +490,7 @@
                     updateProgress(data);
                     startMonitoring();
                     const btn = document.getElementById('btn-async');
-                    if(btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...'; }
+                    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...'; }
                 }
                 syncResendButton(data.failed || 0);
             } catch (e) { console.error(e); }
@@ -552,7 +503,7 @@
             try {
                 const res = await fetch('<?= base_url('slip-gaji/enqueue-all') ?>', {
                     method: 'POST',
-                    headers: {'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: '<?= csrf_token() ?>=' + encodeURIComponent('<?= csrf_hash() ?>')
                 });
                 const json = await res.json();
@@ -580,7 +531,7 @@
                     updateProgress(data);
                     if ((data.sent + data.failed) >= data.total && data.total > 0 && data.pending === 0 && data.processing === 0) {
                         clearInterval(pollInterval);
-                        document.getElementById('status-message').innerHTML = `<i class="fas fa-check-circle"></i> Selesai!`;
+                        document.getElementById('status-message').innerHTML = '<i class="fas fa-check-circle"></i> Selesai!';
                     }
                 } catch (e) {}
             }, 3000);
@@ -623,16 +574,16 @@
             try {
                 const res = await fetch('<?= base_url('slip-gaji/resend-all-failed') ?>', {
                     method: 'POST',
-                    headers: {'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: '<?= csrf_token() ?>=' + encodeURIComponent('<?= csrf_hash() ?>')
                 });
                 const json = await res.json();
-                if(json.success) {
+                if (json.success) {
                     document.getElementById('progressMonitor').style.display = 'block';
                     startMonitoring();
                     btn.style.display = 'none';
                 } else { alert(json.message); }
-            } catch(e) { alert(e); } 
+            } catch (e) { alert(e); }
             finally { btn.disabled = false; }
         }
 
@@ -641,26 +592,30 @@
             const btn = document.getElementById(`btn-email-${id}`);
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true;
             fetch(`<?= base_url('slip-gaji/send-email/') ?>${id}`, {
-                method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'}
+                method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }
             }).then(r => r.json()).then(d => {
-                if(d.success) { alert(d.message); location.reload(); } else { alert(d.message); btn.innerHTML = '<i class="fas fa-paper-plane"></i>'; btn.disabled = false; }
+                if (d.success) { alert(d.message); location.reload(); }
+                else { alert(d.message); btn.innerHTML = '<i class="fas fa-paper-plane"></i>'; btn.disabled = false; }
             }).catch(e => { alert(e); btn.innerHTML = '<i class="fas fa-paper-plane"></i>'; btn.disabled = false; });
         }
 
         function deleteData(id, nama) {
             if (!confirm(`Hapus ${nama}?`)) return;
             fetch(`<?= base_url('slip-gaji/delete/') ?>${id}`, {
-                method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'},
-                body: new URLSearchParams({'_method': 'DELETE', '<?= csrf_token() ?>': '<?= csrf_hash() ?>'})
+                method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: new URLSearchParams({ '_method': 'DELETE', '<?= csrf_token() ?>': '<?= csrf_hash() ?>' })
             }).then(r => r.json()).then(d => {
-                if(d.success) { document.getElementById(`row-${id}`).remove(); } else { alert(d.message); }
+                if (d.success) { document.getElementById(`row-${id}`).remove(); } else { alert(d.message); }
             }).catch(e => alert(e));
         }
 
         async function openEditModal(id) {
             document.getElementById('editModal').classList.remove('hidden');
+            document.getElementById('editAlert').classList.add('hidden');
             try {
-                const res = await fetch(`<?= base_url('slip-gaji/edit/') ?>${id}`, {headers: {'X-Requested-With': 'XMLHttpRequest'}});
+                const res = await fetch(`<?= base_url('slip-gaji/edit/') ?>${id}`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
                 const data = await res.json();
                 document.getElementById('edit_id').value = data.id;
                 document.getElementById('edit_nik').value = data.nik;
@@ -670,10 +625,12 @@
                 document.getElementById('edit_bulan').value = data.bulan;
                 document.getElementById('edit_email').value = data.email;
                 document.getElementById('edit_gaji_bersih').value = 'Rp ' + parseFloat(data.gaji_bersih).toLocaleString('id-ID');
-                document.getElementById('editForm').action = `<?= base_url('slip-gaji/update/') ?>${id}`;
-            } catch(e) { alert(e); closeEditModal(); }
+            } catch (e) { alert(e); closeEditModal(); }
         }
-        function closeEditModal() { document.getElementById('editModal').classList.add('hidden'); }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
     </script>
 </body>
 <?= $this->endSection() ?>

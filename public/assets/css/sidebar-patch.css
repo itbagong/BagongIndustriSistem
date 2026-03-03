@@ -1,0 +1,190 @@
+/* ============================================================
+   sidebar-patch.css — FINAL
+   Berdasarkan analisis lengkap navbar.php + sidebar.php + dashboard.css
+   ============================================================ */
+
+/* ── 1. Hapus dot bullet ── */
+.submenu .menu-item::before {
+    display: none !important;
+    content: none !important;
+}
+
+/* ── 2. Sidebar tidak overflow horizontal ── */
+.sidebar {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+}
+
+/* ── 3. Sidebar menu tidak terpotong ── */
+.sidebar .sidebar-menu {
+    padding: 10px 0 40px !important;
+    max-height: none !important;
+    overflow: visible !important;
+    height: auto !important;
+}
+
+/* ── 4. Submenu max-height cukup ── */
+.submenu { max-height: 0; overflow: hidden; }
+.menu-group.active .submenu,
+.submenu[style*="display:block"],
+.submenu[style*="display: block"] {
+    max-height: 2000px !important;
+    overflow: visible !important;
+}
+
+/* ── 5. Main wrapper transition ── */
+.main-wrapper { transition: margin-left 0.3s ease !important; }
+body.sidebar-collapsed .main-wrapper { margin-left: 70px !important; }
+
+/* ── 6. Prevent body horizontal scroll ── */
+body { overflow-x: hidden !important; }
+
+/* ── 7. Overlay ── */
+.sidebar-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.4);
+    display: none; opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+/* ════════════════════════════════════════════
+   DESKTOP COLLAPSED (min-width: 769px)
+   ════════════════════════════════════════════ */
+@media (min-width: 769px) {
+    .sidebar-overlay { z-index: 440; }
+
+    .sidebar.collapsed {
+        width: 70px !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+    }
+    .sidebar.collapsed .sidebar-header {
+        padding: 12px 0 !important;
+    }
+    .sidebar.collapsed .sidebar-header h3 { display: none !important; }
+    .sidebar.collapsed .sidebar-header .logo {
+        width: 44px !important; height: 44px !important; margin: 0 auto !important;
+    }
+    .sidebar.collapsed .menu-item {
+        padding: 13px 0 !important;
+        justify-content: center !important;
+        gap: 0 !important;
+        border-left: 3px solid transparent !important;
+    }
+    .sidebar.collapsed .menu-item .text,
+    .sidebar.collapsed .menu-item .arrow { display: none !important; }
+    .sidebar.collapsed .menu-item .icon {
+        font-size: 1.2rem !important; width: 70px !important;
+        margin: 0 !important; text-align: center !important;
+        display: flex !important; align-items: center !important;
+        justify-content: center !important;
+    }
+    .sidebar.collapsed .menu-group { margin: 0 !important; padding: 0 !important; }
+    .sidebar.collapsed .submenu { display: none !important; max-height: 0 !important; }
+}
+
+/* ── Flyout ── */
+.sidebar-flyout {
+    position: fixed !important;
+    left: 70px !important;
+    min-width: 210px; max-height: 80vh; overflow-y: auto;
+    background: linear-gradient(180deg, #e89a6b 0%, #d88759 100%);
+    border-radius: 0 8px 8px 0;
+    box-shadow: 4px 4px 20px rgba(0,0,0,0.2);
+    z-index: 451; padding: 6px 0;
+}
+.sidebar-flyout .menu-item, .sidebar-flyout a.menu-item {
+    display: flex !important; align-items: center !important;
+    padding: 11px 18px !important; justify-content: flex-start !important;
+    gap: 12px !important; white-space: nowrap; width: 100% !important;
+    border-left: 3px solid transparent !important;
+    text-decoration: none !important; color: rgba(255,255,255,0.9) !important;
+}
+.sidebar-flyout .menu-item:hover { background: rgba(255,255,255,0.12) !important; }
+.sidebar-flyout .menu-item.active { background: rgba(255,255,255,0.18) !important; font-weight: 600 !important; }
+.sidebar-flyout .menu-item::before, .sidebar-flyout .menu-item::after { display: none !important; content: none !important; }
+.sidebar-flyout .menu-item .icon { font-size: 1rem !important; width: 22px !important; margin: 0 !important; flex-shrink: 0; display: flex !important; justify-content: center !important; }
+.sidebar-flyout .menu-item .text { display: inline !important; opacity: 1 !important; width: auto !important; overflow: visible !important; font-size: 0.92rem !important; color: rgba(255,255,255,0.9) !important; }
+
+/* ════════════════════════════════════════════
+   MOBILE (max-width: 768px)
+   ════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    /* Topbar HARUS di atas segalanya */
+    .topbar {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 9999 !important;
+    }
+
+    /* Hamburger tombol pasti bisa diklik */
+    #menuToggle, .menu-toggle {
+        position: relative !important;
+        z-index: 10000 !important;
+        pointer-events: auto !important;
+        cursor: pointer !important;
+    }
+
+    /* Sidebar: fixed, mulai di bawah topbar, lebar fix */
+    .sidebar {
+        position: fixed !important;
+        top: 62px !important;           /* tinggi topbar navbar = --hdr: 62px */
+        left: -260px !important;
+        width: 260px !important;
+        height: calc(100vh - 62px) !important;
+        z-index: 5000 !important;       /* di bawah topbar (9999) */
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        transition: left 0.3s ease !important;
+        visibility: visible !important;
+        pointer-events: none !important; /* tidak intersept klik saat tertutup */
+    }
+
+    .sidebar.active {
+        left: 0 !important;
+        pointer-events: auto !important;
+    }
+
+    /* Overlay di bawah sidebar, di bawah topbar */
+    .sidebar-overlay {
+        z-index: 4000 !important;
+        top: 62px !important;
+        height: calc(100vh - 62px) !important;
+    }
+
+    /* Main wrapper full width */
+    .main-wrapper { margin-left: 0 !important; }
+
+    /* Flyout tidak di mobile */
+    .sidebar-flyout { display: none !important; }
+
+    /* Reset collapsed styles agar tidak ikut aktif di mobile */
+    .sidebar .menu-item .text,
+    .sidebar .menu-item .icon,
+    .sidebar .menu-item .arrow {
+        display: unset !important;
+        opacity: 1 !important;
+        width: auto !important;
+    }
+    .sidebar .menu-item .icon {
+        display: flex !important;
+        width: 30px !important;
+        margin-right: 15px !important;
+        font-size: 1.4rem !important;
+    }
+    .sidebar .menu-item {
+        padding: 15px 25px !important;
+        justify-content: flex-start !important;
+        gap: 0 !important;
+    }
+}
+
+/* Override --sidebar-width:100% di 480px dari dashboard.css */
+@media (max-width: 480px) {
+    .sidebar {
+        width: 260px !important;
+        left: -260px !important;
+    }
+    .sidebar.active { left: 0 !important; }
+}

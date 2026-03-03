@@ -291,9 +291,9 @@
 <div class="content-header mb-4">
     <div class="d-flex justify-content-between align-items-center">
         <h3 class="font-semibold text-gray-900 mb-0">Pengajuan Perbaikan Aset</h3>
-        <button type="button" class="btn btn-primary shadow-sm" style="border-radius: 8px;" id="btnPengajuanBaru">
+        <!-- <button type="button" class="btn btn-primary shadow-sm" style="border-radius: 8px;" id="btnPengajuanBaru">
             <i class="fas fa-plus mr-2"></i> Ajukan Perbaikan
-        </button>
+        </button> -->
     </div>
 </div>
 
@@ -520,12 +520,17 @@
                                         data-toggle="tooltip" title="Detail">
                                     <i class="fas fa-eye"></i>
                                 </button>
-                                <?php if($item['status'] == 'Pending'): ?>
+                                <a href="<?= base_url('general-service/repair-request/print/' . $item['id']) ?>"
+                                target="_blank" class="btn-action" style="text-decoration:none;" data-toggle="tooltip" title="Cetak / Print">
+                                    <i class="fas fa-print" style="font-size:0.8rem;"></i>
+                                </a>
+                                
                                 <button type="button" class="btn-action btn-action-edit"
                                     onclick="window.location.href='<?= base_url('general-service/repair-request/edit/' . $item['id']) ?>'"
                                     data-toggle="tooltip" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </button>
+                                <?php if($item['status'] == 'Pending'): ?>
                                 <button type="button" class="btn-action btn-action-delete" 
                                         onclick="deletePengajuan(<?= $item['id'] ?>, '<?= esc($item['kode_pengajuan'] ?? '') ?>')"
                                         data-toggle="tooltip" title="Hapus">
