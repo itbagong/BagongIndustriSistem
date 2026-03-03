@@ -116,5 +116,9 @@ $routes->group('general-service', ['filter' => 'permission:general.service'], fu
         $routes->post('update-progress/(:segment)', 'GeneralService\RepairRequestController::updateProgress/$1');
 
         $routes->get('repair-list/(:alpha)/(:segment)', 'GeneralService\RepairRequestController::repairList/$1/$2');
+        $routes->get('print/(:num)', 'GeneralService\RepairRequestController::printView/$1');
+        $routes->post('upload-dokumen/(:num)',  'GeneralService\RepairRequestController::uploadDokumen/$1');
+        $routes->post('delete-dokumen/(:num)',  'GeneralService\RepairRequestController::deleteDokumen/$1');
+        $routes->get('asset-documents/(:alpha)/(:num)','GeneralService\RepairRequestController::getAssetDocuments/$1/$2');
     });
 });

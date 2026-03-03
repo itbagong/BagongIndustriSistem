@@ -76,7 +76,7 @@ class RepairRequestModel extends Model
         'kategori_kerusakan' => 'required|in_list[Ringan,Sedang,Berat,Darurat]', // TAMBAHAN
         'jenis_kerusakan' => 'required|min_length[5]|max_length[255]', // UPDATE min_length
         'deskripsi_kerusakan' => 'required',
-        'prioritas' => 'required|in_list[Segera,Normal,Rendah]',
+        // 'prioritas' => 'required|in_list[Segera,Normal,Rendah]',
         'status' => 'permit_empty|in_list[Pending,Approved,In Progress,Completed,Rejected,Cancelled]', // TAMBAH Cancelled
     ];
 

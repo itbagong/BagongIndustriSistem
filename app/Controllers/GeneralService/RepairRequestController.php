@@ -121,8 +121,8 @@ class RepairRequestController extends BaseController
                 'kategori_kerusakan'   => $this->request->getPost('kategori_kerusakan'),
                 'jenis_kerusakan'      => $this->request->getPost('jenis_kerusakan'),
                 'deskripsi_kerusakan'  => $this->request->getPost('deskripsi_kerusakan'),
-                'prioritas'            => $this->request->getPost('prioritas'),
-                'tingkat_urgensi'      => $this->request->getPost('prioritas') === 'Segera' ? 1 : 0,
+                // 'prioritas'            => $this->request->getPost('prioritas'),
+                // 'tingkat_urgensi'      => $this->request->getPost('prioritas') === 'Segera' ? 1 : 0,
                 'estimasi_biaya'       => $this->request->getPost('estimasi_biaya') ?? 0,
                 'catatan'              => $this->request->getPost('catatan'),
                 'foto_kerusakan'       => !empty($fotoKerusakan) ? json_encode($fotoKerusakan) : null,
@@ -143,6 +143,12 @@ class RepairRequestController extends BaseController
                         'message' => 'Gagal menyimpan data',
                         'data'    => null,
                         'errors'  => $this->repairModel->errors(),
+                        'debug'   => [
+                            'model_errors' => $this->repairModel->errors(),
+                            'db_error'     => $this->db->error(),
+                            'data_keys'    => array_keys($data),          // kolom yang dikirim
+                            // 'allowed'      => $this->repairModel->getAllowedFields(), // kolom yang diizinkan
+                        ]
                     ])
                 );
             }
@@ -169,8 +175,10 @@ class RepairRequestController extends BaseController
             return ApiResponse::SetApiResponse(
                 new ApiResponseParams([
                     'status'  => ResponseInterface::HTTP_INTERNAL_SERVER_ERROR,
-                    'message' => 'Terjadi kesalahan server',
-                    'data'    => null,
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                    'data'    => $e->getTraceAsString(), // Untuk debugging, bisa dihapus di production
+                    'line'    => $e->getLine(),
                 ])
             );
         }
@@ -448,6 +456,9 @@ class RepairRequestController extends BaseController
             $this->data['repair']        = $repair;
             $this->data['kategori_list'] = ['Ringan', 'Sedang', 'Berat', 'Darurat'];
             $this->data['prioritas_list'] = ['Rendah', 'Normal', 'Segera'];
+
+            $docModel = new \App\Models\RepairDocumentModel();
+            $this->data['dokumen_list'] = $docModel->getByRepair((int)$id);
 
             return view('general_service/perbaikan/edit', $this->data);
 
@@ -1079,5 +1090,186 @@ class RepairRequestController extends BaseController
             log_message('error', 'Update progress failed: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
+    }
+    // print view pdf
+    public function printView($id)
+    {
+        try {
+            $sql = "
+                SELECT
+                    rr.*,
+                    creator.username  AS created_by_name,
+                    approver.username AS disetujui_oleh_name,
+                    CASE
+                        WHEN rr.tipe_aset = 'Mess' THEN m.nama_karyawan
+                        WHEN rr.tipe_aset = 'Workshop' THEN w.name_karyawan
+                        ELSE NULL
+                    END AS nama_karyawan,
+                    CASE
+                        WHEN rr.tipe_aset = 'Mess' THEN m.nik
+                        WHEN rr.tipe_aset = 'Workshop' THEN w.nik
+                        ELSE NULL
+                    END AS nik,
+                    CASE
+                        WHEN rr.tipe_aset = 'Mess' THEN m.site_id
+                        WHEN rr.tipe_aset = 'Workshop' THEN w.site_id
+                        ELSE NULL
+                    END AS site_id,
+                    CASE
+                        WHEN rr.tipe_aset = 'Mess' THEN md.name
+                        WHEN rr.tipe_aset = 'Workshop' THEN wd.name
+                        ELSE NULL
+                    END AS divisi_name,
+                    CASE
+                        WHEN rr.tipe_aset = 'Mess' THEN m.mess_code
+                        WHEN rr.tipe_aset = 'Workshop' THEN w.workshop_code
+                        ELSE NULL
+                    END AS aset_code,
+                    disetujui_user.username AS disetujui_oleh_name
+                FROM repair_requests rr
+                LEFT JOIN users  AS creator   ON creator.id  = rr.created_by
+                LEFT JOIN users  AS approver  ON approver.id = rr.disetujui_oleh
+                LEFT JOIN users  AS disetujui_user ON disetujui_user.id = rr.disetujui_oleh
+                LEFT JOIN mess_data  m  ON m.id  = rr.aset_id AND rr.tipe_aset = 'Mess'
+                LEFT JOIN divisions md  ON md.id = m.divisi_id
+                LEFT JOIN workshop   w  ON w.id  = rr.aset_id AND rr.tipe_aset = 'Workshop'
+                LEFT JOIN divisions wd  ON wd.id = w.divisi_id
+                WHERE rr.id = ?
+                LIMIT 1
+            ";
+
+            $repair = $this->db->query($sql, [$id])->getRowArray();
+
+            if (!$repair) {
+                return redirect()->back()->with('error', 'Data tidak ditemukan');
+            }
+
+            // Decode JSON fields
+            $repair['foto_kerusakan'] = !empty($repair['foto_kerusakan'])
+                ? json_decode($repair['foto_kerusakan'], true) : [];
+            $repair['lampiran']       = !empty($repair['lampiran'])
+                ? json_decode($repair['lampiran'], true)       : [];
+
+            // Jika ada tabel repair_items terpisah, ambil di sini
+            // $repair_items = $this->db->table('repair_request_items')
+            //     ->where('repair_request_id', $id)->get()->getResultArray();
+
+            return view('general_service/perbaikan/print', [
+                'repair'       => $repair,
+                // 'repair_items' => $repair_items ?? [],   // uncomment jika ada
+            ]);
+
+        } catch (\Exception $e) {
+            log_message('error', 'Print repair failed: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal memuat halaman cetak.');
+        }
+    }
+    // ============================================================
+    // UPLOAD DOKUMEN TTD (AJAX)
+    // ============================================================
+    public function uploadDokumen(int $repairId)
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false, 
+                'message' => 'Bukan AJAX request'
+            ]);
+        }
+
+        $repair = $this->repairModel->find($repairId);
+        if (!$repair) return $this->response->setJSON(['success' => false, 'message' => 'Data tidak ditemukan.']);
+
+        $file = $this->request->getFile('dokumen_ttd');
+
+        // Validasi
+        if (!$file || !$file->isValid() || $file->hasMoved()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'File tidak valid.']);
+        }
+        if ($file->getMimeType() !== 'application/pdf') {
+            return $this->response->setJSON(['success' => false, 'message' => 'File harus PDF.']);
+        }
+        if ($file->getSize() > 10 * 1024 * 1024) {
+            return $this->response->setJSON(['success' => false, 'message' => 'File maksimal 10MB.']);
+        }
+
+        // Simpan file
+        $namaFile  = 'TTD_' . $repair['kode_pengajuan'] . '_' . time() . '.pdf';
+        $uploadDir = FCPATH . 'uploads/dokumen_ttd/';
+        if (!is_dir($uploadDir)) mkdir($uploadDir, 0775, true);
+        $file->move($uploadDir, $namaFile);
+
+        $docModel = new \App\Models\RepairDocumentModel();
+        $keterangan = $this->request->getPost('keterangan') ?? '';
+
+        $newId = $docModel->insert([
+            'repair_id'   => $repairId,
+            'file_path'   => 'uploads/dokumen_ttd/' . $namaFile,
+            'file_name'   => $file->getClientName(),
+            'file_size'   => $file->getSize(),
+            'uploaded_by' => user_id(),          // sesuaikan helper auth Anda
+            'uploaded_at' => date('Y-m-d H:i:s'),
+            'keterangan'  => $keterangan,
+            'is_latest'   => 0,
+        ]);
+
+        // Set sebagai latest
+        $docModel->setLatest($repairId, $newId);
+
+        // Ambil ulang semua dokumen untuk di-render ulang
+        $docs = $docModel->getByRepair($repairId);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Dokumen berhasil diupload.',
+            'docs'    => $docs,
+            'latest_id' => $newId,
+        ]);
+    }
+
+    // ============================================================
+    // HAPUS DOKUMEN TTD (AJAX)
+    // ============================================================
+    public function deleteDokumen(int $docId)
+    {
+        if (!$this->request->isAJAX()) return $this->response->setJSON(['success' => false]);
+
+        $docModel = new \App\Models\RepairDocumentModel();
+        $doc = $docModel->find($docId);
+        if (!$doc) return $this->response->setJSON(['success' => false, 'message' => 'Dokumen tidak ditemukan.']);
+
+        // Hapus file fisik
+        $filePath = FCPATH . $doc['file_path'];
+        if (file_exists($filePath)) unlink($filePath);
+
+        $repairId = $doc['repair_id'];
+        $docModel->delete($docId);
+
+        // Recalc latest ke dokumen berikutnya
+        $docModel->recalcLatest($repairId);
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Dokumen dihapus.']);
+    }
+    
+    // Ambil semua dokumen TTD milik sebuah aset (berdasarkan repair_requests-nya)
+    public function getAssetDocuments(string $tipe, int $asetId)
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON(['success' => false]);
+        }
+
+        $db   = \Config\Database::connect();
+        $docs = $db->table('repair_documents rd')
+            ->select('rd.*, rr.kode_pengajuan')
+            ->join('repair_requests rr', 'rr.id = rd.repair_id')
+            ->where('rr.aset_id', $asetId)
+            ->where('rr.tipe_aset', ucfirst($tipe))
+            ->orderBy('rd.uploaded_at', 'DESC')
+            ->get()
+            ->getResultArray();
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data'    => $docs,
+        ]);
     }
 }

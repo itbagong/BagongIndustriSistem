@@ -71,12 +71,12 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb bg-transparent p-0 mb-0 mt-2">
                     <li class="breadcrumb-item"><a href="<?= base_url('dashboard') ?>">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="<?= base_url('general-service?tab=mess') ?>">Data Mess</a></li>
+                    <li class="breadcrumb-item"><a href="<?= base_url('general-service/asset?tab=mess') ?>">Data Mess</a></li>
                     <li class="breadcrumb-item active">Edit</li>
                 </ol>
             </nav>
         </div>
-        <a href="<?= base_url('general-service?tab=mess') ?>" class="btn btn-secondary">
+        <a href="<?= base_url('general-service/asset?tab=mess') ?>" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Kembali
         </a>
     </div>
@@ -1063,7 +1063,7 @@ function submitPerbaikan(index) {
     const catatan = document.getElementById(`catatan_${index}`).value;
     const files = document.getElementById(`files_${index}`).files;
 
-    if (!deskripsi || !kategori || !prioritas) {
+    if (!deskripsi || !kategori) {
         showAlert('error', 'Lengkapi semua field wajib!');
         return;
     }
@@ -1099,7 +1099,7 @@ function submitPerbaikan(index) {
     })
     .then(res => res.json())
     .then(data => {
-        console.log(data); // ← lihat di F12 Console
+        console.log('RAW RESPONSE:', JSON.stringify(data, null, 2)); // ← lihat di F12 Console
         
         // Coba cek berbagai kemungkinan struktur
         const isSuccess = data.success === true 

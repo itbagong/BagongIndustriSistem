@@ -89,7 +89,7 @@ class PayrollModel extends Model
         }
 
         return $q
-            ->orderBy('created_at', 'DESC')
+            ->orderBy('updated_at', 'DESC')
             ->paginate($perPage);
     }
     public function getDistinctValues(string $column)

@@ -1,176 +1,204 @@
 /**
- * Sidebar Toggle & Dropdown Management
- * ERP Pergudangan System
+ * sidebar.js — FINAL
+ * ERP Bagong Industri Sistem
+ *
+ * Topbar navbar: <header class="topbar"> dengan <button id="menuToggle">
+ * Sidebar:       <aside class="sidebar" id="sidebar">
+ * Topbar height: 62px (--hdr dari navbar CSS)
  */
+document.addEventListener('DOMContentLoaded', function () {
 
-document.addEventListener('DOMContentLoaded', function() {
-    
-    // ========================================
-    // 1. TOGGLE SIDEBAR COLLAPSE (Desktop)
-    // ========================================
-    const sidebar = document.getElementById('sidebar');
-    const toggleBtn = document.getElementById('sidebarToggle');
-    const toggleIcon = document.getElementById('toggleIcon');
-    const body = document.body;
+    const sidebar   = document.getElementById('sidebar');
+    const toggleBtn = document.getElementById('menuToggle');
+    const body      = document.body;
 
-    if (!sidebar || !toggleBtn) {
-        console.warn('Sidebar elements not found');
-        return;
+    if (!sidebar)   { console.warn('❌ #sidebar tidak ditemukan');   return; }
+    if (!toggleBtn) { console.warn('❌ #menuToggle tidak ditemukan'); return; }
+
+    const W_FULL      = 260;
+    const W_COLLAPSED = 70;
+    const isMobile    = () => window.innerWidth <= 768;
+    const isCollapsed = () => sidebar.classList.contains('collapsed');
+
+    // ── mainWrapper ─────────────────────────
+    const mainWrapper = document.querySelector('.main-wrapper');
+
+    function setMainMargin() {
+        if (!mainWrapper) return;
+        if (isMobile()) {
+            mainWrapper.style.marginLeft = '0';
+        } else {
+            mainWrapper.style.marginLeft = (isCollapsed() ? W_COLLAPSED : W_FULL) + 'px';
+        }
     }
 
-    // Load saved state from localStorage
-    const savedState = localStorage.getItem('sidebarCollapsed');
-    if (savedState === 'true') {
+    // ── Overlay ─────────────────────────────
+    let overlay = document.getElementById('sidebarOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id        = 'sidebarOverlay';
+        overlay.className = 'sidebar-overlay';
+        document.body.appendChild(overlay);
+    }
+
+    // ── Flyout (desktop collapsed) ───────────
+    const flyout = document.createElement('div');
+    flyout.className    = 'sidebar-flyout';
+    flyout.style.display = 'none';
+    document.body.appendChild(flyout);
+
+    let activeFlyoutGroup = null;
+
+    function openFlyout(menuGroup) {
+        const submenu = menuGroup.querySelector('.submenu');
+        if (!submenu) return;
+        flyout.innerHTML     = submenu.innerHTML;
+        const rect           = menuGroup.getBoundingClientRect();
+        flyout.style.top     = rect.top + 'px';
+        flyout.style.left    = W_COLLAPSED + 'px';
+        flyout.style.display = 'block';
+        activeFlyoutGroup    = menuGroup;
+        menuGroup.classList.add('active');
+    }
+
+    function closeFlyout() {
+        flyout.style.display = 'none';
+        flyout.innerHTML     = '';
+        if (activeFlyoutGroup) {
+            activeFlyoutGroup.classList.remove('active');
+            activeFlyoutGroup = null;
+        }
+    }
+
+    // ── Restore desktop collapsed state ─────
+    if (!isMobile() && localStorage.getItem('sidebarCollapsed') === 'true') {
         sidebar.classList.add('collapsed');
         body.classList.add('sidebar-collapsed');
-        if (toggleIcon) toggleIcon.textContent = '▶';
     }
+    setMainMargin();
 
-    // Toggle button click
-    toggleBtn.addEventListener('click', function() {
-        sidebar.classList.toggle('collapsed');
-        body.classList.toggle('sidebar-collapsed');
-        
-        // Update icon
-        if (sidebar.classList.contains('collapsed')) {
-            if (toggleIcon) toggleIcon.textContent = '▶';
-            localStorage.setItem('sidebarCollapsed', 'true');
+    // ── HAMBURGER CLICK ──────────────────────
+    toggleBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+
+        if (isMobile()) {
+            const isOpen = sidebar.classList.toggle('active');
+            body.classList.toggle('sidebar-active', isOpen);
+            showOverlay(isOpen);
+            toggleBtn.classList.toggle('is-open', isOpen);
+            toggleBtn.setAttribute('aria-expanded', String(isOpen));
         } else {
-            if (toggleIcon) toggleIcon.textContent = '◀';
-            localStorage.setItem('sidebarCollapsed', 'false');
+            const collapsed = sidebar.classList.toggle('collapsed');
+            body.classList.toggle('sidebar-collapsed', collapsed);
+            localStorage.setItem('sidebarCollapsed', String(collapsed));
+            if (collapsed) closeFlyout();
+            else closeAllSubmenus();
+            setMainMargin();
         }
     });
 
-    // ========================================
-    // 2. DROPDOWN MENU TOGGLE
-    // ========================================
-    window.toggleMenu = function(element) {
+    // ── Overlay ──────────────────────────────
+    function showOverlay(show) {
+        if (show) {
+            overlay.style.display = 'block';
+            requestAnimationFrame(() => { overlay.style.opacity = '1'; });
+        } else {
+            overlay.style.opacity = '0';
+            setTimeout(() => { overlay.style.display = 'none'; }, 300);
+        }
+    }
+
+    overlay.addEventListener('click', closeMobileSidebar);
+
+    function closeMobileSidebar() {
+        sidebar.classList.remove('active');
+        body.classList.remove('sidebar-active');
+        showOverlay(false);
+        toggleBtn.classList.remove('is-open');
+        toggleBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    // ── Submenu toggle (override fungsi di sidebar.php) ──
+    window.toggleMenu = function (element) {
         const parent = element.closest('.menu-group');
+        if (!parent) return;
+
+        // Desktop collapsed → flyout
+        if (!isMobile() && isCollapsed()) {
+            activeFlyoutGroup === parent ? closeFlyout() : (closeFlyout(), openFlyout(parent));
+            return;
+        }
+
+        // Normal accordion
         const submenu = parent.querySelector('.submenu');
-        
-        // Close other open menus (accordion style)
-        document.querySelectorAll('.menu-group').forEach(group => {
-            if (group !== parent && group.classList.contains('active')) {
-                group.classList.remove('active');
-                const otherSubmenu = group.querySelector('.submenu');
-                if (otherSubmenu) {
-                    otherSubmenu.style.display = 'none';
-                }
-            }
-        });
-        
-        // Toggle current menu
-        parent.classList.toggle('active');
-        
-        if (submenu) {
-            if (submenu.style.display === 'block') {
-                submenu.style.display = 'none';
-            } else {
-                submenu.style.display = 'block';
-            }
+        if (!submenu) return;
+        const wasOpen = parent.classList.contains('active');
+        closeAllSubmenus();
+        if (!wasOpen) {
+            parent.classList.add('active');
+            submenu.style.display = 'block';
         }
     };
 
-    // ========================================
-    // 3. MOBILE SIDEBAR TOGGLE
-    // ========================================
-    const overlay = document.getElementById('sidebarOverlay');
-    
-    // For mobile menu toggle button (hamburger)
-    const mobileToggle = document.querySelector('.menu-toggle');
-    if (mobileToggle) {
-        mobileToggle.addEventListener('click', function() {
-            sidebar.classList.toggle('active');
-            body.classList.toggle('sidebar-active');
+    function closeAllSubmenus() {
+        document.querySelectorAll('.menu-group.active').forEach(g => {
+            g.classList.remove('active');
+            const s = g.querySelector('.submenu');
+            if (s) s.style.display = 'none';
         });
     }
 
-    // Close sidebar when clicking overlay
-    if (overlay) {
-        overlay.addEventListener('click', function() {
-            sidebar.classList.remove('active');
-            body.classList.remove('sidebar-active');
-        });
-    }
+    // ── Tutup flyout saat klik luar ──────────
+    document.addEventListener('click', e => {
+        if (!sidebar.contains(e.target) && !flyout.contains(e.target)) {
+            closeFlyout();
+        }
+    });
+    sidebar.addEventListener('click', e => e.stopPropagation());
+    flyout.addEventListener('click',  e => e.stopPropagation());
 
-    // ========================================
-    // 4. AUTO-EXPAND ACTIVE MENU
-    // ========================================
-    const activeItem = document.querySelector('.submenu .menu-item.active');
-    if (activeItem) {
-        const parentGroup = activeItem.closest('.menu-group');
-        if (parentGroup) {
-            parentGroup.classList.add('active');
-            const submenu = parentGroup.querySelector('.submenu');
-            if (submenu) {
-                submenu.style.display = 'block';
-            }
+    // ── Auto expand menu aktif ───────────────
+    const activeChild = document.querySelector('.submenu .menu-item.active');
+    if (activeChild) {
+        const pg = activeChild.closest('.menu-group');
+        if (pg) {
+            pg.classList.add('active');
+            const s = pg.querySelector('.submenu');
+            if (s) s.style.display = 'block';
         }
     }
 
-    // ========================================
-    // 5. ADD DATA-TITLE FOR TOOLTIP
-    // ========================================
+    // ── Data-title tooltip ───────────────────
     document.querySelectorAll('.menu-item').forEach(item => {
-        const textEl = item.querySelector('.text');
-        if (textEl) {
-            item.setAttribute('data-title', textEl.textContent.trim());
-        }
+        const t = item.querySelector('.text');
+        if (t && !item.getAttribute('data-title'))
+            item.setAttribute('data-title', t.textContent.trim());
     });
 
-    // ========================================
-    // 6. PREVENT DROPDOWN CLOSE ON CHILD CLICK
-    // ========================================
-    document.querySelectorAll('.submenu .menu-item').forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.stopPropagation();
+    // ── Tutup mobile setelah klik link ───────
+    sidebar.querySelectorAll('a.menu-item').forEach(item => {
+        item.addEventListener('click', () => {
+            if (isMobile()) setTimeout(closeMobileSidebar, 250);
         });
     });
 
-    // ========================================
-    // 7. KEYBOARD NAVIGATION
-    // ========================================
-    document.addEventListener('keydown', function(e) {
-        // ESC to close sidebar on mobile
-        if (e.key === 'Escape' && window.innerWidth <= 768) {
-            sidebar.classList.remove('active');
-            body.classList.remove('sidebar-active');
-        }
-        
-        // Ctrl + B to toggle sidebar
-        if (e.ctrlKey && e.key === 'b') {
-            e.preventDefault();
-            toggleBtn.click();
-        }
+    // ── Keyboard ────────────────────────────
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') { closeMobileSidebar(); closeFlyout(); }
+        if (e.ctrlKey && e.key === 'b') { e.preventDefault(); toggleBtn.click(); }
     });
 
-    // ========================================
-    // 8. WINDOW RESIZE HANDLER
-    // ========================================
-    let resizeTimer;
-    window.addEventListener('resize', function() {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(function() {
-            if (window.innerWidth > 768) {
-                sidebar.classList.remove('active');
-                body.classList.remove('sidebar-active');
-            }
-        }, 250);
+    // ── Resize ──────────────────────────────
+    let rt;
+    window.addEventListener('resize', () => {
+        clearTimeout(rt);
+        rt = setTimeout(() => {
+            if (!isMobile()) { sidebar.classList.remove('active'); showOverlay(false); }
+            closeFlyout();
+            setMainMargin();
+        }, 200);
     });
 
-    // ========================================
-    // 9. CLOSE MOBILE SIDEBAR AFTER CLICKING
-    // ========================================
-    document.querySelectorAll('.menu-item[href]').forEach(item => {
-        item.addEventListener('click', function() {
-            if (window.innerWidth <= 768) {
-                setTimeout(() => {
-                    sidebar.classList.remove('active');
-                    body.classList.remove('sidebar-active');
-                }, 300);
-            }
-        });
-    });
-
-    console.log('✅ Sidebar system initialized');
+    console.log('✅ Sidebar FINAL ready — menuToggle connected');
 });
