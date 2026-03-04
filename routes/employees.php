@@ -29,6 +29,9 @@ $routes->group('employees', function ($routes) {
     $routes->post('process', 'Employee\EmployeeController::process', [
         'filter' => 'permission:employee.view'
     ]);
+    $routes->get('stream', 'Employee\EmployeeController::stream', [
+        'filter' => 'permission:employee.view'
+    ]);
 
     // ===== UPDATE =====
     $routes->get('edit/(:num)', 'Employee\EmployeeController::edit/$1', [

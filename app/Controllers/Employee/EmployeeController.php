@@ -178,153 +178,243 @@ class EmployeeController extends BaseController
         return $this->response->setJSON(['success' => true]);
     }
 
-    // ── Import ───────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Drop-in replacement methods for your EmployeeImport controller.
+    // Replace your existing upload() and process() with these three methods.
+    // Add the private emit() helper anywhere in the class.
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    // ── Upload ────────────────────────────────────────────────────────────────────
+    // Same as before, but now also returns totalRows so the front-end can show
+    // an accurate progress bar before the SSE stream even starts.
+
     public function upload()
     {
         $file = $this->request->getFile('file_upload');
 
         if (!$file || !$file->isValid()) {
             return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'File tidak valid'
+                'status'  => 'error',
+                'message' => 'File tidak valid',
             ]);
         }
 
         $newName = $file->getRandomName();
         $file->move(WRITEPATH . 'uploads/employee', $newName);
 
+        // ── Count data rows (excluding header) so the UI can render total up-front
+        $filePath    = WRITEPATH . 'uploads/employee/' . $newName;
+        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+        $sheet       = $spreadsheet->getActiveSheet();
+        $totalRows   = max(0, $sheet->getHighestDataRow() - 1); // minus header row
+
         return $this->response->setJSON([
-            'status' => 'success',
-            'file'   => $newName
+            'status'    => 'success',
+            'file'      => $newName,
+            'totalRows' => $totalRows,
         ]);
     }
 
-    public function process()
+
+    // ── Stream  (replaces process) ────────────────────────────────────────────────
+    // Opens an SSE connection and processes every row server-side,
+    // pushing a structured event for each log line and progress tick.
+    // The browser receives updates the instant each row is committed.
+
+    public function stream()
     {
-        $fileName = $this->request->getPost('file');
-        $offset   = (int) $this->request->getPost('offset');
-        $limit    = 20;
+        // ── 1. SSE headers — must be sent before any output ──────────────────────
+        // Flush any output buffers so headers can be sent cleanly.
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
 
+        header('Content-Type: text/event-stream');
+        header('Cache-Control: no-cache');
+        header('X-Accel-Buffering: no');   // critical for Nginx – disables proxy buffering
+        header('Connection: keep-alive');
+
+        set_time_limit(0);
+        ignore_user_abort(true);           // keep running even if the browser tab closes
+
+        // ── 2. Resolve file ───────────────────────────────────────────────────────
+        $fileName = $this->request->getGet('file');
         $filePath = WRITEPATH . 'uploads/employee/' . $fileName;
-        $config   = new \Config\ImportEmployee();
-        $fieldMap = $config->fields;
 
-        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
-        $sheet       = $spreadsheet->getActiveSheet();
+        if (!$fileName || !file_exists($filePath)) {
+            $this->emit('error', ['message' => 'File not found on server.']);
+            exit();
+        }
 
-        // ── Read all rows as formatted strings ───────────────────────
+        // ── 3. Load spreadsheet ───────────────────────────────────────────────────
+        try {
+            $config      = new \Config\ImportEmployee();
+            $fieldMap    = $config->fields;
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+            $sheet       = $spreadsheet->getActiveSheet();
+        } catch (\Exception $e) {
+            $this->emit('error', ['message' => 'Cannot read file: ' . $e->getMessage()]);
+            exit();
+        }
+
+        // ── 4. Parse rows ─────────────────────────────────────────────────────────
         $rows = [];
         foreach ($sheet->getRowIterator() as $row) {
             $rowData = [];
             foreach ($row->getCellIterator() as $cell) {
-                $rowData[$cell->getColumn()] = (string)$cell->getFormattedValue();
+                $rowData[$cell->getColumn()] = (string) $cell->getFormattedValue();
             }
             $rows[] = $rowData;
         }
 
-        // ── Normalize header row ─────────────────────────────────────
         $headerRow = array_shift($rows);
         $header    = array_map(fn($h) => strtolower(trim($h)), $headerRow);
         $colIndex  = array_flip($header);
+        $totalRows = count($rows);
 
-        $slice = array_slice($rows, $offset, $limit, true);
+        // Announce total so the UI can initialise the progress bar
+        $this->emit('meta', ['total' => $totalRows]);
 
-        $logs      = [];
+        // ── 5. Process every row ──────────────────────────────────────────────────
         $processed = 0;
+        $inserted  = 0;
+        $updated   = 0;
+        $skipped   = 0;
 
-        foreach ($slice as $index => $row) {
-            $rowNumber = $index + 2;
+        foreach ($rows as $index => $row) {
+            $rowNumber = $index + 2;   // +2: 1-based + header offset
 
             try {
                 $record = [];
 
                 foreach ($fieldMap as $excelHeader => $cfg) {
-                    if (! isset($colIndex[$excelHeader])) {
+                    if (!isset($colIndex[$excelHeader])) {
                         continue;
                     }
 
-                    $col     = $colIndex[$excelHeader];
-                    $raw = $row[$col] ?? '';                     // original raw value (before any cleaning)
-                    $trimmedRaw = trim($raw);                     // for emptiness check
-                    $value   = trim(preg_replace('/[\x00-\x1F\xA0]/u', '', $row[$col] ?? ''));
-                    $dbField = $cfg['db_field'] ?? str_replace(' ', '_', $excelHeader);
+                    $col        = $colIndex[$excelHeader];
+                    $raw        = $row[$col] ?? '';
+                    $trimmedRaw = trim($raw);
+                    $value      = trim(preg_replace('/[\x00-\x1F\xA0]/u', '', $row[$col] ?? ''));
+                    $dbField    = $cfg['db_field'] ?? str_replace(' ', '_', $excelHeader);
 
                     if ($value === '') {
                         $record[$dbField] = null;
-                        // If raw had visible content, log it
                         if ($trimmedRaw !== '') {
-                            $logs[] = "Row {$rowNumber}: {$excelHeader} - " . json_encode($raw);
-                        }
-                        continue;
+                        $this->emit('log', [
+                            'level'   => 'warn',
+                            'message' => "Row {$rowNumber}: {$excelHeader} — invisible chars stripped",
+                        ]);
                     }
+                    continue;
+                }
 
-                    switch ($cfg['type']) {
-                        case 'direct':
-                            $record[$dbField] = $value;
-                            break;
+                switch ($cfg['type']) {
+                    case 'direct':
+                        $record[$dbField] = $value;
+                        break;
 
-                        case 'date':
-                            $record[$dbField] = $this->parseDate($value, $cfg['format'] ?? 'Y-m-d');
-                            break;
+                    case 'date':
+                        $record[$dbField] = $this->parseDate($value, $cfg['format'] ?? 'Y-m-d');
+                        break;
 
-                        case 'master':
-                            $modelProp = $cfg['model'];
-                            $related   = null;
+                    case 'master':
+                        $modelProp = $cfg['model'];
+                        $related   = $this->{$modelProp}
+                            ->where('LOWER(name)', strtolower($value))
+                            ->first();
 
+                        if (!$related) {
                             $related = $this->{$modelProp}
-                                            ->where('LOWER(name)', strtolower($value))
-                                            ->first();
+                                ->where("JSON_CONTAINS(LOWER(aliases), ?)", [json_encode(strtolower($value))])
+                                ->first();
+                        }
 
-                            if (! $related && ($cfg['partial_match'] ?? false)) {
-                                $all = $this->{$modelProp}->findAll();
-                                foreach ($all as $item) {
-                                    if (stripos($value, $item['name']) !== false) {
-                                        $related = $item;
-                                        break;
-                                    }
+                        if (!$related && ($cfg['partial_match'] ?? false)) {
+                            foreach ($this->{$modelProp}->findAll() as $item) {
+                                if (stripos($value, $item['name']) !== false) {
+                                    $related = $item;
+                                    break;
                                 }
                             }
+                        }
 
-                            $record[$dbField] = $related['id'] ?? null;
-                            break;
+                        $record[$dbField] = $related['id'] ?? null;
+                        break;
                     }
-                        // After processing, if final value is empty but raw had content, log it
+
+                    // Warn when master lookup failed but source had content
                     if ($trimmedRaw !== '' && ($record[$dbField] === null || $record[$dbField] === '')) {
-                        $logs[] = "Row {$rowNumber}: {$excelHeader} - " . json_encode($raw);
+                        $this->emit('log', [
+                            'level'   => 'warn',
+                            'message' => "Row {$rowNumber}: {$excelHeader} — no match for " . json_encode($raw),
+                        ]);
                     }
                 }
 
-                // ── Strict empty check ───────────────────────────────
+                // ── Strict empty guard ────────────────────────────────────────────
                 if (($record['nik'] ?? '') === '' || ($record['name'] ?? '') === '') {
                     throw new \Exception('NIK / Name kosong');
                 }
 
-                // ── Upsert by NIK ────────────────────────────────────
+                // ── Upsert ────────────────────────────────────────────────────────
                 $existing = $this->model->where('nik', $record['nik'])->first();
 
                 if ($existing) {
                     $this->model->update($existing['id'], $record);
-                    $logs[] = "Row {$rowNumber}: 🔄 {$record['name']} updated (NIK {$record['nik']})";
+                    $updated++;
+                    $this->emit('log', [
+                        'level'   => 'update',
+                        'message' => "Row {$rowNumber}: 🔄 {$record['name']} updated (NIK {$record['nik']})",
+                    ]);
                 } else {
-                    $record['id'] = $this->model->generateUuid(); // ← add this
+                    $record['id'] = $this->model->generateUuid();
                     $this->model->insert($record);
-                    $logs[] = "Row {$rowNumber}: ✅ {$record['name']} inserted";
+                    $inserted++;
+                    $this->emit('log', [
+                        'level'   => 'success',
+                        'message' => "Row {$rowNumber}: ✅ {$record['name']} inserted",
+                    ]);
                 }
-
             } catch (\Exception $e) {
-                $logs[] = "Row {$rowNumber}: ❌ " . $e->getMessage();
+                $skipped++;
+                $this->emit('log', [
+                    'level'   => 'error',
+                    'message' => "Row {$rowNumber}: ❌ " . $e->getMessage(),
+                ]);
             }
 
             $processed++;
+
+            // Push a progress tick every row — the browser throttles rendering naturally
+            $this->emit('progress', ['processed' => $processed, 'total' => $totalRows]);
         }
 
-        $done = ($offset + $limit) >= count($rows);
+        // ── 6. Finished — clean up and close ─────────────────────────────────────
+        @unlink($filePath);   // remove the temp file
 
-        return $this->response->setJSON([
-            'logs'       => $logs,
-            'nextOffset' => $offset + $processed,
-            'done'       => $done,
+        $this->emit('done', [
+            'processed' => $processed,
+            'inserted'  => $inserted,
+            'updated'   => $updated,
+            'skipped'   => $skipped,
         ]);
+
+        exit();   // prevent CI4 from appending its own response body
+    }
+
+    // ── SSE helper ────────────────────────────────────────────────────────────────
+    // Writes a single named SSE event and immediately flushes it to the browser.
+
+    private function emit(string $event, array $data): void
+    {
+        echo "event: {$event}\n";
+        echo 'data: ' . json_encode($data) . "\n\n";
+
+        if (ob_get_level()) {
+            ob_flush();
+        }
+        flush();
     }
 
     // ── Export CSV ───────────────────────────────────────────────
