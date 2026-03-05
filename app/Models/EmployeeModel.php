@@ -36,7 +36,7 @@ class EmployeeModel extends Model
         3  => 'g.name',    // gender
         4  => 'd.name',    // department
         5  => 'dv.name',   // division
-        6  => 'e.user',
+        6  => 'e.work_user',
         7  => 'gp.name',   // job_position  (groups table)
         8  => 'e.pkwt_date',
         9  => 'e.pkwt_date', // tenure is computed; sort by pkwt_date as proxy
@@ -59,7 +59,7 @@ class EmployeeModel extends Model
         'e.phone_number', 'e.place_of_birth', 'e.address',
         'g.name', 'd.name', 'dv.name', 'gp.name',
         's.name', 'es.name', 'ems.name', 'le.name', 'r.name',
-        'e.user',
+        'e.work_user',
     ];
 
     // ── Base builder: employees + all LEFT JOINs ─────────────────
@@ -71,7 +71,7 @@ class EmployeeModel extends Model
                 'e.nik',
                 'e.bis_id',
                 'e.name',
-                'e.user',
+                'e.work_user',
                 'e.pkwt_date',
                 'e.cutoff_date',
                 'e.national_id',
@@ -116,13 +116,16 @@ class EmployeeModel extends Model
         if (! empty($filters['employment_status'])) $builder->where('ems.name', $filters['employment_status']);
         if (! empty($filters['employee_status']))   $builder->where('es.name',  $filters['employee_status']);
 
-        // Global LIKE search
+        // Global search (ILIKE)
         if ($search !== '') {
+            $search = strtolower($search);
             $builder->groupStart();
             foreach ($this->searchable as $i => $col) {
-                $i === 0
-                    ? $builder->like($col, $search)
-                    : $builder->orLike($col, $search);
+                if ($i === 0) {
+                    $builder->where("LOWER($col) LIKE", "%$search%");
+                } else {
+                    $builder->orWhere("LOWER($col) LIKE", "%$search%");
+                }
             }
             $builder->groupEnd();
         }

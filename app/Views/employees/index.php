@@ -1,432 +1,470 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-
 <style>
-    body { font-family: 'DM Sans', sans-serif; }
+    /* ── Page layout ── */
+    .emp-page { padding: 24px; }
 
-    /* ── Animated gradient border on the drop zone ── */
-    @keyframes borderSpin {
-        0%   { background-position: 0% 50%; }
-        100% { background-position: 100% 50%; }
-    }
-    .drop-zone-ring {
-        background: linear-gradient(135deg, #3b82f6, #8b5cf6, #06b6d4, #3b82f6);
-        background-size: 300% 300%;
-        animation: borderSpin 4s linear infinite;
-        padding: 2px;
-        border-radius: 12px;
-    }
-    .drop-zone-inner {
-        background: #ffffff;
-        border-radius: 10px;
-    }
+    /* ── Header ── */
+    .page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+    .page-header h1 { font-size:1.5rem; font-weight:700; color:#111827; margin:0; }
+    .page-header p  { font-size:.85rem; color:#6b7280; margin:4px 0 0; }
+    .header-actions { display:flex; gap:10px; flex-wrap:wrap; }
 
-    /* ── Log console ── */
-    #logContainer {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 12.5px;
-        line-height: 1.7;
-        background: #0f1117;
-        color: #9ca3af;
+    /* ── Stat cards ── */
+    .stats-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin-bottom:24px; }
+    .stat-card {
+        background:#fff; border:1px solid #e5e7eb; border-radius:12px;
+        padding:16px 20px; display:flex; align-items:center; gap:14px;
     }
-    #logContainer .log-success { color: #34d399; }
-    #logContainer .log-update  { color: #60a5fa; }
-    #logContainer .log-warn    { color: #fbbf24; }
-    #logContainer .log-error   { color: #f87171; }
-    #logContainer .log-info    { color: #a78bfa; }
-    #logContainer .log-system  { color: #6b7280; font-style: italic; }
+    .stat-card .icon { font-size:1.6rem; }
+    .stat-card h4 { font-size:.75rem; font-weight:600; color:#9ca3af; text-transform:uppercase; letter-spacing:.05em; margin:0 0 4px; }
+    .stat-card .val { font-size:1.5rem; font-weight:700; color:#111827; line-height:1; }
 
-    /* ── Blinking cursor while running ── */
-    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-    #cursor { animation: blink 1s step-start infinite; display: none; }
-    #cursor.active { display: inline; }
+    /* ── Filter bar ── */
+    .filter-bar {
+        background:#fff; border:1px solid #e5e7eb; border-radius:12px;
+        padding:16px 20px; margin-bottom:20px;
+        display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;
+    }
+    .filter-bar .fg { display:flex; flex-direction:column; gap:5px; flex:1; min-width:160px; }
+    .filter-bar label { font-size:.75rem; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.04em; }
+    .filter-bar select,
+    .filter-bar input  { padding:7px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:.875rem; color:#374151; background:#f9fafb; outline:none; }
+    .filter-bar select:focus,
+    .filter-bar input:focus  { border-color:#6366f1; background:#fff; box-shadow:0 0 0 3px rgba(99,102,241,.1); }
 
-    /* ── Progress bar shimmer ── */
-    @keyframes shimmer {
-        0%   { background-position: -200% center; }
-        100% { background-position:  200% center; }
-    }
-    #progressBar {
-        background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 40%, #06b6d4 60%, #3b82f6 100%);
-        background-size: 200% 100%;
-        animation: shimmer 2s linear infinite;
-        transition: width 0.2s ease;
-    }
+    /* ── Table card ── */
+    .table-card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; }
+    .table-card-header { padding:16px 20px; border-bottom:1px solid #f3f4f6; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+    .table-card-header h3 { font-size:1rem; font-weight:600; color:#111827; margin:0; }
 
-    /* ── Stat pills ── */
-    .stat-pill {
-        display: inline-flex; align-items: center; gap: 6px;
-        padding: 3px 12px; border-radius: 999px;
-        font-size: 12px; font-weight: 600;
-    }
+    /* ── DataTable overrides ── */
+    #employeeTable_wrapper .dataTables_length,
+    #employeeTable_wrapper .dataTables_filter { padding:12px 20px 0; }
+    #employeeTable_wrapper .dataTables_info,
+    #employeeTable_wrapper .dataTables_paginate { padding:12px 20px; }
 
-    /* ── Slide-in for new log lines ── */
-    @keyframes slideIn {
-        from { opacity: 0; transform: translateX(-6px); }
-        to   { opacity: 1; transform: translateX(0); }
+    table.dataTable thead th {
+        background:#f9fafb; color:#6b7280; font-size:.75rem;
+        text-transform:uppercase; letter-spacing:.05em; font-weight:600;
+        padding:11px 14px; border-bottom:1px solid #e5e7eb; white-space:nowrap;
     }
-    .log-line { animation: slideIn 0.12s ease; }
+    table.dataTable tbody td { padding:11px 14px; font-size:.875rem; color:#374151; vertical-align:middle; }
+    table.dataTable tbody tr:hover { background:#f9fafb; }
+    table.dataTable tbody tr.odd  { background:#fff; }
+    table.dataTable tbody tr.even { background:#fafafa; }
 
-    /* ── Upload button pulse ── */
-    @keyframes pulse-ring {
-        0%   { box-shadow: 0 0 0 0 rgba(59,130,246,0.5); }
-        70%  { box-shadow: 0 0 0 8px rgba(59,130,246,0); }
-        100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+    /* ── Badges ── */
+    .badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:999px; font-size:.75rem; font-weight:600; white-space:nowrap; }
+    .badge-active   { background:#d1fae5; color:#065f46; }
+    .badge-inactive { background:#fef9c3; color:#854d0e; }
+    .badge-pkwt     { background:#dbeafe; color:#1e40af; }
+    .badge-pks      { background:#ede9fe; color:#5b21b6; }
+    .badge-gray     { background:#f3f4f6; color:#6b7280; }
+
+    /* ── Action buttons ── */
+    .btn-action { display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border-radius:7px; font-size:.78rem; font-weight:600; cursor:pointer; border:none; transition:all .15s; }
+    .btn-view   { background:#eff6ff; color:#2563eb; }
+    .btn-edit   { background:#fefce8; color:#ca8a04; }
+    .btn-delete { background:#fef2f2; color:#dc2626; }
+    .btn-view:hover   { background:#dbeafe; }
+    .btn-edit:hover   { background:#fef08a; }
+    .btn-delete:hover { background:#fecaca; }
+
+    /* ── Top buttons ── */
+    .btn { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:9px; font-size:.875rem; font-weight:600; cursor:pointer; border:none; transition:all .15s; text-decoration:none; }
+    .btn-primary { background:#4f46e5; color:#fff; }
+    .btn-primary:hover { background:#4338ca; }
+    .btn-success { background:#059669; color:#fff; }
+    .btn-success:hover { background:#047857; }
+    .btn-info    { background:#0891b2; color:#fff; }
+    .btn-info:hover { background:#0e7490; }
+
+    /* ── Detail modal ── */
+    #detailModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9999; align-items:center; justify-content:center; }
+    .detail-box  { background:#fff; border-radius:14px; width:100%; max-width:680px; max-height:90vh; overflow-y:auto; box-shadow:0 25px 50px rgba(0,0,0,.15); }
+    .detail-header { padding:20px 24px; border-bottom:1px solid #f3f4f6; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; background:#fff; z-index:1; }
+    .detail-header h2 { font-size:1.1rem; font-weight:700; color:#111827; margin:0; }
+    .modal-close { background:none; border:none; font-size:1.4rem; color:#9ca3af; cursor:pointer; line-height:1; padding:0 4px; }
+    .modal-close:hover { color:#374151; }
+
+    /* ── Delete confirm modal ── */
+    #deleteModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9999; align-items:center; justify-content:center; }
+    .delete-box  { background:#fff; border-radius:14px; width:100%; max-width:420px; padding:28px; box-shadow:0 25px 50px rgba(0,0,0,.15); }
+
+    /* ── Flash alerts ── */
+    .alert { padding:12px 16px; border-radius:9px; margin-bottom:20px; font-weight:500; font-size:.875rem; }
+    .alert-success { background:#d1fae5; border:1px solid #a7f3d0; color:#065f46; }
+    .alert-danger  { background:#fee2e2; border:1px solid #fecaca; color:#991b1b; }
+
+    /* ── NIK monospace ── */
+    .nik-cell { font-family:monospace; font-size:.82rem; background:#f3f4f6; padding:2px 8px; border-radius:5px; color:#374151; }
+
+    /* ── Pagination style ── */
+    .dataTables_paginate .paginate_button {
+        padding:4px 10px !important; border-radius:7px !important; font-size:.82rem !important;
+        border:1px solid #e5e7eb !important; margin:0 2px !important; color:#374151 !important;
     }
-    #importButton:not(:disabled) { animation: pulse-ring 2s ease-out infinite; }
+    .dataTables_paginate .paginate_button.current,
+    .dataTables_paginate .paginate_button.current:hover {
+        background:#4f46e5 !important; color:#fff !important; border-color:#4f46e5 !important;
+    }
+    .dataTables_paginate .paginate_button:hover {
+        background:#f3f4f6 !important; color:#111827 !important;
+    }
 </style>
 
-<div class="p-6 max-w-5xl mx-auto">
+<div class="emp-page">
 
-    <!-- ── Page Header ─────────────────────────────────────────────────── -->
-    <div class="mb-8">
-        <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Employee Import</h1>
-        <p class="text-sm text-gray-500 mt-1">
-            Upload an <span class="font-medium text-gray-700">.xlsx / .xls / .csv</span> file —
-            rows are streamed live as they are committed.
-        </p>
-    </div>
-
-    <!-- ── Upload Card ─────────────────────────────────────────────────── -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-5">
-        <h2 class="text-sm font-semibold uppercase tracking-widest text-gray-400 mb-4">
-            1 · Select File
-        </h2>
-
-        <div class="drop-zone-ring mb-4" id="dropZone">
-            <div class="drop-zone-inner p-8 text-center" id="dropInner">
-                <i class="fas fa-file-excel text-5xl text-gray-300 mb-3 block"></i>
-
-                <label id="fileLabel"
-                       class="cursor-pointer inline-flex items-center gap-2
-                              bg-blue-600 hover:bg-blue-700 text-white text-sm
-                              font-semibold px-5 py-2.5 rounded-lg transition-colors">
-                    <i class="fas fa-folder-open"></i> Browse file
-                    <input type="file"
-                           id="fileInput"
-                           name="file_upload"
-                           accept=".xlsx,.xls,.csv"
-                           class="hidden"
-                           onchange="onFileChosen(this)">
-                </label>
-
-                <p class="text-xs text-gray-400 mt-3" id="fileName">No file selected</p>
-                <p class="text-xs text-gray-300 mt-1">
-                    Supported headers: NIK, Name, Department, Division, Job Position, Gender, Site …
-                </p>
-            </div>
+    <!-- ── Header ───────────────────────────────────────────────── -->
+    <div class="page-header">
+        <div>
+            <h1>👥 Data Karyawan</h1>
+            <p>Manajemen data seluruh karyawan perusahaan</p>
         </div>
-
-        <div class="flex items-center justify-between">
-            <input type="hidden" id="csrfName"  value="<?= csrf_token() ?>">
-            <input type="hidden" id="csrfValue" value="<?= csrf_hash() ?>">
-
-            <div class="flex gap-3">
-                <button id="importButton"
-                        disabled
-                        onclick="startImport()"
-                        class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700
-                            disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none
-                            text-white text-sm font-semibold px-6 py-2.5 rounded-lg
-                            transition-colors focus:outline-none focus:ring-2
-                            focus:ring-green-400 focus:ring-offset-2">
-                    <i class="fas fa-play-circle"></i>
-                    <span id="importBtnLabel">Import Data</span>
-                </button>
-
-                <button id="stopButton"
-                        disabled
-                        onclick="stopImport()"
-                        class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700
-                            disabled:opacity-40 disabled:cursor-not-allowed
-                            text-white text-sm font-semibold px-6 py-2.5 rounded-lg
-                            transition-colors focus:outline-none focus:ring-2
-                            focus:ring-red-400 focus:ring-offset-2">
-                    <i class="fas fa-stop-circle"></i>
-                    Stop
-                </button>
-            </div>
-
-            <span id="statusBadge" class="stat-pill bg-gray-100 text-gray-500">
-                <i class="fas fa-circle text-gray-300" style="font-size:8px"></i>
-                Idle
-            </span>
+        <div class="header-actions">
+            <a href="<?= base_url('employees/import') ?>" class="btn btn-info">
+                📥 Import Excel
+            </a>
+            <a href="<?= base_url('employees/export') ?>" class="btn btn-success">
+                📤 Export CSV
+            </a>
+            <a href="<?= base_url('employees/create') ?>" class="btn btn-primary">
+                ➕ Tambah Karyawan
+            </a>
         </div>
     </div>
 
-    <!-- ── Progress + Log Card ─────────────────────────────────────────── -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h2 class="text-sm font-semibold uppercase tracking-widest text-gray-400 mb-4">
-            2 · Live Log
-        </h2>
+    <!-- ── Flash messages ───────────────────────────────────────── -->
+    <?php if (session()->getFlashdata('success')): ?>
+        <div class="alert alert-success">✅ <?= session()->getFlashdata('success') ?></div>
+    <?php endif; ?>
+    <?php if (session()->getFlashdata('error')): ?>
+        <div class="alert alert-danger">❌ <?= session()->getFlashdata('error') ?></div>
+    <?php endif; ?>
 
-        <!-- Stats row -->
-        <div class="flex flex-wrap gap-2 mb-4" id="statsRow" style="display:none!important">
-            <span class="stat-pill bg-green-50 text-green-700">
-                <i class="fas fa-check-circle"></i>
-                <span id="statInserted">0</span> inserted
-            </span>
-            <span class="stat-pill bg-blue-50 text-blue-700">
-                <i class="fas fa-sync-alt"></i>
-                <span id="statUpdated">0</span> updated
-            </span>
-            <span class="stat-pill bg-red-50 text-red-700">
-                <i class="fas fa-times-circle"></i>
-                <span id="statSkipped">0</span> skipped
-            </span>
+    <!-- ── Stat cards ───────────────────────────────────────────── -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <span class="icon">👥</span>
+            <div>
+                <h4>Total</h4>
+                <div class="val" id="statTotal">—</div>
+            </div>
         </div>
+        <div class="stat-card">
+            <span class="icon">✅</span>
+            <div>
+                <h4>Aktif</h4>
+                <div class="val" id="statAktif">—</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <span class="icon">⏸️</span>
+            <div>
+                <h4>Non-Aktif</h4>
+                <div class="val" id="statNonaktif">—</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <span class="icon">🆕</span>
+            <div>
+                <h4>Bulan Ini</h4>
+                <div class="val" id="statBulan">—</div>
+            </div>
+        </div>
+    </div>
 
-        <!-- Progress bar -->
-        <div class="w-full bg-gray-100 rounded-full h-2 mb-2 overflow-hidden">
-            <div id="progressBar" class="h-2 rounded-full" style="width:0%"></div>
+    <!-- ── Filters ──────────────────────────────────────────────── -->
+    <div class="filter-bar">
+        <div class="fg">
+            <label>Department</label>
+            <select id="filterDepartment">
+                <option value="">Semua</option>
+                <?php foreach ($departments as $d): ?>
+                    <option value="<?= esc($d) ?>"><?= esc($d) ?></option>
+                <?php endforeach; ?>
+            </select>
         </div>
-        <div class="flex justify-between text-xs text-gray-400 mb-4">
-            <span>Processed: <strong id="processedCount" class="text-gray-700">0</strong></span>
-            <span>Total: <strong id="totalCount" class="text-gray-700">—</strong></span>
+        <div class="fg">
+            <label>Division</label>
+            <select id="filterDivision">
+                <option value="">Semua</option>
+                <?php foreach ($divisions as $d): ?>
+                    <option value="<?= esc($d) ?>"><?= esc($d) ?></option>
+                <?php endforeach; ?>
+            </select>
         </div>
+        <div class="fg">
+            <label>Status Karyawan</label>
+            <select id="filterEmployeeStatus">
+                <option value="">Semua</option>
+                <?php foreach (($employee_statuses ?? []) as $s): ?>
+                    <option value="<?= esc($s) ?>"><?= esc($s) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="fg">
+            <label>Status Kepegawaian</label>
+            <select id="filterEmploymentStatus">
+                <option value="">Semua</option>
+                <?php foreach (($employment_statuses ?? []) as $s): ?>
+                    <option value="<?= esc($s) ?>"><?= esc($s) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <button class="btn btn-primary" id="btnResetFilter" style="align-self:flex-end;">
+            ✖ Reset
+        </button>
+    </div>
 
-        <!-- Console -->
-        <div id="logContainer"
-             class="rounded-xl p-4 h-80 overflow-y-auto select-text">
-            <span class="log-system">Waiting for import to start…</span>
+    <!-- ── Table card ───────────────────────────────────────────── -->
+    <div class="table-card">
+        <div class="table-card-header">
+            <h3>Daftar Karyawan</h3>
+            <span id="tableInfo" style="font-size:.82rem; color:#9ca3af;">Memuat data…</span>
         </div>
-
-        <!-- Row count below console -->
-        <div class="flex items-center justify-end mt-2 gap-2 text-xs text-gray-400">
-            <span id="logLineCount">0 lines</span>
-            <button onclick="clearLog()"
-                    class="hover:text-gray-600 transition-colors focus:outline-none">
-                <i class="fas fa-trash-alt"></i> Clear
-            </button>
+        <div style="overflow-x:auto;">
+            <table id="employeeTable" class="dataTable" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>NIK</th>
+                        <th>Nama</th>
+                        <th>Gender</th>
+                        <th>Department</th>
+                        <th>Division</th>
+                        <th>User</th>
+                        <th>Job Position</th>
+                        <th>PKWT Date</th>
+                        <th>Tenure</th>
+                        <th>Emp. Status</th>
+                        <th>Kepegawaian</th>
+                        <th>Cutoff</th>
+                        <th>KTP</th>
+                        <th>Phone</th>
+                        <th>Tempat Lahir</th>
+                        <th>Tanggal Lahir</th>
+                        <th>Umur</th>
+                        <th>Pendidikan</th>
+                        <th>Site</th>
+                        <th>Alamat</th>
+                        <th>Agama</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+            </table>
         </div>
     </div>
 
 </div>
 
-<!-- ── Script ──────────────────────────────────────────────────────────── -->
+<!-- ── Detail Modal ─────────────────────────────────────────────────── -->
+<div id="detailModal">
+    <div class="detail-box">
+        <div class="detail-header">
+            <h2>👤 Detail Karyawan</h2>
+            <button class="modal-close" id="btnCloseDetail">&times;</button>
+        </div>
+        <div id="detailContent" style="padding:24px;">
+            <p style="color:#9ca3af; text-align:center;">Memuat…</p>
+        </div>
+    </div>
+</div>
+
+<!-- ── Delete Confirm Modal ──────────────────────────────────────────── -->
+<div id="deleteModal">
+    <div class="delete-box">
+        <h3 style="font-size:1.1rem; font-weight:700; color:#111827; margin:0 0 8px;">🗑️ Hapus Karyawan</h3>
+        <p style="color:#6b7280; font-size:.875rem; margin:0 0 6px;">Apakah Anda yakin ingin menghapus:</p>
+        <p style="font-weight:700; color:#111827; margin:0 0 24px;" id="deleteTargetName"></p>
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+            <button class="btn" style="background:#f3f4f6; color:#374151;" id="btnCancelDelete">Batal</button>
+            <button class="btn" style="background:#dc2626; color:#fff;" id="btnConfirmDelete">🗑️ Hapus</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Scripts ───────────────────────────────────────────────────────── -->
+
 <script>
-/* ── State ──────────────────────────────────────────────────────────── */
-let uploadedFile   = null;
-let totalRows      = 0;
-let logLines       = 0;
-let activeSource   = null;   // EventSource reference
-let isRunning      = false;
+document.addEventListener('DOMContentLoaded', function () {
 
-/* ── Drag-and-drop on drop zone ─────────────────────────────────────── */
-const dropZone = document.getElementById('dropZone');
-const fileInput = document.getElementById('fileInput');
+    const BASE_URL = '<?= base_url() ?>';
 
-['dragenter','dragover'].forEach(ev =>
-    dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('scale-[1.01]'); })
-);
-['dragleave','drop'].forEach(ev =>
-    dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.remove('scale-[1.01]'); })
-);
-dropZone.addEventListener('drop', e => {
-    const f = e.dataTransfer.files[0];
-    if (!f) return;
-    const dt = new DataTransfer();
-    dt.items.add(f);
-    fileInput.files = dt.files;
-    onFileChosen(fileInput);
+    // ── Init DataTable ──────────────────────────────────────────────
+    const table = $('#employeeTable').DataTable({
+        processing  : true,
+        serverSide  : true,
+        ajax        : {
+            url  : BASE_URL + 'employees/data',
+            type : 'POST',
+            data : function (d) {
+                d.department        = $('#filterDepartment').val();
+                d.division          = $('#filterDivision').val();
+                d.employee_status   = $('#filterEmployeeStatus').val();
+                d.employment_status = $('#filterEmploymentStatus').val();
+            },
+            dataSrc : function (json) {
+                // Update stat cards from the first response
+                if (json.stats) {
+                    $('#statTotal').text(json.stats.total    ?? '—');
+                    $('#statAktif').text(json.stats.aktif    ?? '—');
+                    $('#statNonaktif').text(json.stats.nonaktif ?? '—');
+                    $('#statBulan').text(json.stats.bulanIni ?? '—');
+                }
+                return json.data;
+            },
+        },
+        order       : [[2, 'asc']],
+        pageLength  : 25,
+        lengthMenu  : [10, 25, 50, 100],
+        scrollX     : true,
+        language    : {
+            processing : 'Memuat data…',
+            search     : 'Cari:',
+            lengthMenu : 'Tampilkan _MENU_ data',
+            info       : 'Menampilkan _START_–_END_ dari _TOTAL_ data',
+            infoEmpty  : 'Tidak ada data',
+            zeroRecords: 'Tidak ada data yang cocok',
+            paginate   : { previous:'‹', next:'›' },
+        },
+        columns: [
+            // 0 — row number (not sortable)
+            {
+                data       : null,
+                orderable  : false,
+                searchable : false,
+                render     : (_, __, ___, meta) => meta.row + 1 + meta.settings._iDisplayStart,
+            },
+            { data:'nik',                render: v => `<span class="nik-cell">${v ?? '-'}</span>` },
+            { data:'name',               render: v => `<strong>${esc(v)}</strong>` },
+            { data:'gender',             render: v => v ?? '-' },
+            { data:'department',         render: v => v ?? '-' },
+            { data:'division',           render: v => v ?? '-' },
+            { data:'user',               render: v => v ?? '-' },
+            { data:'job_position',       render: v => v ?? '-' },
+            { data:'pkwt_date',          render: v => v ?? '-' },
+            { data:'tenure',             render: v => v ? `<span class="badge badge-gray">${esc(v)}</span>` : '-' },
+            { data:'employee_status',    render: v => statusBadge(v) },
+            { data:'employment_status',  render: v => empBadge(v) },
+            { data:'cutoff_date',        render: v => v ?? '-' },
+            { data:'national_id',        render: v => v ? `<span class="nik-cell">${esc(v)}</span>` : '-' },
+            { data:'phone_number',       render: v => v ?? '-' },
+            { data:'place_of_birth',     render: v => v ?? '-' },
+            { data:'date_of_birth',     render: v => v ?? '-' },
+            { data:'age',                render: v => v != null ? `${v} thn` : '-' },
+            { data:'last_education',     render: v => v ?? '-' },
+            { data:'site',               render: v => v ?? '-' },
+            { data:'address',            render: v => v ? `<span title="${esc(v)}" style="max-width:180px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(v)}</span>` : '-' },
+            { data:'religion',           render: v => v ?? '-' },
+            // 21 — actions
+            {
+                data      : 'id',
+                orderable : false,
+                render    : (id, _, row) => `
+                    <div style="display:flex;gap:5px;">
+                        <button class="btn-action btn-view"  data-id="${id}" title="Detail">🔍</button>
+                        <a      class="btn-action btn-edit"  href="${BASE_URL}employees/edit/${id}" title="Edit">✏️</a>
+                        <button class="btn-action btn-delete" data-id="${id}" data-name="${esc(row.name)}" title="Hapus">🗑️</button>
+                    </div>`,
+            },
+        ],
+        drawCallback: function (settings) {
+            const info = settings.fnRecordsTotal();
+            $('#tableInfo').text(`${settings.fnRecordsDisplay()} dari ${info} data`);
+        },
+    });
+
+    // ── Filters ─────────────────────────────────────────────────────
+    $('#filterDepartment, #filterDivision, #filterEmployeeStatus, #filterEmploymentStatus')
+        .on('change', () => table.draw());
+
+    $('#btnResetFilter').on('click', function () {
+        $('#filterDepartment, #filterDivision, #filterEmployeeStatus, #filterEmploymentStatus')
+            .val('');
+        table.draw();
+    });
+
+    // ── Detail modal ─────────────────────────────────────────────────
+    $('#employeeTable').on('click', '.btn-view', function () {
+        const id = this.dataset.id;
+        $('#detailContent').html('<p style="color:#9ca3af;text-align:center;padding:40px;">Memuat…</p>');
+        document.getElementById('detailModal').style.display = 'flex';
+
+        fetch(BASE_URL + 'employees/detail/' + id)
+            .then(r => r.text())
+            .then(html => $('#detailContent').html(html))
+            .catch(() => $('#detailContent').html('<p style="color:#dc2626;text-align:center;">Gagal memuat data.</p>'));
+    });
+
+    document.getElementById('btnCloseDetail').addEventListener('click', () => {
+        document.getElementById('detailModal').style.display = 'none';
+    });
+    document.getElementById('detailModal').addEventListener('click', function (e) {
+        if (e.target === this) this.style.display = 'none';
+    });
+
+    // ── Delete modal ──────────────────────────────────────────────────
+    let deleteId = null;
+
+    $('#employeeTable').on('click', '.btn-delete', function () {
+        deleteId = this.dataset.id;
+        document.getElementById('deleteTargetName').textContent = this.dataset.name;
+        document.getElementById('deleteModal').style.display = 'flex';
+    });
+
+    document.getElementById('btnCancelDelete').addEventListener('click', () => {
+        document.getElementById('deleteModal').style.display = 'none';
+        deleteId = null;
+    });
+    document.getElementById('deleteModal').addEventListener('click', function (e) {
+        if (e.target === this) { this.style.display = 'none'; deleteId = null; }
+    });
+
+    document.getElementById('btnConfirmDelete').addEventListener('click', function () {
+        if (!deleteId) return;
+        fetch(BASE_URL + 'employees/delete/' + deleteId, { method:'POST' })
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('deleteModal').style.display = 'none';
+                deleteId = null;
+                if (data.success) {
+                    table.draw();
+                } else {
+                    alert('Gagal menghapus: ' + (data.message ?? 'Unknown error'));
+                }
+            });
+    });
+
+    // ── Helpers ───────────────────────────────────────────────────────
+    function esc(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g,'&amp;')
+            .replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;');
+    }
+
+    function statusBadge(v) {
+        if (!v) return '-';
+        const cls = v.toLowerCase().includes('aktif') ? 'badge-active' : 'badge-inactive';
+        return `<span class="badge ${cls}">${esc(v)}</span>`;
+    }
+
+    function empBadge(v) {
+        if (!v) return '-';
+        const lower = v.toLowerCase();
+        let cls = 'badge-gray';
+        if (lower.includes('pkwt'))      cls = 'badge-pkwt';
+        else if (lower.includes('pks'))  cls = 'badge-pks';
+        else if (lower.includes('aktif')) cls = 'badge-active';
+        return `<span class="badge ${cls}">${esc(v)}</span>`;
+    }
+
 });
-
-/* ── File chosen ────────────────────────────────────────────────────── */
-function onFileChosen(input) {
-    const name = input.files[0]?.name;
-    document.getElementById('fileName').textContent = name || 'No file selected';
-    document.getElementById('importButton').disabled = !name;
-}
-
-/* ── Start: upload then open SSE stream ─────────────────────────────── */
-async function startImport() {
-    if (isRunning) return;
-
-    const fileInput = document.getElementById('fileInput');
-    if (!fileInput.files[0]) return;
-
-    setStatus('uploading');
-    resetUI();
-    appendLog('system', 'Uploading file to server…');
-
-    const formData = new FormData();
-    formData.append('file_upload', fileInput.files[0]);
-    formData.append(
-        document.getElementById('csrfName').value,
-        document.getElementById('csrfValue').value
-    );
-
-    let uploadData;
-    try {
-        const res  = await fetch("<?= base_url('employees/upload') ?>", {
-            method: 'POST', body: formData,
-        });
-        uploadData = await res.json();
-    } catch (err) {
-        appendLog('error', '❌ Upload failed: ' + err.message);
-        setStatus('idle');
-        return;
-    }
-
-    if (uploadData.status !== 'success') {
-        appendLog('error', '❌ ' + uploadData.message);
-        setStatus('idle');
-        return;
-    }
-
-    uploadedFile = uploadData.file;
-    totalRows    = uploadData.totalRows ?? 0;
-
-    document.getElementById('totalCount').textContent = totalRows || '—';
-    appendLog('system', `File accepted — ${totalRows} data rows detected.`);
-
-    openStream();
-}
-
-/* ── Open EventSource ───────────────────────────────────────────────── */
-function openStream() {
-    if (activeSource) { activeSource.close(); activeSource = null; }
-
-    setStatus('running');
-    isRunning = true;
-
-    const url = `<?= base_url('employees/stream') ?>?file=${encodeURIComponent(uploadedFile)}`;
-    const src = new EventSource(url);
-    activeSource = src;
-
-    // ── meta: server tells us the actual row count ────────────────────
-    src.addEventListener('meta', e => {
-        const d = JSON.parse(e.data);
-        totalRows = d.total;
-        document.getElementById('totalCount').textContent = totalRows;
-    });
-
-    // ── log: a single row result ──────────────────────────────────────
-    src.addEventListener('log', e => {
-        const d = JSON.parse(e.data);
-        appendLog(d.level ?? 'info', d.message);
-    });
-
-    // ── progress: update bar + counter ───────────────────────────────
-    src.addEventListener('progress', e => {
-        const d = JSON.parse(e.data);
-        updateProgress(d.processed, d.total ?? totalRows);
-    });
-
-    // ── done: import complete ─────────────────────────────────────────
-    src.addEventListener('done', e => {
-        const d = JSON.parse(e.data);
-        updateProgress(d.processed, d.processed);   // fill bar to 100 %
-
-        // Show summary stats
-        document.getElementById('statInserted').textContent = d.inserted ?? 0;
-        document.getElementById('statUpdated').textContent  = d.updated  ?? 0;
-        document.getElementById('statSkipped').textContent  = d.skipped  ?? 0;
-        document.getElementById('statsRow').style.display   = 'flex';
-
-        appendLog('info',
-            `🎉 Done — ${d.inserted} inserted · ${d.updated} updated · ${d.skipped} skipped`
-        );
-
-        setStatus('done');
-        src.close();
-        activeSource = null;
-        isRunning = false;
-    });
-
-    // ── error: SSE-level error ────────────────────────────────────────
-    src.addEventListener('error', e => {
-        if (e.data) {
-            const d = JSON.parse(e.data);
-            appendLog('error', '❌ ' + d.message);
-        } else if (src.readyState === EventSource.CLOSED) {
-            appendLog('error', '⚠️ Connection closed unexpectedly.');
-        }
-        setStatus('idle');
-        src.close();
-        activeSource = null;
-        isRunning = false;
-    });
-}
-
-/* ── Helpers ────────────────────────────────────────────────────────── */
-function appendLog(level, message) {
-    const container = document.getElementById('logContainer');
-    const line = document.createElement('div');
-    line.className = `log-line log-${level}`;
-    line.textContent = message;
-    container.appendChild(line);
-    container.scrollTop = container.scrollHeight;
-    logLines++;
-    document.getElementById('logLineCount').textContent = logLines + ' lines';
-}
-
-function clearLog() {
-    document.getElementById('logContainer').innerHTML = '';
-    logLines = 0;
-    document.getElementById('logLineCount').textContent = '0 lines';
-}
-
-function updateProgress(processed, total) {
-    document.getElementById('processedCount').textContent = processed;
-    if (!total) return;
-    const pct = Math.min(Math.round((processed / total) * 100), 100);
-    document.getElementById('progressBar').style.width = pct + '%';
-}
-
-function resetUI() {
-    clearLog();
-    document.getElementById('progressBar').style.width = '0%';
-    document.getElementById('processedCount').textContent = '0';
-    document.getElementById('totalCount').textContent = '—';
-    document.getElementById('statsRow').style.display = 'none';
-    document.getElementById('statInserted').textContent = '0';
-    document.getElementById('statUpdated').textContent  = '0';
-    document.getElementById('statSkipped').textContent  = '0';
-}
-
-const statusCfg = {
-    idle:       { icon:'circle',        color:'bg-gray-100 text-gray-500',   dot:'text-gray-300', label:'Idle'      },
-    uploading:  { icon:'cloud-upload-alt', color:'bg-yellow-50 text-yellow-700', dot:'text-yellow-400', label:'Uploading…' },
-    running:    { icon:'cog fa-spin',   color:'bg-blue-50 text-blue-700',    dot:'text-blue-400', label:'Importing…' },
-    done:       { icon:'check-circle',  color:'bg-green-50 text-green-700',  dot:'text-green-400', label:'Complete'  },
-};
-
-function stopImport() {
-    if (!activeSource) return;
-
-    activeSource.close();
-    activeSource = null;
-    isRunning    = false;
-
-    appendLog('warn', '⛔ Import stopped by user.');
-    setStatus('idle');
-}
-
-function setStatus(state) {
-    const cfg = statusCfg[state] || statusCfg.idle;
-    const badge = document.getElementById('statusBadge');
-    badge.className = `stat-pill ${cfg.color}`;
-    badge.innerHTML = `<i class="fas fa-${cfg.icon} ${cfg.dot}" style="font-size:9px"></i> ${cfg.label}`;
-
-    const importBtn = document.getElementById('importButton');
-    const stopBtn   = document.getElementById('stopButton');
-    const label     = document.getElementById('importBtnLabel');
-
-    const isActive = state === 'running' || state === 'uploading';
-
-    importBtn.disabled = isActive || !document.getElementById('fileInput').files[0];
-    label.textContent  = isActive
-        ? (state === 'uploading' ? 'Uploading…' : 'Importing…')
-        : 'Import Data';
-
-    // Stop button is only enabled while actively streaming
-    stopBtn.disabled = !isActive;
-}
 </script>
 
 <?= $this->endSection() ?>

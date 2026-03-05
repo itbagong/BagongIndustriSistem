@@ -6,7 +6,7 @@ $routes->group('employees', function ($routes) {
     $routes->get('/', 'Employee\EmployeeController::index', [
         'filter' => 'permission:employee.view'
     ]);
-    $routes->get('data', 'Employee\EmployeeController::getData', [
+    $routes->match(['get','post'], 'data', 'Employee\EmployeeController::data', [
         'filter' => 'permission:employee.view'
     ]);
     $routes->get('statistics', 'Employee\EmployeeController::getStatistics', [
