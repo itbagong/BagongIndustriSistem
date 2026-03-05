@@ -376,6 +376,7 @@ html, body {
 .demo-card li::before { content: '›'; color: var(--accent); flex-shrink: 0; font-size: 15px; line-height: 1.5; }
 code { font-family: var(--mono); font-size: 11.5px; background: #fff3e0; color: var(--accent-dark); padding: 1px 5px; border-radius: 4px; }
 </style>
+<link rel="stylesheet" href="<?= base_url('assets/css/mobile/navbar-mobile.css') ?>">
 </head>
 <body>
 
@@ -389,24 +390,8 @@ code { font-family: var(--mono); font-size: 11.5px; background: #fff3e0; color: 
     <span></span><span></span><span></span>
   </button>
 
-  <!-- Title + breadcrumb -->
-  <div class="topbar-title">
-    <h1>Dashboard</h1>
-    <nav class="topbar-bc" aria-label="Breadcrumb">
-      Home / <span>Dashboard</span>
-    </nav>
-  </div>
-
   <!-- Right actions -->
   <div class="topbar-actions" role="toolbar" aria-label="Top actions">
-
-    <!-- Search -->
-    <div class="tb-search" role="search">
-      <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-      <input type="search" placeholder="Cari menu, karyawan…" aria-label="Cari">
-    </div>
-
-    <!-- Notification -->
     <div style="position:relative">
       <button class="tb-btn" id="notifBtn"
               aria-label="Notifikasi — 3 perlu disetujui"
@@ -688,3 +673,4 @@ function updateBadge(n) {
   document.getElementById('notifBtn').setAttribute('aria-label', `Notifikasi — ${n} perlu disetujui`);
 }
 </script>
+<?= view('layouts/components/sidebar-mobile') ?>

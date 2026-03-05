@@ -968,4 +968,44 @@ class SlipGajiController extends BaseController
         ]);
     }
 
+    public function search()
+    {
+        if (!$this->request->isAJAX()) return $this->response->setStatusCode(403);
+
+        $q       = trim($this->request->getGet('q'));
+        $site    = $this->request->getGet('site');
+        $bulan   = $this->request->getGet('bulan');
+        $status  = $this->request->getGet('status_kirim');
+        $perPage = (int)($this->request->getGet('perPage') ?? 50);
+        $page    = (int)($this->request->getGet('page') ?? 1);
+        $offset  = ($page - 1) * $perPage;
+
+        $db = \Config\Database::connect();
+        $builder = $db->table('slip_gaji');
+
+        if ($q !== '') {
+            $builder->groupStart()
+                ->like('nik', $q)
+                ->orLike('nama', $q)
+                ->orLike('jabatan', $q)
+                ->orLike('site', $q)
+                ->orLike('email', $q)
+                ->groupEnd();
+        }
+        if ($site)   $builder->where('site', $site);
+        if ($bulan)  $builder->where('bulan', $bulan);
+        if ($status) $builder->where('status_kirim', $status);
+
+        $total = $builder->countAllResults(false); // false = keep conditions
+        $rows  = $builder->limit($perPage, $offset)->get()->getResultArray();
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data'    => $rows,
+            'total'   => $total,
+            'page'    => $page,
+            'perPage' => $perPage,
+        ]);
+    }
+
 }

@@ -1,0 +1,434 @@
+/* ============================================================
+   sidebar-final.css
+   Gabungan: sidebar-addon.css + sidebar-patch.css + sidebar-compact.css
+   Urutan: base → patch → compact (override terakhir menang)
+   ============================================================ */
+
+/* ══════════════════════════════════════════════════════════
+   BAGIAN 1 — MENU GROUP & SUBMENU (dari addon)
+   ══════════════════════════════════════════════════════════ */
+
+.menu-group {
+    position: relative;
+}
+
+.menu-item.has-submenu {
+    position: relative;
+    background: rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+}
+
+.menu-item.has-submenu:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.menu-item.has-submenu .arrow {
+    margin-left: auto;
+    font-size: 0.7rem;
+    transition: transform 0.3s ease;
+}
+
+.menu-group.active > .menu-item.has-submenu .arrow {
+    transform: rotate(180deg);
+}
+
+/* Submenu */
+.submenu {
+    max-height: 0;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.2);
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.3s ease;
+    opacity: 0;
+}
+
+.submenu[style*="display:block"],
+.submenu[style*="display: block"],
+.menu-group.active .submenu {
+    max-height: 2000px !important;
+    opacity: 1;
+    overflow: visible !important;
+}
+
+.submenu .menu-item {
+    padding: 8px 18px 8px 50px !important;
+    font-size: 0.83rem !important;
+    border-left: 3px solid transparent;
+    position: relative;
+    animation: slideIn 0.3s ease forwards;
+}
+
+/* Hapus dot bullet */
+.submenu .menu-item::before {
+    display: none !important;
+    content: none !important;
+}
+
+.submenu .menu-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.submenu .menu-item.active {
+    background: rgba(255, 255, 255, 0.15);
+    border-left-color: rgba(255, 255, 255, 0.8);
+}
+
+.submenu .menu-item:nth-child(1) { animation-delay: 0.05s; }
+.submenu .menu-item:nth-child(2) { animation-delay: 0.1s; }
+.submenu .menu-item:nth-child(3) { animation-delay: 0.15s; }
+.submenu .menu-item:nth-child(4) { animation-delay: 0.2s; }
+.submenu .menu-item:nth-child(5) { animation-delay: 0.25s; }
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   BAGIAN 2 — SIDEBAR BASE & LAYOUT
+   ══════════════════════════════════════════════════════════ */
+
+:root {
+    --sidebar-width: 220px;
+}
+
+body {
+    overflow-x: hidden !important;
+}
+
+.sidebar {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+}
+
+.sidebar .sidebar-menu {
+    padding: 10px 0 40px !important;
+    max-height: none !important;
+    overflow: visible !important;
+    height: auto !important;
+}
+
+/* Header */
+.sidebar-header {
+    padding: 16px 20px !important;
+}
+
+.sidebar-header .logo {
+    width: 42px !important;
+    height: 42px !important;
+}
+
+.sidebar-header h3 {
+    font-size: 0.85rem !important;
+    line-height: 1.3 !important;
+    margin-top: 6px !important;
+}
+
+/* Menu item normal */
+.sidebar-menu .menu-item {
+    padding: 10px 18px !important;
+    font-size: 0.88rem !important;
+    gap: 10px !important;
+}
+
+.sidebar-menu .menu-item .icon {
+    font-size: 1rem !important;
+    width: 22px !important;
+    margin-right: 10px !important;
+    flex-shrink: 0 !important;
+}
+
+.sidebar-menu .menu-item .text {
+    font-size: 0.88rem !important;
+}
+
+/* Main wrapper */
+.main-wrapper {
+    margin-left: var(--sidebar-width) !important;
+    transition: margin-left 0.3s ease !important;
+}
+
+/* Overlay */
+.sidebar-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    display: none; opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   BAGIAN 3 — SIDEBAR TOGGLE BUTTON
+   ══════════════════════════════════════════════════════════ */
+
+.sidebar-toggle-btn {
+    position: fixed;
+    top: 85px;
+    left: calc(var(--sidebar-width) - 15px);
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    border: 3px solid var(--white-color);
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    z-index: 1001;
+    box-shadow: 0 3px 12px rgba(232, 154, 107, 0.4);
+    font-size: 1rem;
+}
+
+.sidebar-toggle-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 16px rgba(232, 154, 107, 0.5);
+}
+
+.sidebar-toggle-btn:active {
+    transform: scale(0.95);
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   BAGIAN 4 — DESKTOP COLLAPSED (YouTube Music Style)
+   ══════════════════════════════════════════════════════════ */
+
+@media (min-width: 769px) {
+    .sidebar-overlay { z-index: 440; }
+
+    .sidebar.collapsed {
+        width: 72px !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+    }
+
+    /* Header collapsed */
+    .sidebar.collapsed .sidebar-header {
+        padding: 12px 0 !important;
+        display: flex !important;
+        justify-content: center !important;
+    }
+    .sidebar.collapsed .sidebar-header h3 {
+        display: none !important;
+    }
+    .sidebar.collapsed .sidebar-header .logo {
+        width: 40px !important;
+        height: 40px !important;
+        margin: 0 auto !important;
+    }
+
+    /* Menu item: icon atas + label bawah (YouTube Music style) */
+    .sidebar.collapsed .menu-item {
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+        padding: 10px 4px !important;
+        gap: 4px !important;
+        min-height: 62px !important;
+        border-left: none !important;
+        border-radius: 10px !important;
+        margin: 2px 6px !important;
+        width: calc(100% - 12px) !important;
+    }
+
+    .sidebar.collapsed .menu-item.active {
+        background: rgba(255, 255, 255, 0.2) !important;
+    }
+
+    .sidebar.collapsed .menu-item:hover {
+        background: rgba(255, 255, 255, 0.15) !important;
+    }
+
+    /* Icon besar */
+    .sidebar.collapsed .menu-item .icon {
+        font-size: 1.4rem !important;
+        width: auto !important;
+        margin: 0 !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+    }
+
+    /* Label teks kecil di bawah icon */
+    .sidebar.collapsed .menu-item .text {
+        display: block !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        width: 100% !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        font-size: 0.62rem !important;
+        text-align: center !important;
+        color: rgba(255, 255, 255, 0.9) !important;
+        line-height: 1 !important;
+        padding: 0 2px !important;
+    }
+
+    /* Sembunyikan arrow & submenu */
+    .sidebar.collapsed .menu-item .arrow {
+        display: none !important;
+    }
+    .sidebar.collapsed .submenu {
+        display: none !important;
+        max-height: 0 !important;
+    }
+    .sidebar.collapsed .menu-group {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Hapus tooltip lama */
+    .sidebar.collapsed .menu-item::after,
+    .sidebar.collapsed .menu-item::before {
+        display: none !important;
+        content: none !important;
+    }
+
+    /* Toggle button & main wrapper saat collapsed */
+    .sidebar.collapsed ~ .sidebar-toggle-btn,
+    body.sidebar-collapsed .sidebar-toggle-btn {
+        left: calc(72px - 15px) !important;
+    }
+
+    body.sidebar-collapsed .main-wrapper,
+    .sidebar.collapsed ~ .main-wrapper {
+        margin-left: 72px !important;
+    }
+}
+
+/* Flyout (saat collapsed hover parent dengan submenu) */
+.sidebar-flyout {
+    position: fixed !important;
+    left: 72px !important;
+    min-width: 210px;
+    max-height: 80vh;
+    overflow-y: auto;
+    background: linear-gradient(180deg, #e89a6b 0%, #d88759 100%);
+    border-radius: 0 8px 8px 0;
+    box-shadow: 4px 4px 20px rgba(0, 0, 0, 0.2);
+    z-index: 451;
+    padding: 6px 0;
+}
+
+.sidebar-flyout .menu-item,
+.sidebar-flyout a.menu-item {
+    display: flex !important;
+    align-items: center !important;
+    padding: 11px 18px !important;
+    justify-content: flex-start !important;
+    gap: 12px !important;
+    white-space: nowrap;
+    width: 100% !important;
+    border-left: 3px solid transparent !important;
+    text-decoration: none !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.sidebar-flyout .menu-item:hover { background: rgba(255,255,255,0.12) !important; }
+.sidebar-flyout .menu-item.active { background: rgba(255,255,255,0.18) !important; font-weight: 600 !important; }
+.sidebar-flyout .menu-item::before,
+.sidebar-flyout .menu-item::after { display: none !important; content: none !important; }
+.sidebar-flyout .menu-item .icon { font-size: 1rem !important; width: 22px !important; margin: 0 !important; flex-shrink: 0; display: flex !important; justify-content: center !important; }
+.sidebar-flyout .menu-item .text { display: inline !important; opacity: 1 !important; width: auto !important; overflow: visible !important; font-size: 0.92rem !important; color: rgba(255,255,255,0.9) !important; }
+
+
+/* ══════════════════════════════════════════════════════════
+   BAGIAN 5 — MOBILE (max-width: 768px)
+   ══════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    .topbar {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 9999 !important;
+    }
+
+    #menuToggle, .menu-toggle {
+        position: relative !important;
+        z-index: 10000 !important;
+        pointer-events: auto !important;
+        cursor: pointer !important;
+    }
+
+    .sidebar {
+        position: fixed !important;
+        top: 62px !important;
+        left: -260px !important;
+        width: 260px !important;
+        height: calc(100vh - 62px) !important;
+        z-index: 5000 !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        transition: left 0.3s ease !important;
+        visibility: visible !important;
+        pointer-events: none !important;
+    }
+
+    .sidebar.active {
+        left: 0 !important;
+        pointer-events: auto !important;
+    }
+
+    .sidebar-overlay {
+        z-index: 4000 !important;
+        top: 62px !important;
+        height: calc(100vh - 62px) !important;
+    }
+
+    .main-wrapper { margin-left: 0 !important; }
+
+    .sidebar-flyout { display: none !important; }
+
+    .sidebar-toggle-btn {
+        left: 15px !important;
+        top: 15px !important;
+    }
+
+    .sidebar.active ~ .sidebar-toggle-btn {
+        left: calc(260px - 15px) !important;
+    }
+
+    /* Reset collapsed styles di mobile */
+    .sidebar .menu-item .text,
+    .sidebar .menu-item .arrow {
+        display: unset !important;
+        opacity: 1 !important;
+        width: auto !important;
+    }
+    .sidebar .menu-item .icon {
+        display: flex !important;
+        width: 30px !important;
+        margin-right: 15px !important;
+        font-size: 1.4rem !important;
+        flex-direction: row !important;
+    }
+    .sidebar .menu-item {
+        padding: 15px 25px !important;
+        justify-content: flex-start !important;
+        flex-direction: row !important;
+        gap: 0 !important;
+        min-height: unset !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+    }
+
+    .sidebar.active ~ .sidebar-overlay,
+    body.sidebar-active .sidebar-overlay {
+        display: block;
+        opacity: 1;
+    }
+}
+
+@media (max-width: 480px) {
+    .sidebar {
+        width: 260px !important;
+        left: -260px !important;
+    }
+    .sidebar.active { left: 0 !important; }
+}
