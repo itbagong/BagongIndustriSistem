@@ -47,7 +47,12 @@
     <!-- ===== JS — urutan wajib benar ===== -->
 
     <!-- ① jQuery WAJIB PERTAMA -->
+     <link rel="stylesheet"
+    href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 
     <!-- ② Popper -->
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
