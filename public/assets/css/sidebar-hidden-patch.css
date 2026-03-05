@@ -1,0 +1,33 @@
+/* ============================================================
+   sidebar-hidden-patch.css
+   State hidden (klik ke-3) — desktop & mobile
+   ============================================================ */
+
+/* ── DESKTOP: sidebar hilang sepenuhnya ── */
+@media (min-width: 769px) {
+    .sidebar.hidden-sidebar {
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+        border: none !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        transition: width 0.3s ease, opacity 0.3s ease !important;
+    }
+
+    /* Sembunyikan sidebar-toggle-btn juga */
+    .sidebar.hidden-sidebar ~ .sidebar-toggle-btn,
+    body.sidebar-hidden .sidebar-toggle-btn {
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+
+    /* Main wrapper ambil full width */
+    body.sidebar-hidden .main-wrapper {
+        margin-left: 0 !important;
+        transition: margin-left 0.3s ease !important;
+    }
+}

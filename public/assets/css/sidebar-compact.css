@@ -1,0 +1,80 @@
+/* ============================================================
+   sidebar-compact.css
+   Buat sidebar lebih kecil/compact seperti referensi Image 2
+   ============================================================ */
+
+/* ── Sidebar width lebih kecil ── */
+:root {
+    --sidebar-width: 220px;
+}
+
+/* ── Header lebih compact ── */
+.sidebar-header {
+    padding: 16px 20px !important;
+}
+
+.sidebar-header .logo {
+    width: 42px !important;
+    height: 42px !important;
+}
+
+.sidebar-header h3 {
+    font-size: 0.85rem !important;
+    line-height: 1.3 !important;
+    margin-top: 6px !important;
+}
+
+/* ── Menu item lebih kecil ── */
+.sidebar-menu .menu-item {
+    padding: 10px 18px !important;
+    font-size: 0.88rem !important;
+    gap: 10px !important;
+}
+
+.sidebar-menu .menu-item .icon {
+    font-size: 1rem !important;
+    width: 22px !important;
+    margin-right: 10px !important;
+    flex-shrink: 0 !important;
+}
+
+.sidebar-menu .menu-item .text {
+    font-size: 0.88rem !important;
+}
+
+.sidebar-menu .menu-item .arrow {
+    font-size: 0.7rem !important;
+}
+
+/* ── Submenu item lebih compact ── */
+.submenu .menu-item {
+    padding: 8px 18px 8px 50px !important;
+    font-size: 0.83rem !important;
+}
+
+/* ── Adjust main wrapper ── */
+.main-wrapper {
+    margin-left: var(--sidebar-width) !important;
+}
+
+/* ── Collapsed width ── */
+.sidebar.collapsed {
+    width: 62px !important;
+}
+
+body.sidebar-collapsed .main-wrapper {
+    margin-left: 62px !important;
+}
+
+/* ── Toggle button position ── */
+.sidebar-toggle-btn {
+    left: calc(var(--sidebar-width) - 18px) !important;
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 1rem !important;
+}
+
+.sidebar.collapsed ~ .sidebar-toggle-btn,
+body.sidebar-collapsed .sidebar-toggle-btn {
+    left: calc(62px - 15px) !important;
+}

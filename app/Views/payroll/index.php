@@ -122,26 +122,27 @@
 
             <div class="mb-4 relative">
                 <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-                <input type="text" id="searchInput" placeholder="Cari NIK, nama, jabatan, site..."
+                <input type="text" id="searchInput" placeholder="Cari NIK, nama, email..."
                     class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     onkeyup="searchTable()">
+                <span id="search-badge" class="hidden absolute right-3 top-2.5 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full"></span>
             </div>
 
             <div class="flex flex-wrap items-center justify-between mb-4 gap-2">
-                <form method="get" class="flex flex-wrap items-center gap-2 w-full md:w-auto">
-                    <select name="site" class="border px-3 py-2 rounded text-sm bg-white" onchange="this.form.submit()">
+                <form method="get" id="filterForm" class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                    <select name="site" id="filterSite" class="border px-3 py-2 rounded text-sm bg-white" onchange="this.form.submit()">
                         <option value="">-- Semua Site --</option>
                         <?php foreach ($siteList as $s): ?>
                             <option value="<?= esc($s['site']) ?>" <?= ($filters['site'] ?? '') == $s['site'] ? 'selected' : '' ?>><?= esc($s['site']) ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <select name="bulan" class="border px-3 py-2 rounded text-sm bg-white" onchange="this.form.submit()">
+                    <select name="bulan" id="filterBulan" class="border px-3 py-2 rounded text-sm bg-white" onchange="this.form.submit()">
                         <option value="">-- Semua Bulan --</option>
                         <?php foreach ($bulanList as $b): ?>
                             <option value="<?= esc($b['bulan']) ?>" <?= ($filters['bulan'] ?? '') == $b['bulan'] ? 'selected' : '' ?>><?= esc($b['bulan']) ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <select name="status_kirim" class="border px-3 py-2 rounded text-sm bg-white" onchange="this.form.submit()">
+                    <select name="status_kirim" id="filterStatus" class="border px-3 py-2 rounded text-sm bg-white" onchange="this.form.submit()">
                         <option value="">-- Status Kirim --</option>
                         <option value="pending" <?= ($filters['status_kirim'] ?? '')=='pending'?'selected':'' ?>>Pending</option>
                         <option value="sent" <?= ($filters['status_kirim'] ?? '')=='sent'?'selected':'' ?>>Sent</option>
@@ -153,7 +154,7 @@
                 <form method="get" class="flex items-center gap-2">
                     <?php foreach ($filters as $key => $val): if ($val !== null && $val !== '') echo "<input type='hidden' name='".esc($key)."' value='".esc($val)."'>"; endforeach; ?>
                     <label class="text-sm text-gray-600">Show</label>
-                    <select name="perPage" onchange="this.form.submit()" class="border px-2 py-1 rounded text-sm bg-white">
+                    <select name="perPage" id="filterPerPage" onchange="this.form.submit()" class="border px-2 py-1 rounded text-sm bg-white">
                         <option value="10" <?= $perPage==10?'selected':'' ?>>10</option>
                         <option value="50" <?= $perPage==50?'selected':'' ?>>50</option>
                         <option value="100" <?= $perPage==100?'selected':'' ?>>100</option>
@@ -244,11 +245,11 @@
                 </div>
 
                 <div class="px-4 py-3 border-t bg-white rounded-b-lg flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div class="text-sm text-gray-600">
+                    <div class="text-sm text-gray-600" id="pager-info">
                         Menampilkan <span class="font-semibold text-gray-900"><?= $startItem ?> - <?= $endItem ?></span>
                         dari <span class="font-semibold text-gray-900"><?= $total ?></span> data
                     </div>
-                    <div class="custom-pager">
+                    <div class="custom-pager" id="pager-links">
                         <?= $pager->links('default', 'default_full') ?>
                     </div>
                 </div>
@@ -272,7 +273,6 @@
                 <h3 class="text-xl font-semibold"><i class="fas fa-edit mr-2"></i>Edit Data Karyawan</h3>
                 <button onclick="closeEditModal()" class="text-white hover:text-gray-200"><i class="fas fa-times text-2xl"></i></button>
             </div>
-            <!-- Hapus method="post" dan action — dihandle AJAX -->
             <form id="editForm" class="p-6">
                 <?= csrf_field() ?>
                 <input type="hidden" id="edit_id" name="id">
@@ -285,10 +285,7 @@
                     <div><label class="block text-sm font-medium text-gray-700 mb-2">Email <span class="text-red-500">*</span></label><input type="email" id="edit_email" name="email" required class="w-full px-3 py-2 border rounded-lg"></div>
                     <div><label class="block text-sm font-medium text-gray-700 mb-2">Gaji Bersih</label><input type="text" id="edit_gaji_bersih" readonly class="w-full px-3 py-2 border rounded-lg bg-gray-100"></div>
                 </div>
-
-                <!-- Alert error di dalam modal -->
                 <div id="editAlert" class="hidden mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm"></div>
-
                 <div class="mt-6 flex gap-3 justify-end">
                     <button type="button" onclick="closeEditModal()" class="px-6 py-2 border rounded-lg text-gray-700 hover:bg-gray-50">Batal</button>
                     <button type="submit" id="editSubmitBtn" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
@@ -304,7 +301,7 @@
             document.getElementById('file-name').textContent = input.files[0]?.name || 'Belum ada file dipilih';
         }
 
-        // --- SORTING ---
+        // --- SORTING (hanya untuk data yang tampil di halaman) ---
         function sortTable(n) {
             var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
             table = document.getElementById("dataTable");
@@ -324,23 +321,139 @@
             }
         }
 
-        // --- SEARCH ---
+        // ============================================================
+        // AJAX SEARCH — FULLTEXT (>= 3 char) + LIKE fallback (< 3 char)
+        // ============================================================
+        let searchDebounce = null;
+        let isSearchMode   = false; // track apakah sedang dalam mode search
+
         function searchTable() {
-            var input = document.getElementById("searchInput");
-            var filter = input.value.toUpperCase();
-            var table = document.getElementById("dataTable");
-            var tr = table.getElementsByTagName("tr");
-            for (var i = 1; i < tr.length; i++) {
-                var match = false;
-                var tds = tr[i].getElementsByTagName("td");
-                for (var j = 1; j < tds.length; j++) {
-                    if (tds[j]) {
-                        var txtValue = tds[j].textContent || tds[j].innerText;
-                        if (txtValue.toUpperCase().indexOf(filter) > -1) { match = true; break; }
-                    }
+            clearTimeout(searchDebounce);
+            const q = document.getElementById('searchInput').value.trim();
+
+            // Jika kosong → kembalikan tampilan normal (reload ringan)
+            if (q === '') {
+                if (isSearchMode) {
+                    isSearchMode = false;
+                    document.getElementById('search-badge').classList.add('hidden');
+                    location.reload();
                 }
-                tr[i].style.display = match ? "" : "none";
+                return;
             }
+
+            searchDebounce = setTimeout(doSearch, 280);
+        }
+
+        async function doSearch() {
+            const q      = document.getElementById('searchInput').value.trim();
+            if (q === '') return;
+
+            isSearchMode = true;
+
+            const params = new URLSearchParams({
+                q,
+                site:         document.getElementById('filterSite')?.value ?? '',
+                bulan:        document.getElementById('filterBulan')?.value ?? '',
+                status_kirim: document.getElementById('filterStatus')?.value ?? '',
+                perPage:      document.getElementById('filterPerPage')?.value ?? 50,
+                page:         1,
+            });
+
+            const tbody = document.querySelector('#dataTable tbody');
+            tbody.innerHTML = `<tr><td colspan="12" class="text-center py-8 text-gray-400">
+                <i class="fas fa-spinner fa-spin mr-2 text-xl"></i>Mencari...</td></tr>`;
+
+            try {
+                const res  = await fetch(`<?= base_url('slip-gaji/search') ?>?${params}`,
+                    { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                const json = await res.json();
+
+                // Tampilkan badge jumlah hasil
+                const badge = document.getElementById('search-badge');
+                badge.textContent = (json.total ?? 0) + ' hasil';
+                badge.classList.remove('hidden');
+
+                if (!json.success || json.data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="12" class="text-center py-8 text-gray-400">
+                        <i class="fas fa-search mr-2"></i>Tidak ada data ditemukan untuk "<strong>${q}</strong>".</td></tr>`;
+                    document.getElementById('pager-info').innerHTML =
+                        `Menampilkan <span class="font-semibold text-gray-900">0</span> dari <span class="font-semibold text-gray-900">0</span> data`;
+                    document.getElementById('pager-links').innerHTML = '';
+                    return;
+                }
+
+                renderRows(json.data, json.total, json.perPage, json.page);
+            } catch (e) {
+                tbody.innerHTML = `<tr><td colspan="12" class="text-center py-8 text-red-400">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>Error: ${e}</td></tr>`;
+            }
+        }
+
+        const months = {1:'Jan',2:'Feb',3:'Mar',4:'Apr',5:'Mei',6:'Jun',
+                        7:'Jul',8:'Agu',9:'Sep',10:'Okt',11:'Nov',12:'Des'};
+
+        function statusBadge(s) {
+            if (s === 'sent')   return `<span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 border border-green-200">Terkirim</span>`;
+            if (s === 'failed') return `<span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200">Gagal</span>`;
+            return `<span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">Pending</span>`;
+        }
+
+        function formatDate(str) {
+            const d = new Date(str);
+            return `${d.getDate()} ${months[d.getMonth()+1]} ${d.getFullYear()} `
+                 + `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} WIB`;
+        }
+
+        function escHtml(str) {
+            return String(str ?? '')
+                .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function renderRows(rows, total, perPage, page) {
+            const tbody  = document.querySelector('#dataTable tbody');
+            const offset = (page - 1) * perPage;
+
+            tbody.innerHTML = rows.map((k, i) => `
+            <tr class="hover:bg-blue-50 transition duration-150 ease-in-out" id="row-${k.id}">
+                <td class="px-4 py-3 text-sm text-center">
+                    <input type="checkbox" class="row-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500" value="${k.id}">
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-500">${offset + i + 1}</td>
+                <td class="px-4 py-3 text-sm font-medium text-gray-900 truncate">${escHtml(k.nik)}</td>
+                <td class="px-4 py-3 text-sm font-semibold text-gray-700 truncate">${escHtml(k.nama)}</td>
+                <td class="px-4 py-3 text-sm text-gray-600 truncate">${escHtml(k.jabatan)}</td>
+                <td class="px-4 py-3 text-sm text-gray-600">
+                    <span class="px-2 py-0.5 inline-flex text-xs font-medium rounded-full bg-gray-100 text-gray-800">${escHtml(k.site)}</span>
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-600 truncate">${escHtml(k.bulan)}</td>
+                <td class="px-4 py-3 text-sm text-blue-600 truncate" title="${escHtml(k.email)}">${escHtml(k.email)}</td>
+                <td class="px-4 py-3 text-sm text-right font-mono text-gray-700">
+                    Rp ${parseFloat(k.gaji_bersih).toLocaleString('id-ID')}
+                </td>
+                <td class="px-4 py-3 text-center">${statusBadge(k.status_kirim)}</td>
+                <td class="px-4 py-3 text-center text-sm text-gray-500">${formatDate(k.updated_at)}</td>
+                <td class="px-4 py-3 text-center whitespace-nowrap">
+                    <div class="flex items-center justify-center gap-2">
+                        <a href="<?= base_url('slip-gaji/preview/') ?>${k.id}" target="_blank" class="text-gray-500 hover:text-blue-600" title="Preview"><i class="fas fa-eye"></i></a>
+                        <button onclick="openEditModal(${k.id})" class="text-gray-500 hover:text-yellow-600" title="Edit"><i class="fas fa-pen"></i></button>
+                        <button onclick="sendEmail(${k.id},'${escHtml(k.nama)}')" class="text-gray-500 hover:text-purple-600" title="Kirim" id="btn-email-${k.id}"><i class="fas fa-paper-plane"></i></button>
+                        <button onclick="deleteData(${k.id},'${escHtml(k.nama)}')" class="text-gray-500 hover:text-red-600" title="Hapus"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr>`).join('');
+
+            // Update info pager bawah tabel
+            const start = offset + 1;
+            const end   = Math.min(offset + parseInt(perPage), total);
+            document.getElementById('pager-info').innerHTML =
+                `Menampilkan <span class="font-semibold text-gray-900">${start} - ${end}</span>
+                 dari <span class="font-semibold text-gray-900">${total}</span> data`;
+
+            // Sembunyikan pager server-side saat search aktif
+            document.getElementById('pager-links').innerHTML = '';
+
+            checkboxInit();
         }
 
         // --- INIT ---
@@ -350,15 +463,12 @@
             checkboxInit();
             checkInitialQueueStatus();
 
-            // ============================================
-            // EDIT FORM — AJAX SUBMIT (FIX UTAMA)
-            // ============================================
+            // EDIT FORM — AJAX SUBMIT
             document.getElementById('editForm').addEventListener('submit', async function (e) {
                 e.preventDefault();
-
-                const id = document.getElementById('edit_id').value;
+                const id        = document.getElementById('edit_id').value;
                 const submitBtn = document.getElementById('editSubmitBtn');
-                const alertBox = document.getElementById('editAlert');
+                const alertBox  = document.getElementById('editAlert');
 
                 alertBox.classList.add('hidden');
                 submitBtn.disabled = true;
@@ -366,23 +476,18 @@
 
                 try {
                     const formData = new FormData(this);
-                    // FormData tidak bisa langsung ke URLSearchParams kalau ada file,
-                    // tapi karena tidak ada file di sini, pakai URLSearchParams saja
-                    const params = new URLSearchParams();
+                    const params   = new URLSearchParams();
                     formData.forEach((val, key) => params.append(key, val));
 
-                    const res = await fetch(`<?= base_url('slip-gaji/update/') ?>${id}`, {
+                    const res  = await fetch(`<?= base_url('slip-gaji/update/') ?>${id}`, {
                         method: 'POST',
                         headers: { 'X-Requested-With': 'XMLHttpRequest' },
                         body: params
                     });
-
                     const data = await res.json();
 
-                    if (data.success) {
-                        closeEditModal();
-                        location.reload();
-                    } else {
+                    if (data.success) { closeEditModal(); location.reload(); }
+                    else {
                         alertBox.textContent = data.message || 'Terjadi kesalahan.';
                         alertBox.classList.remove('hidden');
                     }
@@ -419,7 +524,7 @@
                 resizer.classList.add('resizing');
             });
             const mouseMoveHandler = function (e) { col.style.width = `${w + (e.clientX - x)}px`; };
-            const mouseUpHandler = function () {
+            const mouseUpHandler   = function () {
                 document.removeEventListener('mousemove', mouseMoveHandler);
                 document.removeEventListener('mouseup', mouseUpHandler);
                 resizer.classList.remove('resizing');
@@ -428,6 +533,10 @@
 
         // --- CHECKBOX ---
         function checkboxInit() {
+            // Lepas listener lama sebelum pasang baru (hindari duplikat)
+            const oldTable = document.getElementById('dataTable');
+            const newTable = oldTable.cloneNode(false);
+            // Tidak perlu clone, cukup pakai flag
             const selectAll = document.getElementById('select-all');
             const btnDelete = document.getElementById('btn-delete-selected');
 
@@ -437,45 +546,56 @@
             }
 
             if (selectAll) {
-                selectAll.addEventListener('change', function () {
+                // Hapus listener lama dengan cara replace node
+                const newSelectAll = selectAll.cloneNode(true);
+                selectAll.parentNode.replaceChild(newSelectAll, selectAll);
+                newSelectAll.addEventListener('change', function () {
                     document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = this.checked);
                     updateBtnState();
                 });
             }
 
-            document.getElementById('dataTable')?.addEventListener('change', function (e) {
+            // Gunakan event delegation pada tbody agar tidak duplikat
+            const tbody = document.querySelector('#dataTable tbody');
+            tbody.addEventListener('change', function (e) {
                 if (e.target.classList.contains('row-checkbox')) {
-                    const allChecked = Array.from(document.querySelectorAll('.row-checkbox')).every(cb => cb.checked);
-                    if (selectAll) selectAll.checked = allChecked;
+                    const all     = document.querySelectorAll('.row-checkbox');
+                    const allChk  = Array.from(all).every(cb => cb.checked);
+                    const sa      = document.getElementById('select-all');
+                    if (sa) sa.checked = allChk;
                     updateBtnState();
                 }
             });
 
-            btnDelete?.addEventListener('click', async function () {
-                const ids = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
-                if (ids.length === 0) return;
-                if (!confirm(`Hapus ${ids.length} data terpilih?`)) return;
+            if (btnDelete) {
+                const newBtn = btnDelete.cloneNode(true);
+                btnDelete.parentNode.replaceChild(newBtn, btnDelete);
+                newBtn.addEventListener('click', async function () {
+                    const ids = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
+                    if (ids.length === 0) return;
+                    if (!confirm(`Hapus ${ids.length} data terpilih?`)) return;
 
-                const originalHtml = btnDelete.innerHTML;
-                btnDelete.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                btnDelete.disabled = true;
+                    const originalHtml = newBtn.innerHTML;
+                    newBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    newBtn.disabled  = true;
 
-                try {
-                    const data = new URLSearchParams();
-                    ids.forEach(id => data.append('ids[]', id));
-                    data.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
+                    try {
+                        const data = new URLSearchParams();
+                        ids.forEach(id => data.append('ids[]', id));
+                        data.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
 
-                    const res = await fetch('<?= base_url('slip-gaji/delete-multiple') ?>', {
-                        method: 'POST',
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                        body: data
-                    });
-                    const json = await res.json();
-                    if (json.success) { alert(json.message); location.reload(); }
-                    else { alert('Gagal: ' + json.message); }
-                } catch (err) { alert('Error: ' + err); }
-                finally { btnDelete.innerHTML = originalHtml; btnDelete.disabled = false; }
-            });
+                        const res  = await fetch('<?= base_url('slip-gaji/delete-multiple') ?>', {
+                            method: 'POST',
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                            body: data
+                        });
+                        const json = await res.json();
+                        if (json.success) { alert(json.message); location.reload(); }
+                        else { alert('Gagal: ' + json.message); }
+                    } catch (err) { alert('Error: ' + err); }
+                    finally { newBtn.innerHTML = originalHtml; newBtn.disabled = false; }
+                });
+            }
         }
 
         // --- QUEUE / EMAIL ---
@@ -483,7 +603,7 @@
 
         async function checkInitialQueueStatus() {
             try {
-                const r = await fetch('<?= base_url('slip-gaji/queue-status') ?>');
+                const r    = await fetch('<?= base_url('slip-gaji/queue-status') ?>');
                 const data = await r.json();
                 if (data.pending > 0 || data.processing > 0) {
                     document.getElementById('progressMonitor').style.display = 'block';
@@ -501,7 +621,7 @@
             const btn = document.getElementById('btn-async');
             btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
             try {
-                const res = await fetch('<?= base_url('slip-gaji/enqueue-all') ?>', {
+                const res  = await fetch('<?= base_url('slip-gaji/enqueue-all') ?>', {
                     method: 'POST',
                     headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: '<?= csrf_token() ?>=' + encodeURIComponent('<?= csrf_hash() ?>')
@@ -526,7 +646,7 @@
             if (pollInterval) clearInterval(pollInterval);
             pollInterval = setInterval(async () => {
                 try {
-                    const r = await fetch('<?= base_url('slip-gaji/queue-status') ?>');
+                    const r    = await fetch('<?= base_url('slip-gaji/queue-status') ?>');
                     const data = await r.json();
                     updateProgress(data);
                     if ((data.sent + data.failed) >= data.total && data.total > 0 && data.pending === 0 && data.processing === 0) {
@@ -538,16 +658,16 @@
         }
 
         function updateProgress(data) {
-            document.getElementById('stat-total').textContent = data.total || 0;
-            document.getElementById('stat-sent').textContent = data.sent || 0;
-            document.getElementById('stat-failed').textContent = data.failed || 0;
-            document.getElementById('stat-pending').textContent = data.pending || 0;
+            document.getElementById('stat-total').textContent      = data.total      || 0;
+            document.getElementById('stat-sent').textContent       = data.sent       || 0;
+            document.getElementById('stat-failed').textContent     = data.failed     || 0;
+            document.getElementById('stat-pending').textContent    = data.pending    || 0;
             document.getElementById('stat-processing').textContent = data.processing || 0;
-            const total = data.total || 1;
+            const total     = data.total || 1;
             const completed = (data.sent || 0) + (data.failed || 0);
-            const percent = Math.round((completed / total) * 100);
-            document.getElementById('progress-bar').style.width = percent + '%';
-            document.getElementById('progress-text').textContent = percent + '% selesai';
+            const percent   = Math.round((completed / total) * 100);
+            document.getElementById('progress-bar').style.width    = percent + '%';
+            document.getElementById('progress-text').textContent   = percent + '% selesai';
             syncResendButton(data.failed || 0);
         }
 
@@ -561,7 +681,7 @@
             if (!btn) return;
             if (failedCount > 0) {
                 btn.style.display = 'flex';
-                btn.innerHTML = '<i class="fas fa-redo"></i> Kirim Ulang Gagal (' + failedCount + ')';
+                btn.innerHTML = `<i class="fas fa-redo"></i> Kirim Ulang Gagal (${failedCount})`;
             } else {
                 btn.style.display = 'none';
             }
@@ -572,7 +692,7 @@
             if (!confirm('Kirim ulang yang gagal?')) return;
             btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             try {
-                const res = await fetch('<?= base_url('slip-gaji/resend-all-failed') ?>', {
+                const res  = await fetch('<?= base_url('slip-gaji/resend-all-failed') ?>', {
                     method: 'POST',
                     headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: '<?= csrf_token() ?>=' + encodeURIComponent('<?= csrf_hash() ?>')
@@ -605,7 +725,8 @@
                 method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' },
                 body: new URLSearchParams({ '_method': 'DELETE', '<?= csrf_token() ?>': '<?= csrf_hash() ?>' })
             }).then(r => r.json()).then(d => {
-                if (d.success) { document.getElementById(`row-${id}`).remove(); } else { alert(d.message); }
+                if (d.success) { document.getElementById(`row-${id}`).remove(); }
+                else { alert(d.message); }
             }).catch(e => alert(e));
         }
 
@@ -613,17 +734,17 @@
             document.getElementById('editModal').classList.remove('hidden');
             document.getElementById('editAlert').classList.add('hidden');
             try {
-                const res = await fetch(`<?= base_url('slip-gaji/edit/') ?>${id}`, {
+                const res  = await fetch(`<?= base_url('slip-gaji/edit/') ?>${id}`, {
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
                 const data = await res.json();
-                document.getElementById('edit_id').value = data.id;
-                document.getElementById('edit_nik').value = data.nik;
-                document.getElementById('edit_nama').value = data.nama;
-                document.getElementById('edit_jabatan').value = data.jabatan;
-                document.getElementById('edit_site').value = data.site;
-                document.getElementById('edit_bulan').value = data.bulan;
-                document.getElementById('edit_email').value = data.email;
+                document.getElementById('edit_id').value         = data.id;
+                document.getElementById('edit_nik').value        = data.nik;
+                document.getElementById('edit_nama').value       = data.nama;
+                document.getElementById('edit_jabatan').value    = data.jabatan;
+                document.getElementById('edit_site').value       = data.site;
+                document.getElementById('edit_bulan').value      = data.bulan;
+                document.getElementById('edit_email').value      = data.email;
                 document.getElementById('edit_gaji_bersih').value = 'Rp ' + parseFloat(data.gaji_bersih).toLocaleString('id-ID');
             } catch (e) { alert(e); closeEditModal(); }
         }

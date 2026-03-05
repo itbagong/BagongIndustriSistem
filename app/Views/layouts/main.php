@@ -13,13 +13,10 @@
 
     <!-- ② CUSTOM CSS — dimuat SETELAH vendor agar bisa override -->
     <link rel="stylesheet" href="<?= base_url('assets/css/dashboard.css?v=1') ?>">
-    <link rel="stylesheet" href="<?= base_url('assets/css/sidebar-addon.css?v=1') ?>">
+    <link rel="stylesheet" href="<?= base_url('assets/css/sidebar.css?v=1') ?>">
+    <link rel="stylesheet" href="<?= base_url('assets/css/sidebar-hidden-patch.css?v=1') ?>">
     <link rel="stylesheet" href="<?= base_url('assets/css/employee.css?v=1') ?>">
     <link rel="stylesheet" href="<?= base_url('assets/css/users.css?v=1') ?>">
-
-    <!-- ③ PATCH — paling terakhir agar override semua di atas -->
-    <link rel="stylesheet" href="<?= base_url('assets/css/sidebar-patch.css?v=3') ?>">
-
     <?= $this->renderSection('css') ?>
 </head>
 <body>

@@ -1,21 +1,11 @@
 <?php
+// ── Routes User Management ────────────────────────────────────
+// Tambahkan di app/Config/Routes.php
 
-$routes->group('settings/privileges', ['filter' => 'auth'], function($routes) {
-    // View halaman
-    $routes->get('', 'Settings\PrivilegeController::index');
-    
-    // AJAX endpoints
-    $routes->get('data', 'Settings\PrivilegeController::getData');
-    $routes->get('statistics', 'Settings\PrivilegeController::getStatistics');
-    $routes->get('view/(:segment)', 'Settings\PrivilegeController::view/$1');
-    
-    // CRUD
-    $routes->post('store', 'Settings\PrivilegeController::store');
-    $routes->post('update/(:segment)', 'Settings\PrivilegeController::update/$1');
-    $routes->delete('delete/(:segment)', 'Settings\PrivilegeController::delete/$1');
-    
-    // User assignments
-    $routes->get('user-privileges', 'Settings\PrivilegeController::getUserPrivileges');
-    $routes->post('assign', 'Settings\PrivilegeController::assign');
-    $routes->get('users', 'Settings\PrivilegeController::getUsers');
-});
+$routes->get( 'user',                       'Users\UsersController::index');
+$routes->post('users/store',                 'Users\UsersController::store');
+$routes->get( 'users/edit/(:num)',           'Users\UsersController::edit/$1');
+$routes->post('users/update/(:num)',         'Users\UsersController::update/$1');
+$routes->post('users/delete/(:num)',         'Users\UsersController::delete/$1');
+$routes->post('users/toggle-active/(:num)', 'Users\UsersController::toggleActive/$1');
+$routes->post('users/reset-password/(:num)','Users\UsersController::resetPassword/$1');

@@ -43,6 +43,10 @@ $routes->group('general-service', ['filter' => 'permission:general.service'], fu
         $routes->post('delete/(:segment)', 'GeneralService\WorkshopController::delete/$1');
     });
 
+    $routes->group('planner-site', function ($routes) {
+        $routes->get('/', 'GeneralService\PlannerSiteController::index');
+    });
+
     // =========================
     // REPAIR REQUEST - LENGKAP
     // =========================

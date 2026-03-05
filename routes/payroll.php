@@ -34,5 +34,7 @@ $routes->group('slip-gaji', ['filter' => 'auth'], function($routes) {
     $routes->post('delete-multiple', 'Payroll\SlipGajiController::deleteMultiple');
 
     $routes->post('resend-all-failed', 'Payroll\SlipGajiController::resendAllFailed');
+    
+    $routes->get('search', 'Payroll\SlipGajiController::search');
 
 });
