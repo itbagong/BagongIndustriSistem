@@ -122,25 +122,36 @@
         </div>
 
         <div class="flex items-center justify-between">
-            <!-- CSRF hidden + submit -->
             <input type="hidden" id="csrfName"  value="<?= csrf_token() ?>">
             <input type="hidden" id="csrfValue" value="<?= csrf_hash() ?>">
 
-            <button id="importButton"
-                    disabled
-                    onclick="startImport()"
-                    class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700
-                           disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none
-                           text-white text-sm font-semibold px-6 py-2.5 rounded-lg
-                           transition-colors focus:outline-none focus:ring-2
-                           focus:ring-green-400 focus:ring-offset-2">
-                <i class="fas fa-play-circle"></i>
-                <span id="importBtnLabel">Import Data</span>
-            </button>
+            <div class="flex gap-3">
+                <button id="importButton"
+                        disabled
+                        onclick="startImport()"
+                        class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700
+                            disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none
+                            text-white text-sm font-semibold px-6 py-2.5 rounded-lg
+                            transition-colors focus:outline-none focus:ring-2
+                            focus:ring-green-400 focus:ring-offset-2">
+                    <i class="fas fa-play-circle"></i>
+                    <span id="importBtnLabel">Import Data</span>
+                </button>
 
-            <!-- Live status badge -->
-            <span id="statusBadge"
-                  class="stat-pill bg-gray-100 text-gray-500">
+                <button id="stopButton"
+                        disabled
+                        onclick="stopImport()"
+                        class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700
+                            disabled:opacity-40 disabled:cursor-not-allowed
+                            text-white text-sm font-semibold px-6 py-2.5 rounded-lg
+                            transition-colors focus:outline-none focus:ring-2
+                            focus:ring-red-400 focus:ring-offset-2">
+                    <i class="fas fa-stop-circle"></i>
+                    Stop
+                </button>
+            </div>
+
+            <span id="statusBadge" class="stat-pill bg-gray-100 text-gray-500">
                 <i class="fas fa-circle text-gray-300" style="font-size:8px"></i>
                 Idle
             </span>
@@ -385,21 +396,36 @@ const statusCfg = {
     done:       { icon:'check-circle',  color:'bg-green-50 text-green-700',  dot:'text-green-400', label:'Complete'  },
 };
 
+function stopImport() {
+    if (!activeSource) return;
+
+    activeSource.close();
+    activeSource = null;
+    isRunning    = false;
+
+    appendLog('warn', '⛔ Import stopped by user.');
+    setStatus('idle');
+}
+
 function setStatus(state) {
     const cfg = statusCfg[state] || statusCfg.idle;
     const badge = document.getElementById('statusBadge');
     badge.className = `stat-pill ${cfg.color}`;
     badge.innerHTML = `<i class="fas fa-${cfg.icon} ${cfg.dot}" style="font-size:9px"></i> ${cfg.label}`;
 
-    const btn   = document.getElementById('importButton');
-    const label = document.getElementById('importBtnLabel');
-    if (state === 'running' || state === 'uploading') {
-        btn.disabled = true;
-        label.textContent = state === 'uploading' ? 'Uploading…' : 'Importing…';
-    } else {
-        btn.disabled = !document.getElementById('fileInput').files[0];
-        label.textContent = 'Import Data';
-    }
+    const importBtn = document.getElementById('importButton');
+    const stopBtn   = document.getElementById('stopButton');
+    const label     = document.getElementById('importBtnLabel');
+
+    const isActive = state === 'running' || state === 'uploading';
+
+    importBtn.disabled = isActive || !document.getElementById('fileInput').files[0];
+    label.textContent  = isActive
+        ? (state === 'uploading' ? 'Uploading…' : 'Importing…')
+        : 'Import Data';
+
+    // Stop button is only enabled while actively streaming
+    stopBtn.disabled = !isActive;
 }
 </script>
 

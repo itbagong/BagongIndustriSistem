@@ -235,7 +235,7 @@ class EmployeeController extends BaseController
         header('Connection: keep-alive');
 
         set_time_limit(0);
-        ignore_user_abort(true);           // keep running even if the browser tab closes
+        ignore_user_abort(false);           // keep running even if the browser tab closes
 
         // ── 2. Resolve file ───────────────────────────────────────────────────────
         $fileName = $this->request->getGet('file');
@@ -282,6 +282,9 @@ class EmployeeController extends BaseController
         $skipped   = 0;
 
         foreach ($rows as $index => $row) {
+            if (connection_aborted()) {
+                break;
+            }
             $rowNumber = $index + 2;   // +2: 1-based + header offset
 
             try {
@@ -320,16 +323,30 @@ class EmployeeController extends BaseController
 
                     case 'master':
                         $modelProp = $cfg['model'];
-                        $related   = $this->{$modelProp}
-                            ->where('LOWER(name)', strtolower($value))
+                        $lower     = strtolower($value);
+
+                        // 1. Exact name match (all models)
+                        $related = $this->{$modelProp}
+                            ->where('LOWER(name)', $lower)
                             ->first();
 
+                        // 2. Alias match — Postgres text[] via unnest (all models that have aliases)
                         if (!$related) {
-                            $related = $this->{$modelProp}
-                                ->where("JSON_CONTAINS(LOWER(aliases), ?)", [json_encode(strtolower($value))])
-                                ->first();
+                            try {
+                                $tableName = $this->{$modelProp}->getTable();
+                                $related = $this->{$modelProp}->query(
+                                    "SELECT * FROM {$tableName}
+                                    WHERE LOWER(?) = ANY(SELECT LOWER(unnest(aliases)))
+                                    LIMIT 1",
+                                    [$lower]
+                                )->getRowArray() ?: null;
+                            } catch (\Throwable) {
+                                // Table has no aliases column — skip silently
+                                $related = null;
+                            }
                         }
 
+                        // 3. Partial name match fallback
                         if (!$related && ($cfg['partial_match'] ?? false)) {
                             foreach ($this->{$modelProp}->findAll() as $item) {
                                 if (stripos($value, $item['name']) !== false) {
