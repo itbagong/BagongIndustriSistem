@@ -34,10 +34,19 @@ class EmploymentStatusController extends BaseController
                 ->groupEnd();
         }
 
+        $employmentStatuses = $this->model->paginate($perPage);
+
+        // Decode Postgres text[] → PHP array for each row
+        $employmentStatuses = array_map(function ($row) {
+            $row['aliases'] = is_string($row['aliases'])
+                ? $this->model->fromPostgresArray($row['aliases'])
+                : ($row['aliases'] ?? []);
+            return $row;
+        }, $employmentStatuses);
+
         $data = [
             'title'             => 'Manajemen Employment Status',
-            'employmentStatuses' => $this->model->orderBy('id', 'ASC')->findAll(),
-            'items'  => $this->model->orderBy('id', 'ASC')->paginate(10), // ← 10 per page
+            'employmentStatuses' => $employmentStatuses,
             'pager'  => $this->model->pager,                               // ← pager object
             'search'  => $search,
             'perPage' => $perPage,
@@ -53,6 +62,7 @@ class EmploymentStatusController extends BaseController
     public function store()
     {
         $rules = [
+            'id'          => 'required|regex_match[/^EMTS-BDM-.+/]',
             'name'        => 'required|max_length[100]',
         ];
 
@@ -60,10 +70,13 @@ class EmploymentStatusController extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $this->model->insert([
-            'id'          => $this->model->generateId(),
+        $aliases = json_decode($this->request->getPost('aliases') ?? '[]', true);
+        if (!is_array($aliases)) $aliases = [];
+
+        $this->model->insertEs([
+            'id'          => $this->request->getPost('id'),
             'name'        => $this->request->getPost('name'),
-            'is_deleted'  => false,
+            'aliases'     => $aliases,
         ]);
 
         return redirect()->to(base_url('employees/employment-status'))->with('success', 'Employment Status berhasil ditambahkan.');
@@ -75,6 +88,7 @@ class EmploymentStatusController extends BaseController
     public function update(string $id)
     {
         $rules = [
+            'id'          => 'required|regex_match[/^EMTS-BDM-.+/]',
             'name'        => 'required|max_length[100]',
         ];
 
@@ -82,9 +96,20 @@ class EmploymentStatusController extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $this->model->update($id, [
-            'name'        => $this->request->getPost('name'),
-        ]);
+        $aliases = json_decode($this->request->getPost('aliases') ?? '[]', true);
+        if (!is_array($aliases)) $aliases = [];
+
+        try{
+            $this->model->updateEs($id, [
+                'id'          => $this->request->getPost('id'),
+                'name'        => $this->request->getPost('name'),
+                'aliases'     => $aliases,
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', '[EmploymentStatusController::update] ' . $e->getMessage());
+            return redirect()->back()->withInput()
+                            ->with('error', 'Gagal memperbarui employment status: ' . $e->getMessage());
+        }
 
         return redirect()->to(base_url('employees/employment-status'))->with('success', 'Employment Status berhasil diperbarui.');
     }

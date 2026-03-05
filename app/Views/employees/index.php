@@ -3,193 +3,403 @@
 
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<div class="p-6 max-w-7xl mx-auto">
+<style>
+    body { font-family: 'DM Sans', sans-serif; }
 
-    <!-- Page Header -->
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">
-            Employee Data Import
-        </h1>
+    /* ── Animated gradient border on the drop zone ── */
+    @keyframes borderSpin {
+        0%   { background-position: 0% 50%; }
+        100% { background-position: 100% 50%; }
+    }
+    .drop-zone-ring {
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6, #06b6d4, #3b82f6);
+        background-size: 300% 300%;
+        animation: borderSpin 4s linear infinite;
+        padding: 2px;
+        border-radius: 12px;
+    }
+    .drop-zone-inner {
+        background: #ffffff;
+        border-radius: 10px;
+    }
+
+    /* ── Log console ── */
+    #logContainer {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12.5px;
+        line-height: 1.7;
+        background: #0f1117;
+        color: #9ca3af;
+    }
+    #logContainer .log-success { color: #34d399; }
+    #logContainer .log-update  { color: #60a5fa; }
+    #logContainer .log-warn    { color: #fbbf24; }
+    #logContainer .log-error   { color: #f87171; }
+    #logContainer .log-info    { color: #a78bfa; }
+    #logContainer .log-system  { color: #6b7280; font-style: italic; }
+
+    /* ── Blinking cursor while running ── */
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    #cursor { animation: blink 1s step-start infinite; display: none; }
+    #cursor.active { display: inline; }
+
+    /* ── Progress bar shimmer ── */
+    @keyframes shimmer {
+        0%   { background-position: -200% center; }
+        100% { background-position:  200% center; }
+    }
+    #progressBar {
+        background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 40%, #06b6d4 60%, #3b82f6 100%);
+        background-size: 200% 100%;
+        animation: shimmer 2s linear infinite;
+        transition: width 0.2s ease;
+    }
+
+    /* ── Stat pills ── */
+    .stat-pill {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 3px 12px; border-radius: 999px;
+        font-size: 12px; font-weight: 600;
+    }
+
+    /* ── Slide-in for new log lines ── */
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateX(-6px); }
+        to   { opacity: 1; transform: translateX(0); }
+    }
+    .log-line { animation: slideIn 0.12s ease; }
+
+    /* ── Upload button pulse ── */
+    @keyframes pulse-ring {
+        0%   { box-shadow: 0 0 0 0 rgba(59,130,246,0.5); }
+        70%  { box-shadow: 0 0 0 8px rgba(59,130,246,0); }
+        100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+    }
+    #importButton:not(:disabled) { animation: pulse-ring 2s ease-out infinite; }
+</style>
+
+<div class="p-6 max-w-5xl mx-auto">
+
+    <!-- ── Page Header ─────────────────────────────────────────────────── -->
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Employee Import</h1>
+        <p class="text-sm text-gray-500 mt-1">
+            Upload an <span class="font-medium text-gray-700">.xlsx / .xls / .csv</span> file —
+            rows are streamed live as they are committed.
+        </p>
     </div>
 
-    <!-- Upload Card -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 class="text-xl font-semibold mb-4 text-gray-700">
-            <i class="fas fa-upload mr-2"></i>Upload Employee Excel / CSV
+    <!-- ── Upload Card ─────────────────────────────────────────────────── -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-5">
+        <h2 class="text-sm font-semibold uppercase tracking-widest text-gray-400 mb-4">
+            1 · Select File
         </h2>
 
-        <form id="importForm" enctype="multipart/form-data">
-            <?= csrf_field() ?>
+        <div class="drop-zone-ring mb-4" id="dropZone">
+            <div class="drop-zone-inner p-8 text-center" id="dropInner">
+                <i class="fas fa-file-excel text-5xl text-gray-300 mb-3 block"></i>
 
-            <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <i class="fas fa-file-excel text-6xl text-gray-400 mb-4"></i>
+                <label id="fileLabel"
+                       class="cursor-pointer inline-flex items-center gap-2
+                              bg-blue-600 hover:bg-blue-700 text-white text-sm
+                              font-semibold px-5 py-2.5 rounded-lg transition-colors">
+                    <i class="fas fa-folder-open"></i> Browse file
+                    <input type="file"
+                           id="fileInput"
+                           name="file_upload"
+                           accept=".xlsx,.xls,.csv"
+                           class="hidden"
+                           onchange="onFileChosen(this)">
+                </label>
 
-                <div class="mb-4">
-                    <label class="cursor-pointer bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 inline-block">
-                        <i class="fas fa-folder-open mr-2"></i>Pilih File Excel
-                        <input type="file"
-                               name="file_upload"
-                               accept=".xlsx,.xls,.csv"
-                               class="hidden"
-                               required
-                               onchange="showFileName(this)">
-                    </label>
-                </div>
-
-                <p class="text-sm text-gray-500" id="file-name">
-                    Belum ada file dipilih
+                <p class="text-xs text-gray-400 mt-3" id="fileName">No file selected</p>
+                <p class="text-xs text-gray-300 mt-1">
+                    Supported headers: NIK, Name, Department, Division, Job Position, Gender, Site …
                 </p>
-
-                <p class="text-xs text-gray-400 mt-2">
-                    Format Header Example: NIK, Department, Division, Job Position, Gender, Site, dll.
-                </p>
-
-                <button type="submit"
-                        id="importButton"
-                        class="mt-4 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
-                    <i class="fas fa-cloud-upload-alt mr-2"></i>Import Data
-                </button>
-            </div>
-        </form>
-    </div>
-
-    <!-- Live Log Card -->
-    <div class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-xl font-semibold mb-4 text-gray-700">
-            <i class="fas fa-terminal mr-2"></i>Live Import Log
-        </h2>
-
-        <!-- Progress Bar -->
-        <div class="w-full bg-gray-200 rounded-full h-4 mb-4">
-            <div id="progressBar"
-                 class="bg-green-500 h-4 rounded-full transition-all duration-300"
-                 style="width: 0%">
             </div>
         </div>
 
-        <!-- Counter -->
-        <div class="flex justify-between text-sm mb-3">
-            <span>Processed: <strong id="processedCount">0</strong></span>
-            <span>Total: <strong id="totalCount">0</strong></span>
+        <div class="flex items-center justify-between">
+            <!-- CSRF hidden + submit -->
+            <input type="hidden" id="csrfName"  value="<?= csrf_token() ?>">
+            <input type="hidden" id="csrfValue" value="<?= csrf_hash() ?>">
+
+            <button id="importButton"
+                    disabled
+                    onclick="startImport()"
+                    class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700
+                           disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none
+                           text-white text-sm font-semibold px-6 py-2.5 rounded-lg
+                           transition-colors focus:outline-none focus:ring-2
+                           focus:ring-green-400 focus:ring-offset-2">
+                <i class="fas fa-play-circle"></i>
+                <span id="importBtnLabel">Import Data</span>
+            </button>
+
+            <!-- Live status badge -->
+            <span id="statusBadge"
+                  class="stat-pill bg-gray-100 text-gray-500">
+                <i class="fas fa-circle text-gray-300" style="font-size:8px"></i>
+                Idle
+            </span>
+        </div>
+    </div>
+
+    <!-- ── Progress + Log Card ─────────────────────────────────────────── -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-sm font-semibold uppercase tracking-widest text-gray-400 mb-4">
+            2 · Live Log
+        </h2>
+
+        <!-- Stats row -->
+        <div class="flex flex-wrap gap-2 mb-4" id="statsRow" style="display:none!important">
+            <span class="stat-pill bg-green-50 text-green-700">
+                <i class="fas fa-check-circle"></i>
+                <span id="statInserted">0</span> inserted
+            </span>
+            <span class="stat-pill bg-blue-50 text-blue-700">
+                <i class="fas fa-sync-alt"></i>
+                <span id="statUpdated">0</span> updated
+            </span>
+            <span class="stat-pill bg-red-50 text-red-700">
+                <i class="fas fa-times-circle"></i>
+                <span id="statSkipped">0</span> skipped
+            </span>
         </div>
 
-        <!-- Console Log -->
+        <!-- Progress bar -->
+        <div class="w-full bg-gray-100 rounded-full h-2 mb-2 overflow-hidden">
+            <div id="progressBar" class="h-2 rounded-full" style="width:0%"></div>
+        </div>
+        <div class="flex justify-between text-xs text-gray-400 mb-4">
+            <span>Processed: <strong id="processedCount" class="text-gray-700">0</strong></span>
+            <span>Total: <strong id="totalCount" class="text-gray-700">—</strong></span>
+        </div>
+
+        <!-- Console -->
         <div id="logContainer"
-             class="bg-black text-green-400 p-4 rounded-lg
-                    h-80 overflow-y-auto text-sm font-mono">
+             class="rounded-xl p-4 h-80 overflow-y-auto select-text">
+            <span class="log-system">Waiting for import to start…</span>
+        </div>
+
+        <!-- Row count below console -->
+        <div class="flex items-center justify-end mt-2 gap-2 text-xs text-gray-400">
+            <span id="logLineCount">0 lines</span>
+            <button onclick="clearLog()"
+                    class="hover:text-gray-600 transition-colors focus:outline-none">
+                <i class="fas fa-trash-alt"></i> Clear
+            </button>
         </div>
     </div>
 
 </div>
 
+<!-- ── Script ──────────────────────────────────────────────────────────── -->
 <script>
-let uploadedFile = null;
-let totalRows = 0;
-let isImporting = false;
+/* ── State ──────────────────────────────────────────────────────────── */
+let uploadedFile   = null;
+let totalRows      = 0;
+let logLines       = 0;
+let activeSource   = null;   // EventSource reference
+let isRunning      = false;
 
-document.getElementById("importForm").addEventListener("submit", async function(e){
-    e.preventDefault();
+/* ── Drag-and-drop on drop zone ─────────────────────────────────────── */
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
 
-    if (isImporting) return;
+['dragenter','dragover'].forEach(ev =>
+    dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('scale-[1.01]'); })
+);
+['dragleave','drop'].forEach(ev =>
+    dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.remove('scale-[1.01]'); })
+);
+dropZone.addEventListener('drop', e => {
+    const f = e.dataTransfer.files[0];
+    if (!f) return;
+    const dt = new DataTransfer();
+    dt.items.add(f);
+    fileInput.files = dt.files;
+    onFileChosen(fileInput);
+});
 
-    const formData = new FormData(this);
+/* ── File chosen ────────────────────────────────────────────────────── */
+function onFileChosen(input) {
+    const name = input.files[0]?.name;
+    document.getElementById('fileName').textContent = name || 'No file selected';
+    document.getElementById('importButton').disabled = !name;
+}
 
+/* ── Start: upload then open SSE stream ─────────────────────────────── */
+async function startImport() {
+    if (isRunning) return;
+
+    const fileInput = document.getElementById('fileInput');
+    if (!fileInput.files[0]) return;
+
+    setStatus('uploading');
     resetUI();
-    disableButton(true);
-    log("Uploading file...");
+    appendLog('system', 'Uploading file to server…');
 
-    const uploadRes = await fetch("<?= base_url('employees/upload') ?>", {
-        method: "POST",
-        body: formData
-    });
+    const formData = new FormData();
+    formData.append('file_upload', fileInput.files[0]);
+    formData.append(
+        document.getElementById('csrfName').value,
+        document.getElementById('csrfValue').value
+    );
 
-    const uploadData = await uploadRes.json();
+    let uploadData;
+    try {
+        const res  = await fetch("<?= base_url('employees/upload') ?>", {
+            method: 'POST', body: formData,
+        });
+        uploadData = await res.json();
+    } catch (err) {
+        appendLog('error', '❌ Upload failed: ' + err.message);
+        setStatus('idle');
+        return;
+    }
 
-    if(uploadData.status !== 'success'){
-        log("❌ " + uploadData.message);
-        disableButton(false);
+    if (uploadData.status !== 'success') {
+        appendLog('error', '❌ ' + uploadData.message);
+        setStatus('idle');
         return;
     }
 
     uploadedFile = uploadData.file;
-    totalRows = uploadData.totalRows;
+    totalRows    = uploadData.totalRows ?? 0;
 
-    document.getElementById("totalCount").textContent = totalRows;
+    document.getElementById('totalCount').textContent = totalRows || '—';
+    appendLog('system', `File accepted — ${totalRows} data rows detected.`);
 
-    log("File uploaded successfully.");
-    processChunk(0);
-});
+    openStream();
+}
 
-async function processChunk(offset)
-{
-    isImporting = true;
+/* ── Open EventSource ───────────────────────────────────────────────── */
+function openStream() {
+    if (activeSource) { activeSource.close(); activeSource = null; }
 
-    const formData = new FormData();
-    formData.append("file", uploadedFile);
-    formData.append("offset", offset);
+    setStatus('running');
+    isRunning = true;
 
-    const res = await fetch("<?= base_url('employees/process') ?>", {
-        method: "POST",
-        body: formData
+    const url = `<?= base_url('employees/stream') ?>?file=${encodeURIComponent(uploadedFile)}`;
+    const src = new EventSource(url);
+    activeSource = src;
+
+    // ── meta: server tells us the actual row count ────────────────────
+    src.addEventListener('meta', e => {
+        const d = JSON.parse(e.data);
+        totalRows = d.total;
+        document.getElementById('totalCount').textContent = totalRows;
     });
 
-    const data = await res.json();
+    // ── log: a single row result ──────────────────────────────────────
+    src.addEventListener('log', e => {
+        const d = JSON.parse(e.data);
+        appendLog(d.level ?? 'info', d.message);
+    });
 
-    data.logs.forEach(msg => log(msg));
+    // ── progress: update bar + counter ───────────────────────────────
+    src.addEventListener('progress', e => {
+        const d = JSON.parse(e.data);
+        updateProgress(d.processed, d.total ?? totalRows);
+    });
 
-    updateProgress(data.nextOffset);
+    // ── done: import complete ─────────────────────────────────────────
+    src.addEventListener('done', e => {
+        const d = JSON.parse(e.data);
+        updateProgress(d.processed, d.processed);   // fill bar to 100 %
 
-    if(!data.done){
-        processChunk(data.nextOffset);
-    } else {
-        log("🎉 Import Completed!");
-        disableButton(false);
-        isImporting = false;
-    }
+        // Show summary stats
+        document.getElementById('statInserted').textContent = d.inserted ?? 0;
+        document.getElementById('statUpdated').textContent  = d.updated  ?? 0;
+        document.getElementById('statSkipped').textContent  = d.skipped  ?? 0;
+        document.getElementById('statsRow').style.display   = 'flex';
+
+        appendLog('info',
+            `🎉 Done — ${d.inserted} inserted · ${d.updated} updated · ${d.skipped} skipped`
+        );
+
+        setStatus('done');
+        src.close();
+        activeSource = null;
+        isRunning = false;
+    });
+
+    // ── error: SSE-level error ────────────────────────────────────────
+    src.addEventListener('error', e => {
+        if (e.data) {
+            const d = JSON.parse(e.data);
+            appendLog('error', '❌ ' + d.message);
+        } else if (src.readyState === EventSource.CLOSED) {
+            appendLog('error', '⚠️ Connection closed unexpectedly.');
+        }
+        setStatus('idle');
+        src.close();
+        activeSource = null;
+        isRunning = false;
+    });
 }
 
-function log(message)
-{
-    const container = document.getElementById("logContainer");
-    container.innerHTML += message + "<br>";
+/* ── Helpers ────────────────────────────────────────────────────────── */
+function appendLog(level, message) {
+    const container = document.getElementById('logContainer');
+    const line = document.createElement('div');
+    line.className = `log-line log-${level}`;
+    line.textContent = message;
+    container.appendChild(line);
     container.scrollTop = container.scrollHeight;
+    logLines++;
+    document.getElementById('logLineCount').textContent = logLines + ' lines';
 }
 
-function updateProgress(processed)
-{
-    document.getElementById("processedCount").textContent = processed;
-
-    if(totalRows === 0) return;
-
-    const percent = Math.min((processed / totalRows) * 100, 100);
-    document.getElementById("progressBar").style.width = percent + "%";
+function clearLog() {
+    document.getElementById('logContainer').innerHTML = '';
+    logLines = 0;
+    document.getElementById('logLineCount').textContent = '0 lines';
 }
 
-function resetUI()
-{
-    document.getElementById("logContainer").innerHTML = "";
-    document.getElementById("progressBar").style.width = "0%";
-    document.getElementById("processedCount").textContent = "0";
-    document.getElementById("totalCount").textContent = "0";
+function updateProgress(processed, total) {
+    document.getElementById('processedCount').textContent = processed;
+    if (!total) return;
+    const pct = Math.min(Math.round((processed / total) * 100), 100);
+    document.getElementById('progressBar').style.width = pct + '%';
 }
 
-function disableButton(state)
-{
-    const btn = document.getElementById("importButton");
+function resetUI() {
+    clearLog();
+    document.getElementById('progressBar').style.width = '0%';
+    document.getElementById('processedCount').textContent = '0';
+    document.getElementById('totalCount').textContent = '—';
+    document.getElementById('statsRow').style.display = 'none';
+    document.getElementById('statInserted').textContent = '0';
+    document.getElementById('statUpdated').textContent  = '0';
+    document.getElementById('statSkipped').textContent  = '0';
+}
 
-    if(state){
+const statusCfg = {
+    idle:       { icon:'circle',        color:'bg-gray-100 text-gray-500',   dot:'text-gray-300', label:'Idle'      },
+    uploading:  { icon:'cloud-upload-alt', color:'bg-yellow-50 text-yellow-700', dot:'text-yellow-400', label:'Uploading…' },
+    running:    { icon:'cog fa-spin',   color:'bg-blue-50 text-blue-700',    dot:'text-blue-400', label:'Importing…' },
+    done:       { icon:'check-circle',  color:'bg-green-50 text-green-700',  dot:'text-green-400', label:'Complete'  },
+};
+
+function setStatus(state) {
+    const cfg = statusCfg[state] || statusCfg.idle;
+    const badge = document.getElementById('statusBadge');
+    badge.className = `stat-pill ${cfg.color}`;
+    badge.innerHTML = `<i class="fas fa-${cfg.icon} ${cfg.dot}" style="font-size:9px"></i> ${cfg.label}`;
+
+    const btn   = document.getElementById('importButton');
+    const label = document.getElementById('importBtnLabel');
+    if (state === 'running' || state === 'uploading') {
         btn.disabled = true;
-        btn.classList.add("opacity-50", "cursor-not-allowed");
+        label.textContent = state === 'uploading' ? 'Uploading…' : 'Importing…';
     } else {
-        btn.disabled = false;
-        btn.classList.remove("opacity-50", "cursor-not-allowed");
+        btn.disabled = !document.getElementById('fileInput').files[0];
+        label.textContent = 'Import Data';
     }
-}
-
-function showFileName(input) {
-    document.getElementById('file-name').textContent =
-        input.files[0]?.name || 'Belum ada file dipilih';
 }
 </script>
 

@@ -31,9 +31,19 @@ class DepartmentController extends BaseController
                 ->groupEnd();
         }
 
+        $departments = $this->model->paginate($perPage);
+
+        // Decode Postgres text[] → PHP array for each row
+        $departments = array_map(function ($row) {
+            $row['aliases'] = is_string($row['aliases'])
+                ? $this->model->fromPostgresArray($row['aliases'])
+                : ($row['aliases'] ?? []);
+            return $row;
+        }, $departments);
+
         $data = [
             'title'   => 'Manajemen Department',
-            'departments' => $this->model->paginate($perPage),
+            'departments' => $departments,
             'pager'   => $this->model->pager,
             'search'  => $search,
             'perPage' => $perPage,
@@ -49,6 +59,7 @@ class DepartmentController extends BaseController
     public function store()
     {
         $rules = [
+            'id'          => 'required|regex_match[/^DEPT-BDM-.+/]',
             'name'        => 'required|max_length[100]',
             'description' => 'permit_empty|max_length[500]',
         ];
@@ -57,11 +68,14 @@ class DepartmentController extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $this->model->insert([
-            'id'          => $this->model->generateId(),
+        $aliases = json_decode($this->request->getPost('aliases') ?? '[]', true);
+        if (!is_array($aliases)) $aliases = [];
+
+        $this->model->insertDept([
+            'id'          => $this->request->getPost('id'),
             'name'        => $this->request->getPost('name'),
             'description' => $this->request->getPost('description') ?? '',
-            'is_deleted'  => false,
+            'aliases'     => $aliases,
         ]);
 
         return redirect()->to(base_url('employees/department'))->with('success', 'Department berhasil ditambahkan.');
@@ -73,6 +87,7 @@ class DepartmentController extends BaseController
     public function update(string $id)
     {
         $rules = [
+            'id'          => 'required|regex_match[/^DEPT-BDM-.+/]',
             'name'        => 'required|max_length[100]',
             'description' => 'permit_empty|max_length[500]',
         ];
@@ -81,10 +96,21 @@ class DepartmentController extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $this->model->update($id, [
-            'name'        => $this->request->getPost('name'),
-            'description' => $this->request->getPost('description') ?? '',
-        ]);
+        $aliases = json_decode($this->request->getPost('aliases') ?? '[]', true);
+        if (!is_array($aliases)) $aliases = [];
+
+        try{
+            $this->model->updateDept($id, [
+                'id'          => $this->request->getPost('id'),
+                'name'        => $this->request->getPost('name'),
+                'description' => $this->request->getPost('description') ?? '',
+                'aliases'     => $aliases,
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', '[DepartmentController::update] ' . $e->getMessage());
+            return redirect()->back()->withInput()
+                            ->with('error', 'Gagal memperbarui department: ' . $e->getMessage());
+        }
 
         return redirect()->to(base_url('employees/department'))->with('success', 'Department berhasil diperbarui.');
     }

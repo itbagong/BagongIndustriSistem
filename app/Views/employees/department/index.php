@@ -90,6 +90,7 @@
                                 <th>ID</th>
                                 <th>Nama Department</th>
                                 <th>Deskripsi</th>
+                                <th>Aliases</th>
                                 <th>Status</th>
                                 <th>Aksi</th>
                             </tr>
@@ -107,6 +108,13 @@
                                         <?= esc($dept['description'] ?? '-') ?>
                                     </td>
                                     <td>
+                                        <?php
+                                        $aliases = is_array($dept['aliases']) ? $dept['aliases'] : [];
+                                        foreach ($aliases as $alias): ?>
+                                            <span class="badge bg-info text-dark"><?= esc(trim($alias)) ?></span>
+                                        <?php endforeach; ?>
+                                    </td>
+                                    <td>
                                         <?php if ($isDeleted): ?>
                                             <span class="status-badge status-inactive">⏸️ Non-Aktif</span>
                                         <?php else: ?>
@@ -118,7 +126,8 @@
                                             <button class="btn btn-warning btn-sm btn-edit"
                                                 data-id="<?= esc($dept['id']) ?>"
                                                 data-name="<?= esc($dept['name']) ?>"
-                                                data-description="<?= esc($dept['description'] ?? '') ?>">
+                                                data-description="<?= esc($dept['description'] ?? '') ?>"
+                                                data-aliases="<?= esc(json_encode(is_array($dept['aliases']) ? $dept['aliases'] : [])) ?>">
                                                 ✏️ Edit
                                             </button>
 
@@ -175,7 +184,13 @@
             <div class="modal-body">
                 <form id="deptForm" method="POST" action="">
                     <?= csrf_field() ?>
-                    <input type="hidden" id="deptId" name="id">
+                    <input type="hidden" id="oldDeptId" name="old_id">
+
+                    <div class="form-group">
+                        <label>ID <span class="required">*</span></label>
+                        <input type="text" class="form-control" id="deptId" name="id" placeholder="DEPT-BDM-...">
+                        <div id="idError" style="color:#dc3545; font-size:.85em; margin-top:4px; display:none;"></div>
+                    </div>
 
                     <div class="form-group">
                         <label>Nama Department <span class="required">*</span></label>
@@ -187,6 +202,13 @@
                         <label>Deskripsi</label>
                         <textarea class="form-control" id="deptDescription" name="description" rows="3" placeholder="Deskripsi department (opsional)"></textarea>
                     </div>
+
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label>Identitas Tambahan</label>
+                        <button type="button" id="btnManageAliases" class="btn btn-secondary" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; background: #f8f9fa; color: #333; border: 1px solid #ddd;">
+                            <span>🔍</span> Lihat & Edit Aliases
+                        </button>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -194,6 +216,25 @@
                 <button class="btn btn-primary" id="btnSaveDeptModal">
                     <span class="btn-icon">💾</span> Simpan
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="aliasModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:10000; align-items:center; justify-content:center;">
+        <div style="background:#fff; border-radius:8px; width:100%; max-width:400px; padding:20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <h3>Manage Aliases</h3>
+            
+            <div id="aliasList" style="margin: 15px 0; max-height: 200px; overflow-y: auto; border: 1px solid #eee; padding: 10px; border-radius: 5px;">
+                </div>
+
+            <div class="form-group">
+                <input type="text" id="newAliasInput" class="form-control" placeholder="Type new alias...">
+                <div id="aliasError" style="color:#dc3545; font-size:.85em; display:none; margin-top:5px;"></div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+                <button class="btn btn-secondary" id="btnCloseAliasModal">Done</button>
+                <button class="btn btn-primary" id="btnAddAlias">Add</button>
             </div>
         </div>
     </div>
@@ -254,6 +295,7 @@
         const deptForm     = document.getElementById('deptForm');
         const deptTitle    = document.getElementById('deptModalTitle');
         const deptId       = document.getElementById('deptId');
+        const oldDeptId       = document.getElementById('deptId');
         const deptName     = document.getElementById('deptName');
         const deptDesc     = document.getElementById('deptDescription');
         const nameError    = document.getElementById('nameError');
@@ -265,12 +307,86 @@
         const toggleName    = document.getElementById('toggleModalName');
         const toggleConfirm = document.getElementById('toggleConfirmBtn');
 
+        let currentAliases = [];
+
+        // --- Open Sub-Modal ---
+        document.getElementById('btnManageAliases').addEventListener('click', () => {
+            renderAliasList();
+            document.getElementById('aliasModal').style.display = 'flex';
+        });
+
+        // --- Add Alias with Duplicate Handling ---
+        document.getElementById('btnAddAlias').addEventListener('click', () => {
+            const input = document.getElementById('newAliasInput');
+            const error = document.getElementById('aliasError');
+            const val = input.value.trim();
+
+            if (!val) return;
+
+            // Check for duplicates (case insensitive)
+            if (currentAliases.some(a => a.toLowerCase() === val.toLowerCase())) {
+                error.innerText = "Alias sudah ada!";
+                error.style.display = 'block';
+                return;
+            }
+
+            currentAliases.push(val);
+            input.value = '';
+            error.style.display = 'none';
+            renderAliasList();
+        });
+
+        // --- Render List with Delete Option ---
+        // 1. Updated Render Function (Removed the 'onclick' attribute)
+        function renderAliasList() {
+            const container = document.getElementById('aliasList');
+            container.innerHTML = currentAliases.length === 0 ? '<p class="text-muted">Belum ada alias.</p>' : '';
+            
+            currentAliases.forEach((alias, index) => {
+                const item = document.createElement('div');
+                item.style = "display:flex; justify-content:space-between; align-items:center; padding:8px; border-bottom:1px solid #f0f0f0;";
+                item.innerHTML = `
+                    <span>${alias}</span>
+                    <button type="button" class="delete-alias-btn" data-index="${index}" style="background:none; border:none; color:#dc3545; cursor:pointer; font-weight:bold; font-size:1.2em;">
+                        &times;
+                    </button>
+                `;
+                container.appendChild(item);
+            });
+
+            // Update the counter on the main modal
+            const info = document.getElementById('aliasCountInfo');
+            if(info) info.innerText = `${currentAliases.length} alias ditambahkan.`;
+        }
+
+        // 2. The Global Event Listener (Add this once in your script)
+        document.getElementById('aliasList').addEventListener('click', function(e) {
+            // Check if the clicked element is a delete button (or inside one)
+            if (e.target.classList.contains('delete-alias-btn')) {
+                const index = e.target.getAttribute('data-index');
+                
+                // Remove from the array
+                currentAliases.splice(index, 1);
+                
+                // Refresh the UI
+                renderAliasList();
+            }
+        });
+
+        // Close sub-modal
+        document.getElementById('btnCloseAliasModal').addEventListener('click', () => {
+            document.getElementById('aliasModal').style.display = 'none';
+        });
+
         // ── Tambah ───────────────────────────────────────────
         document.getElementById('btnTambah').addEventListener('click', function () {
             deptTitle.textContent    = '➕ Tambah Department';
+            oldDeptId.value             = '';
             deptId.value             = '';
             deptName.value           = '';
             deptDesc.value           = '';
+            currentAliases             = [];
+            renderAliasList();
             deptForm.action          = BASE_URL + 'employees/department/store';
             nameError.style.display  = 'none';
             showModal(deptModal);
@@ -280,9 +396,12 @@
         document.querySelectorAll('.btn-edit').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 deptTitle.textContent    = '✏️ Edit Department';
+                oldDeptId.value             = this.dataset.id;
                 deptId.value             = this.dataset.id;
                 deptName.value           = this.dataset.name;
                 deptDesc.value           = this.dataset.description;
+                currentAliases                = JSON.parse(this.dataset.aliases || '[]');
+                renderAliasList();              // ← populate the list UI
                 deptForm.action          = BASE_URL + 'employees/department/update/' + this.dataset.id;
                 nameError.style.display  = 'none';
                 showModal(deptModal);
@@ -291,6 +410,17 @@
 
         // ── Save ─────────────────────────────────────────────
         document.getElementById('btnSaveDeptModal').addEventListener('click', function () {
+            // Inject aliases as a hidden field before submitting
+            const existingAliasInput = document.getElementById('aliasesInput');
+            if (existingAliasInput) existingAliasInput.remove();
+
+            const aliasInput = document.createElement('input');
+            aliasInput.type  = 'hidden';
+            aliasInput.name  = 'aliases';
+            aliasInput.id    = 'aliasesInput';
+            aliasInput.value = JSON.stringify(currentAliases);
+            deptForm.appendChild(aliasInput);
+
             if (!deptName.value.trim()) {
                 nameError.textContent   = '⚠️ Nama department wajib diisi.';
                 nameError.style.display = 'block';

@@ -35,9 +35,19 @@ class LastEducationController extends BaseController
                 ->groupEnd();
         }
 
+        $lastEducations = $this->model->paginate($perPage);
+
+        // Decode Postgres text[] → PHP array for each row
+        $lastEducations = array_map(function ($row) {
+            $row['aliases'] = is_string($row['aliases'])
+                ? $this->model->fromPostgresArray($row['aliases'])
+                : ($row['aliases'] ?? []);
+            return $row;
+        }, $lastEducations);
+
         $data = [
             'title'   => 'Manajemen Last Education',
-            'lastEducations' => $this->model->paginate($perPage),
+            'lastEducations' => $lastEducations,
             'pager'   => $this->model->pager,
             'search'  => $search,
             'perPage' => $perPage,
@@ -53,6 +63,7 @@ class LastEducationController extends BaseController
     public function store()
     {
         $rules = [
+            'id'          => 'required|regex_match[/^LTD-BDM-.+/]',
             'name'        => 'required|max_length[100]',
             'description' => 'permit_empty|max_length[500]',
         ];
@@ -61,11 +72,14 @@ class LastEducationController extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $this->model->insert([
-            'id'          => $this->model->generateId(),
+        $aliases = json_decode($this->request->getPost('aliases') ?? '[]', true);
+        if (!is_array($aliases)) $aliases = [];
+
+        $this->model->insertLe([
+            'id'          => $this->request->getPost('id'),
             'name'        => $this->request->getPost('name'),
             'description' => $this->request->getPost('description') ?? '',
-            'is_deleted'  => false,
+            'aliases'     => $aliases,
         ]);
 
         return redirect()->to(base_url('employees/last-education'))->with('success', 'Last Education berhasil ditambahkan.');
@@ -77,6 +91,7 @@ class LastEducationController extends BaseController
     public function update(string $id)
     {
         $rules = [
+            'id'          => 'required|regex_match[/^LTD-BDM-.+/]',
             'name'        => 'required|max_length[100]',
             'description' => 'permit_empty|max_length[500]',
         ];
@@ -85,10 +100,21 @@ class LastEducationController extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $this->model->update($id, [
-            'name'        => $this->request->getPost('name'),
-            'description' => $this->request->getPost('description') ?? '',
-        ]);
+        $aliases = json_decode($this->request->getPost('aliases') ?? '[]', true);
+        if (!is_array($aliases)) $aliases = [];
+
+        try {
+            $this->model->updateLe($id, [
+                'id'          => $this->request->getPost('id'),
+                'name'        => $this->request->getPost('name'),
+                'description' => $this->request->getPost('description') ?? '',
+                'aliases'     => $aliases,
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', '[LastEducationController::update] ' . $e->getMessage());
+            return redirect()->back()->withInput()
+                            ->with('error', 'Gagal memperbarui last education: ' . $e->getMessage());
+        }
 
         return redirect()->to(base_url('employees/last-education'))->with('success', 'Last Education berhasil diperbarui.');
     }

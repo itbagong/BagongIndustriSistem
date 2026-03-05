@@ -20,6 +20,38 @@ class LastEducationModel extends Model
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
 
+    // -------------------------------------------------------
+    // Postgres text[] helpers
+    // -------------------------------------------------------
+
+    /** PHP array → Postgres literal  e.g. ["a","b"] → {"a","b"} */
+    private function toPostgresArray(array $arr): string
+    {
+        if (empty($arr)) return '{}';
+        $escaped = array_map(fn($v) => '"' . str_replace('"', '\\"', $v) . '"', $arr);
+        return '{' . implode(',', $escaped) . '}';
+    }
+
+    /** Postgres literal → PHP array  e.g. {"a","b"} → ["a","b"] */
+    public function fromPostgresArray(?string $str): array
+    {
+        if (!$str || $str === '{}') return [];
+        $str = trim($str, '{}');
+        preg_match_all('/"((?:[^"\\\\]|\\\\.)*)"|([^,]+)/', $str, $m);
+        return array_map(
+            fn($q, $u) => $q !== '' ? stripslashes($q) : trim($u),
+            $m[1], $m[2]
+        );
+    }
+
+    private function decodeRow(array $row): array
+    {
+        if (isset($row['aliases']) && is_string($row['aliases'])) {
+            $row['aliases'] = $this->fromPostgresArray($row['aliases']);
+        }
+        return $row;
+    }
+
     /**
      * Generate next ID in format LTD-BDM-XXXX
      */
@@ -51,5 +83,60 @@ class LastEducationModel extends Model
         );
 
         return $this->update($id, ['is_deleted' => !$currentlyDeleted]);
+    }
+
+    // -------------------------------------------------------
+    // INSERT with aliases
+    // -------------------------------------------------------
+    public function insertLe(array $data): void
+    {
+        $aliases = $this->toPostgresArray($data['aliases'] ?? []);
+
+        $this->db->query(
+            'INSERT INTO last_educations (id, name, description, aliases, is_deleted)
+             VALUES (?, ?, ?, ?, false)',
+            [$data['id'], $data['name'], $data['description'], $aliases]
+        );
+    }
+
+    // -------------------------------------------------------
+    // UPDATE — handles optional ID rename with FK cascade
+    // -------------------------------------------------------
+    public function updateLe(string $oldId, array $data): void
+    {
+        $newId   = trim($data['id'] ?? $oldId);
+        $aliases = $this->toPostgresArray($data['aliases'] ?? []);
+
+        $this->db->transStart();
+
+        if ($newId !== $oldId) {
+            // 1. Insert new row copying is_deleted from the old one
+            $this->db->query(
+                'INSERT INTO last_educations (id, name, description, aliases, is_deleted)
+                 SELECT ?, ?, ?, ?, is_deleted FROM last_educations WHERE id = ?',
+                [$newId, $data['name'], $data['description'], $aliases, $oldId]
+            );
+
+            // 2. Re-point every employee that referenced the old site_id
+            $this->db->query(
+                'UPDATE employees SET last_education_id = ? WHERE last_education_id = ?',
+                [$newId, $oldId]
+            );
+
+            // 3. Remove the old row
+            $this->db->query('DELETE FROM last_educations WHERE id = ?', [$oldId]);
+
+        } else {
+            $this->db->query(
+                'UPDATE last_educations SET name=?, description=?, aliases=? WHERE id=?',
+                [$data['name'], $data['description'], $aliases, $oldId]
+            );
+        }
+
+        $this->db->transComplete();
+
+        if (!$this->db->transStatus()) {
+            throw new \RuntimeException('Last education update transaction failed.');
+        }
     }
 }

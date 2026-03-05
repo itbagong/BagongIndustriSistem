@@ -89,6 +89,7 @@
                                 <th>No</th>
                                 <th>ID</th>
                                 <th>Nama Golongan Darah</th>
+                                <th>Aliases</th>
                                 <th>Status</th>
                                 <th>Aksi</th>
                             </tr>
@@ -102,6 +103,15 @@
                                     <td><?= ($pager->getCurrentPage() - 1) * $perPage + $i + 1 ?></td>
                                     <td><code><?= esc($bt['id']) ?></code></td>
                                     <td><strong><?= esc($bt['name']) ?></strong></td>
+                                    <td>
+                                        <?php 
+                                        $raw = str_replace(['{', '}', '"'], '', $row['aliases'] ?? '');
+                                        $aliases = $raw ? explode(',', $raw) : [];
+                                        
+                                        foreach ($aliases as $alias): ?>
+                                            <span class="badge bg-info text-dark"><?= esc(trim($alias)) ?></span>
+                                        <?php endforeach; ?>
+                                    </td>
                                     <td>
                                         <?php if ($isDeleted): ?>
                                             <span class="status-badge status-inactive">⏸️ Non-Aktif</span>

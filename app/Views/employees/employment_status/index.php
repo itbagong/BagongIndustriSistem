@@ -78,7 +78,7 @@
                 <div class="table-header">
                     <h3>Daftar Employment Status</h3>
                     <div class="table-info">
-                        Menampilkan <strong><?= count($items) ?></strong> dari <strong><?= $pager->getTotal() ?></strong> data
+                        Total <strong><?= $pager->getTotal() ?></strong> data
                     </div>
                 </div>
                 <div class="table-responsive">
@@ -88,6 +88,7 @@
                                 <th>No</th>
                                 <th>ID</th>
                                 <th>Nama</th>
+                                <th>Aliases</th>
                                 <th>Status</th>
                                 <th>Aksi</th>
                             </tr>
@@ -107,6 +108,13 @@
                                     <td><code><?= esc($es['id']) ?></code></td>
                                     <td><strong><?= esc($es['name']) ?></strong></td>
                                     <td>
+                                        <?php
+                                        $aliases = is_array($es['aliases']) ? $es['aliases'] : [];
+                                        foreach ($aliases as $alias): ?>
+                                            <span class="badge bg-info text-dark"><?= esc(trim($alias)) ?></span>
+                                        <?php endforeach; ?>
+                                    </td>
+                                    <td>
                                         <?php if ($isDeleted): ?>
                                             <span class="status-badge status-inactive">⏸️ Non-Aktif</span>
                                         <?php else: ?>
@@ -117,7 +125,8 @@
                                         <div class="action-buttons">
                                             <button class="btn btn-warning btn-sm btn-edit"
                                                 data-id="<?= esc($es['id']) ?>"
-                                                data-name="<?= esc($es['name']) ?>">
+                                                data-name="<?= esc($es['name']) ?>"
+                                                data-aliases="<?= esc(json_encode(is_array($es['aliases']) ? $es['aliases'] : [])) ?>">
                                                 ✏️ Edit
                                             </button>
 
@@ -173,12 +182,25 @@
             <div class="modal-body">
                 <form id="esForm" method="POST" action="">
                     <?= csrf_field() ?>
-                    <input type="hidden" id="esId" name="id">
+                    <input type="hidden" id="oldEsId" name="old_id">
+
+                    <div class="form-group">
+                        <label>ID <span class="required">*</span></label>
+                        <input type="text" class="form-control" id="esId" name="id" placeholder="EMTS-BDM-...">
+                        <div id="idError" style="color:#dc3545; font-size:.85em; margin-top:4px; display:none;"></div>
+                    </div>
 
                     <div class="form-group">
                         <label>Nama <span class="required">*</span></label>
-                        <input type="text" class="form-control" id="esName" name="name" placeholder="contoh: Permanen, PKWT, Trainee">
+                        <input type="text" class="form-control" id="esName" name="name" placeholder="contoh: Aktif, Withdrawn...">
                         <div id="nameError" style="color:#dc3545; font-size:.85em; margin-top:4px; display:none;"></div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label>Identitas Tambahan</label>
+                        <button type="button" id="btnManageAliases" class="btn btn-secondary" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; background: #f8f9fa; color: #333; border: 1px solid #ddd;">
+                            <span>🔍</span> Lihat & Edit Aliases
+                        </button>
                     </div>
                 </form>
             </div>
@@ -187,6 +209,25 @@
                 <button class="btn btn-primary" id="btnSaveEsModal">
                     <span class="btn-icon">💾</span> Simpan
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="aliasModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:10000; align-items:center; justify-content:center;">
+        <div style="background:#fff; border-radius:8px; width:100%; max-width:400px; padding:20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <h3>Manage Aliases</h3>
+            
+            <div id="aliasList" style="margin: 15px 0; max-height: 200px; overflow-y: auto; border: 1px solid #eee; padding: 10px; border-radius: 5px;">
+                </div>
+
+            <div class="form-group">
+                <input type="text" id="newAliasInput" class="form-control" placeholder="Type new alias...">
+                <div id="aliasError" style="color:#dc3545; font-size:.85em; display:none; margin-top:5px;"></div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+                <button class="btn btn-secondary" id="btnCloseAliasModal">Done</button>
+                <button class="btn btn-primary" id="btnAddAlias">Add</button>
             </div>
         </div>
     </div>
@@ -247,6 +288,7 @@
         const esForm       = document.getElementById('esForm');
         const esTitle      = document.getElementById('esModalTitle');
         const esId         = document.getElementById('esId');
+        const oldEsId         = document.getElementById('oldEsId');
         const esName       = document.getElementById('esName');
         const nameError    = document.getElementById('nameError');
 
@@ -257,11 +299,85 @@
         const toggleName    = document.getElementById('toggleModalName');
         const toggleConfirm = document.getElementById('toggleConfirmBtn');
 
+        let currentAliases = [];
+
+        // --- Open Sub-Modal ---
+        document.getElementById('btnManageAliases').addEventListener('click', () => {
+            renderAliasList();
+            document.getElementById('aliasModal').style.display = 'flex';
+        });
+
+        // --- Add Alias with Duplicate Handling ---
+        document.getElementById('btnAddAlias').addEventListener('click', () => {
+            const input = document.getElementById('newAliasInput');
+            const error = document.getElementById('aliasError');
+            const val = input.value.trim();
+
+            if (!val) return;
+
+            // Check for duplicates (case insensitive)
+            if (currentAliases.some(a => a.toLowerCase() === val.toLowerCase())) {
+                error.innerText = "Alias sudah ada!";
+                error.style.display = 'block';
+                return;
+            }
+
+            currentAliases.push(val);
+            input.value = '';
+            error.style.display = 'none';
+            renderAliasList();
+        });
+
+        // --- Render List with Delete Option ---
+        // 1. Updated Render Function (Removed the 'onclick' attribute)
+        function renderAliasList() {
+            const container = document.getElementById('aliasList');
+            container.innerHTML = currentAliases.length === 0 ? '<p class="text-muted">Belum ada alias.</p>' : '';
+            
+            currentAliases.forEach((alias, index) => {
+                const item = document.createElement('div');
+                item.style = "display:flex; justify-content:space-between; align-items:center; padding:8px; border-bottom:1px solid #f0f0f0;";
+                item.innerHTML = `
+                    <span>${alias}</span>
+                    <button type="button" class="delete-alias-btn" data-index="${index}" style="background:none; border:none; color:#dc3545; cursor:pointer; font-weight:bold; font-size:1.2em;">
+                        &times;
+                    </button>
+                `;
+                container.appendChild(item);
+            });
+
+            // Update the counter on the main modal
+            const info = document.getElementById('aliasCountInfo');
+            if(info) info.innerText = `${currentAliases.length} alias ditambahkan.`;
+        }
+
+        // 2. The Global Event Listener (Add this once in your script)
+        document.getElementById('aliasList').addEventListener('click', function(e) {
+            // Check if the clicked element is a delete button (or inside one)
+            if (e.target.classList.contains('delete-alias-btn')) {
+                const index = e.target.getAttribute('data-index');
+                
+                // Remove from the array
+                currentAliases.splice(index, 1);
+                
+                // Refresh the UI
+                renderAliasList();
+            }
+        });
+
+        // Close sub-modal
+        document.getElementById('btnCloseAliasModal').addEventListener('click', () => {
+            document.getElementById('aliasModal').style.display = 'none';
+        });
+
         // ── Tambah ───────────────────────────────────────────
         document.getElementById('btnTambah').addEventListener('click', function () {
             esTitle.textContent     = '➕ Tambah Employment Status';
+            oldEsId.value              = '';
             esId.value              = '';
             esName.value            = '';
+            currentAliases             = [];
+            renderAliasList();
             esForm.action           = BASE_URL + 'employees/employment-status/store';
             nameError.style.display = 'none';
             showModal(esModal);
@@ -271,8 +387,11 @@
         document.querySelectorAll('.btn-edit').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 esTitle.textContent     = '✏️ Edit Employment Status';
+                oldEsId.value              = this.dataset.id;
                 esId.value              = this.dataset.id;
                 esName.value            = this.dataset.name;
+                currentAliases                = JSON.parse(this.dataset.aliases || '[]');
+                renderAliasList();              // ← populate the list UI
                 esForm.action           = BASE_URL + 'employees/employment-status/update/' + this.dataset.id;
                 nameError.style.display = 'none';
                 showModal(esModal);
@@ -281,12 +400,17 @@
 
         // ── Save ─────────────────────────────────────────────
         document.getElementById('btnSaveEsModal').addEventListener('click', function () {
-            if (!esName.value.trim()) {
-                nameError.textContent   = '⚠️ Nama employment status wajib diisi.';
-                nameError.style.display = 'block';
-                return;
-            }
-            nameError.style.display = 'none';
+            // Inject aliases as a hidden field before submitting
+            const existingAliasInput = document.getElementById('aliasesInput');
+            if (existingAliasInput) existingAliasInput.remove();
+
+            const aliasInput = document.createElement('input');
+            aliasInput.type  = 'hidden';
+            aliasInput.name  = 'aliases';
+            aliasInput.id    = 'aliasesInput';
+            aliasInput.value = JSON.stringify(currentAliases);
+            esForm.appendChild(aliasInput);
+
             esForm.submit();
         });
 

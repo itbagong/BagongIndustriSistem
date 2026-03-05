@@ -90,6 +90,7 @@
                                 <th>ID</th>
                                 <th>Nama</th>
                                 <th>Deskripsi</th>
+                                <th>Aliases</th>
                                 <th>Status</th>
                                 <th>Aksi</th>
                             </tr>
@@ -110,6 +111,15 @@
                                     <td><strong><?= esc($es['name']) ?></strong></td>
                                     <td style="color:#666; font-size:.9em; max-width:300px;">
                                         <?= esc($es['description'] ?? '-') ?>
+                                    </td>
+                                    <td>
+                                        <?php 
+                                        $raw = str_replace(['{', '}', '"'], '', $row['aliases'] ?? '');
+                                        $aliases = $raw ? explode(',', $raw) : [];
+                                        
+                                        foreach ($aliases as $alias): ?>
+                                            <span class="badge bg-info text-dark"><?= esc(trim($alias)) ?></span>
+                                        <?php endforeach; ?>
                                     </td>
                                     <td>
                                         <?php if ($isDeleted): ?>
