@@ -1,739 +1,432 @@
 <?= $this->extend('layouts/main') ?>
-
 <?= $this->section('content') ?>
 
-        <!-- Content -->
-        <main class="content">
-            <!-- Page Header -->
-            <div class="page-header">
-                <div class="page-title">
-                    <span class="icon">👥</span>
-                    <h1>Manajemen Karyawan</h1>
-                </div>
-                <div class="header-actions">
-                    <button class="btn btn-warning" onclick="openImportModal()">
-                        <span class="btn-icon">📤</span>
-                        Import Excel
-                    </button>
-                    <button class="btn btn-success" onclick="exportData()">
-                        <span class="btn-icon">📥</span>
-                        Export Excel
-                    </button>
-                    <button class="btn btn-primary" onclick="openAddModal()">
-                        <span class="btn-icon">➕</span>
-                        Tambah Karyawan
-                    </button>
-                </div>
-            </div>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-            <!-- Stats Summary -->
-            <div class="stats-summary">
-                <div class="stat-box">
-                    <span class="icon">👨‍💼</span>
-                    <div class="content">
-                        <h4>Total Karyawan</h4>
-                        <div class="value" id="totalEmployees">127</div>
-                    </div>
-                </div>
-                <div class="stat-box">
-                    <span class="icon">✅</span>
-                    <div class="content">
-                        <h4>Karyawan Aktif</h4>
-                        <div class="value" id="activeEmployees">118</div>
-                    </div>
-                </div>
-                <div class="stat-box">
-                    <span class="icon">⏸️</span>
-                    <div class="content">
-                        <h4>Non-Aktif</h4>
-                        <div class="value" id="inactiveEmployees">9</div>
-                    </div>
-                </div>
-                <div class="stat-box">
-                    <span class="icon">🆕</span>
-                    <div class="content">
-                        <h4>Bulan Ini</h4>
-                        <div class="value" id="newEmployees">5</div>
-                    </div>
-                </div>
-            </div>
+<style>
+    body { font-family: 'DM Sans', sans-serif; }
 
-            <!-- Search & Filter Bar -->
-            <div class="search-filter-bar">
-                <div class="form-group">
-                    <label>🔍 Cari Karyawan</label>
-                    <input type="text" class="form-control" id="searchInput" placeholder="Cari NIK, Nama, Position...">
-                </div>
-                <div class="form-group">
-                    <label>Department</label>
-                    <select class="form-control" id="departmentFilter">
-                        <option value="">Semua Department</option>
-                        <option value="Production">Production</option>
-                        <option value="HR">HR</option>
-                        <option value="Finance">Finance</option>
-                        <option value="IT">IT</option>
-                        <option value="Warehouse">Warehouse</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Employment Status</label>
-                    <select class="form-control" id="employmentFilter">
-                        <option value="">Semua Status</option>
-                        <option value="Permanent">Permanent</option>
-                        <option value="Contract">Contract</option>
-                        <option value="Probation">Probation</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Employee Status</label>
-                    <select class="form-control" id="statusFilter">
-                        <option value="">Semua</option>
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                        <option value="Resigned">Resigned</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>&nbsp;</label>
-                    <button class="btn btn-info" onclick="applyFilters()">
-                        <span class="btn-icon">🔍</span>
-                        Filter
-                    </button>
-                </div>
-            </div>
+    /* ── Animated gradient border on the drop zone ── */
+    @keyframes borderSpin {
+        0%   { background-position: 0% 50%; }
+        100% { background-position: 100% 50%; }
+    }
+    .drop-zone-ring {
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6, #06b6d4, #3b82f6);
+        background-size: 300% 300%;
+        animation: borderSpin 4s linear infinite;
+        padding: 2px;
+        border-radius: 12px;
+    }
+    .drop-zone-inner {
+        background: #ffffff;
+        border-radius: 10px;
+    }
 
-            <!-- Employee Table -->
-            <div class="table-card">
-                <div class="table-header">
-                    <h3>Daftar Karyawan</h3>
-                    <div class="table-info">
-                        Menampilkan <strong id="showingCount">0</strong> dari <strong id="totalCount">0</strong> data
-                    </div>
-                </div>
-                <div class="table-responsive">
-                    <table class="employee-table">
-                        <thead>
-                            <tr>
-                                <th>No</th>
-                                <th>NIK</th>
-                                <th>Nama</th>
-                                <th>Gender</th>
-                                <th>Department</th>
-                                <th>Division</th>
-                                <th>Job Position</th>
-                                <th>Golongan</th>
-                                <th>Employment Status</th>
-                                <th>Employee Status</th>
-                                <th>Masa Kerja</th>
-                                <th>Site Name</th>
-                                <th>Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="employeeTableBody">
-                            <!-- Data will be inserted here by JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
+    /* ── Log console ── */
+    #logContainer {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12.5px;
+        line-height: 1.7;
+        background: #0f1117;
+        color: #9ca3af;
+    }
+    #logContainer .log-success { color: #34d399; }
+    #logContainer .log-update  { color: #60a5fa; }
+    #logContainer .log-warn    { color: #fbbf24; }
+    #logContainer .log-error   { color: #f87171; }
+    #logContainer .log-info    { color: #a78bfa; }
+    #logContainer .log-system  { color: #6b7280; font-style: italic; }
 
-                <!-- Pagination -->
-                <div class="pagination" id="pagination">
-                    <!-- Pagination buttons will be inserted here -->
-                </div>
-            </div>
-        </main>
+    /* ── Blinking cursor while running ── */
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    #cursor { animation: blink 1s step-start infinite; display: none; }
+    #cursor.active { display: inline; }
 
+    /* ── Progress bar shimmer ── */
+    @keyframes shimmer {
+        0%   { background-position: -200% center; }
+        100% { background-position:  200% center; }
+    }
+    #progressBar {
+        background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 40%, #06b6d4 60%, #3b82f6 100%);
+        background-size: 200% 100%;
+        animation: shimmer 2s linear infinite;
+        transition: width 0.2s ease;
+    }
 
-       
+    /* ── Stat pills ── */
+    .stat-pill {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 3px 12px; border-radius: 999px;
+        font-size: 12px; font-weight: 600;
+    }
+
+    /* ── Slide-in for new log lines ── */
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateX(-6px); }
+        to   { opacity: 1; transform: translateX(0); }
+    }
+    .log-line { animation: slideIn 0.12s ease; }
+
+    /* ── Upload button pulse ── */
+    @keyframes pulse-ring {
+        0%   { box-shadow: 0 0 0 0 rgba(59,130,246,0.5); }
+        70%  { box-shadow: 0 0 0 8px rgba(59,130,246,0); }
+        100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+    }
+    #importButton:not(:disabled) { animation: pulse-ring 2s ease-out infinite; }
+</style>
+
+<div class="p-6 max-w-5xl mx-auto">
+
+    <!-- ── Page Header ─────────────────────────────────────────────────── -->
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Employee Import</h1>
+        <p class="text-sm text-gray-500 mt-1">
+            Upload an <span class="font-medium text-gray-700">.xlsx / .xls / .csv</span> file —
+            rows are streamed live as they are committed.
+        </p>
     </div>
 
-    <!-- Import Excel Modal -->
-    <div class="modal" id="importModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>📤 Import Data Karyawan dari Excel</h2>
-                <button class="modal-close" onclick="closeModal('importModal')">&times;</button>
+    <!-- ── Upload Card ─────────────────────────────────────────────────── -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-5">
+        <h2 class="text-sm font-semibold uppercase tracking-widest text-gray-400 mb-4">
+            1 · Select File
+        </h2>
+
+        <div class="drop-zone-ring mb-4" id="dropZone">
+            <div class="drop-zone-inner p-8 text-center" id="dropInner">
+                <i class="fas fa-file-excel text-5xl text-gray-300 mb-3 block"></i>
+
+                <label id="fileLabel"
+                       class="cursor-pointer inline-flex items-center gap-2
+                              bg-blue-600 hover:bg-blue-700 text-white text-sm
+                              font-semibold px-5 py-2.5 rounded-lg transition-colors">
+                    <i class="fas fa-folder-open"></i> Browse file
+                    <input type="file"
+                           id="fileInput"
+                           name="file_upload"
+                           accept=".xlsx,.xls,.csv"
+                           class="hidden"
+                           onchange="onFileChosen(this)">
+                </label>
+
+                <p class="text-xs text-gray-400 mt-3" id="fileName">No file selected</p>
+                <p class="text-xs text-gray-300 mt-1">
+                    Supported headers: NIK, Name, Department, Division, Job Position, Gender, Site …
+                </p>
             </div>
-            <div class="modal-body">
-                <div class="import-info">
-                    <h4>📋 Petunjuk Import:</h4>
-                    <ul>
-                        <li>File harus berformat <strong>.xlsx</strong></li>
-                        <li>Sheet harus bernama <strong>"Employees"</strong></li>
-                        <li>Pastikan kolom sesuai dengan template yang disediakan</li>
-                        <li>Kolom wajib: NIK, Nama, Gender, Department</li>
-                    </ul>
-                    <a href="<?= base_url('assets/templates/template_employee_import.xlsx') ?>" class="btn btn-info btn-sm" download>
-                        <span class="btn-icon">📥</span>
-                        Download Template Excel
-                    </a>
-                </div>
+        </div>
 
-                <form id="importForm" enctype="multipart/form-data">
-                    <div class="form-group">
-                        <label>Pilih File Excel <span class="required">*</span></label>
-                        <div class="file-upload-wrapper">
-                            <input type="file" 
-                                   class="form-control" 
-                                   id="excelFile" 
-                                   name="file" 
-                                   accept=".xlsx,.xls" 
-                                   onchange="handleFileSelect(this)"
-                                   required>
-                            <div class="file-info" id="fileInfo" style="display:none; margin-top: 10px;">
-                                <span class="file-name"></span>
-                                <span class="file-size"></span>
-                            </div>
-                        </div>
-                    </div>
+        <div class="flex items-center justify-between">
+            <input type="hidden" id="csrfName"  value="<?= csrf_token() ?>">
+            <input type="hidden" id="csrfValue" value="<?= csrf_hash() ?>">
 
-                    <div class="form-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="overwriteData" name="overwrite" value="1">
-                            <span>Hapus semua data lama sebelum import (Truncate)</span>
-                        </label>
-                        <small class="text-warning">⚠️ Hati-hati! Opsi ini akan menghapus SEMUA data karyawan yang ada</small>
-                    </div>
+            <div class="flex gap-3">
+                <button id="importButton"
+                        disabled
+                        onclick="startImport()"
+                        class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700
+                            disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none
+                            text-white text-sm font-semibold px-6 py-2.5 rounded-lg
+                            transition-colors focus:outline-none focus:ring-2
+                            focus:ring-green-400 focus:ring-offset-2">
+                    <i class="fas fa-play-circle"></i>
+                    <span id="importBtnLabel">Import Data</span>
+                </button>
 
-                    <div class="form-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="verboseLog" name="verbose" value="1">
-                            <span>Tampilkan log detail (verbose mode)</span>
-                        </label>
-                    </div>
-
-                    <!-- Progress Bar -->
-                    <div id="importProgress" style="display:none;">
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
-                        </div>
-                        <div class="progress-text" id="progressText">Memproses...</div>
-                    </div>
-
-                    <!-- Import Result -->
-                    <div id="importResult" style="display:none;">
-                        <!-- Result will be shown here -->
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('importModal')">Batal</button>
-                <button class="btn btn-primary" onclick="startImport()" id="btnImport">
-                    <span class="btn-icon">📤</span>
-                    Mulai Import
+                <button id="stopButton"
+                        disabled
+                        onclick="stopImport()"
+                        class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700
+                            disabled:opacity-40 disabled:cursor-not-allowed
+                            text-white text-sm font-semibold px-6 py-2.5 rounded-lg
+                            transition-colors focus:outline-none focus:ring-2
+                            focus:ring-red-400 focus:ring-offset-2">
+                    <i class="fas fa-stop-circle"></i>
+                    Stop
                 </button>
             </div>
+
+            <span id="statusBadge" class="stat-pill bg-gray-100 text-gray-500">
+                <i class="fas fa-circle text-gray-300" style="font-size:8px"></i>
+                Idle
+            </span>
         </div>
     </div>
 
-    <!-- Add/Edit Employee Modal -->
-    <div class="modal" id="employeeModal">
-        <div class="modal-content modal-large">
-            <div class="modal-header">
-                <h2 id="modalTitle">Tambah Karyawan Baru</h2>
-                <button class="modal-close" onclick="closeModal('employeeModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="employeeForm">
-                    <input type="hidden" id="employeeId" name="id">
-                    
-                    <h3 class="form-section-title">📋 Informasi Dasar</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>NIK <span class="required">*</span></label>
-                            <input type="text" class="form-control" name="nik" id="nik" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Nama Lengkap <span class="required">*</span></label>
-                            <input type="text" class="form-control" name="nama" id="nama" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Gender <span class="required">*</span></label>
-                            <select class="form-control" name="gender" id="gender" required>
-                                <option value="">Pilih Gender</option>
-                                <option value="Male">Laki-laki</option>
-                                <option value="Female">Perempuan</option>
-                            </select>
-                        </div>
-                    </div>
+    <!-- ── Progress + Log Card ─────────────────────────────────────────── -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-sm font-semibold uppercase tracking-widest text-gray-400 mb-4">
+            2 · Live Log
+        </h2>
 
-                    <h3 class="form-section-title">🏢 Informasi Pekerjaan</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Department <span class="required">*</span></label>
-                            <select class="form-control" name="department" id="department" required>
-                                <option value="">Pilih Department</option>
-                                <option value="Production">Production</option>
-                                <option value="HR">HR</option>
-                                <option value="Finance">Finance</option>
-                                <option value="IT">IT</option>
-                                <option value="Warehouse">Warehouse</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Division <span class="required">*</span></label>
-                            <input type="text" class="form-control" name="division" id="division" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Job Position <span class="required">*</span></label>
-                            <input type="text" class="form-control" name="job_position" id="job_position" required>
-                        </div>
-                    </div>
+        <!-- Stats row -->
+        <div class="flex flex-wrap gap-2 mb-4" id="statsRow" style="display:none!important">
+            <span class="stat-pill bg-green-50 text-green-700">
+                <i class="fas fa-check-circle"></i>
+                <span id="statInserted">0</span> inserted
+            </span>
+            <span class="stat-pill bg-blue-50 text-blue-700">
+                <i class="fas fa-sync-alt"></i>
+                <span id="statUpdated">0</span> updated
+            </span>
+            <span class="stat-pill bg-red-50 text-red-700">
+                <i class="fas fa-times-circle"></i>
+                <span id="statSkipped">0</span> skipped
+            </span>
+        </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>User Level</label>
-                            <select class="form-control" name="user_level" id="user_level">
-                                <option value="">Pilih Level</option>
-                                <option value="Staff">Staff</option>
-                                <option value="Supervisor">Supervisor</option>
-                                <option value="Manager">Manager</option>
-                                <option value="Director">Director</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Golongan</label>
-                            <input type="text" class="form-control" name="golongan" id="golongan">
-                        </div>
-                        <div class="form-group">
-                            <label>Site Name</label>
-                            <input type="text" class="form-control" name="site_name" id="site_name">
-                        </div>
-                    </div>
+        <!-- Progress bar -->
+        <div class="w-full bg-gray-100 rounded-full h-2 mb-2 overflow-hidden">
+            <div id="progressBar" class="h-2 rounded-full" style="width:0%"></div>
+        </div>
+        <div class="flex justify-between text-xs text-gray-400 mb-4">
+            <span>Processed: <strong id="processedCount" class="text-gray-700">0</strong></span>
+            <span>Total: <strong id="totalCount" class="text-gray-700">—</strong></span>
+        </div>
 
-                    <h3 class="form-section-title">📅 Status & Tanggal</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Employment Status <span class="required">*</span></label>
-                            <select class="form-control" name="employment_status" id="employment_status" required>
-                                <option value="">Pilih Status</option>
-                                <option value="Permanent">Permanent</option>
-                                <option value="Contract">Contract</option>
-                                <option value="Probation">Probation</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Employee Status <span class="required">*</span></label>
-                            <select class="form-control" name="employee_status" id="employee_status" required>
-                                <option value="">Pilih Status</option>
-                                <option value="Active">Active</option>
-                                <option value="Inactive">Inactive</option>
-                                <option value="Resigned">Resigned</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Tanggal PKWT</label>
-                            <input type="date" class="form-control" name="tanggal_pkwt" id="tanggal_pkwt">
-                        </div>
-                    </div>
+        <!-- Console -->
+        <div id="logContainer"
+             class="rounded-xl p-4 h-80 overflow-y-auto select-text">
+            <span class="log-system">Waiting for import to start…</span>
+        </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Masa Kerja</label>
-                            <input type="text" class="form-control" name="masa_kerja" id="masa_kerja" placeholder="contoh: 2 Tahun 3 Bulan">
-                        </div>
-                        <div class="form-group">
-                            <label>Tanggal Resign/PHK</label>
-                            <input type="date" class="form-control" name="tanggal_resign" id="tanggal_resign">
-                        </div>
-                        <div class="form-group">
-                            <label>Place of Hire</label>
-                            <input type="text" class="form-control" name="place_of_hire" id="place_of_hire">
-                        </div>
-                    </div>
-
-                    <h3 class="form-section-title">👤 Informasi Pribadi</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>National ID (KTP)</label>
-                            <input type="text" class="form-control" name="national_id" id="national_id" maxlength="16">
-                        </div>
-                        <div class="form-group">
-                            <label>Phone Number</label>
-                            <input type="tel" class="form-control" name="phone_number" id="phone_number">
-                        </div>
-                        <div class="form-group">
-                            <label>Religion</label>
-                            <select class="form-control" name="religion" id="religion">
-                                <option value="">Pilih Agama</option>
-                                <option value="Islam">Islam</option>
-                                <option value="Kristen">Kristen</option>
-                                <option value="Katolik">Katolik</option>
-                                <option value="Hindu">Hindu</option>
-                                <option value="Buddha">Buddha</option>
-                                <option value="Konghucu">Konghucu</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Place of Birth</label>
-                            <input type="text" class="form-control" name="place_of_birth" id="place_of_birth">
-                        </div>
-                        <div class="form-group">
-                            <label>Birth Date</label>
-                            <input type="date" class="form-control" name="birth_date" id="birth_date">
-                        </div>
-                        <div class="form-group">
-                            <label>Age</label>
-                            <input type="number" class="form-control" name="age" id="age" readonly>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Last Education</label>
-                            <select class="form-control" name="last_education" id="last_education">
-                                <option value="">Pilih Pendidikan</option>
-                                <option value="SD">SD</option>
-                                <option value="SMP">SMP</option>
-                                <option value="SMA/SMK">SMA/SMK</option>
-                                <option value="D3">D3</option>
-                                <option value="S1">S1</option>
-                                <option value="S2">S2</option>
-                                <option value="S3">S3</option>
-                            </select>
-                        </div>
-                        <div class="form-group full">
-                            <label>Address</label>
-                            <textarea class="form-control" name="address" id="address" rows="2"></textarea>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('employeeModal')">Batal</button>
-                <button class="btn btn-primary" onclick="saveEmployee()">
-                    <span class="btn-icon">💾</span>
-                    Simpan
-                </button>
-            </div>
+        <!-- Row count below console -->
+        <div class="flex items-center justify-end mt-2 gap-2 text-xs text-gray-400">
+            <span id="logLineCount">0 lines</span>
+            <button onclick="clearLog()"
+                    class="hover:text-gray-600 transition-colors focus:outline-none">
+                <i class="fas fa-trash-alt"></i> Clear
+            </button>
         </div>
     </div>
 
-    <!-- View Detail Modal -->
-    <div class="modal" id="viewModal">
-        <div class="modal-content modal-large">
-            <div class="modal-header">
-                <h2>Detail Karyawan</h2>
-                <button class="modal-close" onclick="closeModal('viewModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="employeeDetail">
-                    <!-- Detail will be inserted here -->
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('viewModal')">Tutup</button>
-            </div>
-        </div>
-    </div>
+</div>
 
-    <!-- Delete Confirmation Modal -->
-    <div class="modal" id="deleteModal">
-        <div class="modal-content modal-small">
-            <div class="modal-header">
-                <h2>⚠️ Konfirmasi Hapus</h2>
-                <button class="modal-close" onclick="closeModal('deleteModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p>Apakah Anda yakin ingin menghapus data karyawan ini?</p>
-                <p><strong id="deleteEmployeeName"></strong></p>
-                <p class="text-warning">Data yang dihapus tidak dapat dikembalikan!</p>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('deleteModal')">Batal</button>
-                <button class="btn btn-danger" onclick="confirmDelete()">
-                    <span class="btn-icon">🗑️</span>
-                    Hapus
-                </button>
-            </div>
-        </div>
-    </div>
+<!-- ── Script ──────────────────────────────────────────────────────────── -->
+<script>
+/* ── State ──────────────────────────────────────────────────────────── */
+let uploadedFile   = null;
+let totalRows      = 0;
+let logLines       = 0;
+let activeSource   = null;   // EventSource reference
+let isRunning      = false;
 
-    <script src="<?= base_url('assets/js/employee.js?v=2') ?>"></script>
-    <script>
-    // Import Modal Functions
-    function openImportModal() {
-        document.getElementById('importModal').classList.add('show');
-        resetImportForm();
+/* ── Drag-and-drop on drop zone ─────────────────────────────────────── */
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+['dragenter','dragover'].forEach(ev =>
+    dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('scale-[1.01]'); })
+);
+['dragleave','drop'].forEach(ev =>
+    dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.remove('scale-[1.01]'); })
+);
+dropZone.addEventListener('drop', e => {
+    const f = e.dataTransfer.files[0];
+    if (!f) return;
+    const dt = new DataTransfer();
+    dt.items.add(f);
+    fileInput.files = dt.files;
+    onFileChosen(fileInput);
+});
+
+/* ── File chosen ────────────────────────────────────────────────────── */
+function onFileChosen(input) {
+    const name = input.files[0]?.name;
+    document.getElementById('fileName').textContent = name || 'No file selected';
+    document.getElementById('importButton').disabled = !name;
+}
+
+/* ── Start: upload then open SSE stream ─────────────────────────────── */
+async function startImport() {
+    if (isRunning) return;
+
+    const fileInput = document.getElementById('fileInput');
+    if (!fileInput.files[0]) return;
+
+    setStatus('uploading');
+    resetUI();
+    appendLog('system', 'Uploading file to server…');
+
+    const formData = new FormData();
+    formData.append('file_upload', fileInput.files[0]);
+    formData.append(
+        document.getElementById('csrfName').value,
+        document.getElementById('csrfValue').value
+    );
+
+    let uploadData;
+    try {
+        const res  = await fetch("<?= base_url('employees/upload') ?>", {
+            method: 'POST', body: formData,
+        });
+        uploadData = await res.json();
+    } catch (err) {
+        appendLog('error', '❌ Upload failed: ' + err.message);
+        setStatus('idle');
+        return;
     }
 
-    function resetImportForm() {
-        document.getElementById('importForm').reset();
-        document.getElementById('fileInfo').style.display = 'none';
-        document.getElementById('importProgress').style.display = 'none';
-        document.getElementById('importResult').style.display = 'none';
-        document.getElementById('btnImport').disabled = false;
+    if (uploadData.status !== 'success') {
+        appendLog('error', '❌ ' + uploadData.message);
+        setStatus('idle');
+        return;
     }
 
-    function handleFileSelect(input) {
-        const fileInfo = document.getElementById('fileInfo');
-        if (input.files && input.files[0]) {
-            const file = input.files[0];
-            const fileSize = (file.size / 1024).toFixed(2); // KB
-            
-            fileInfo.querySelector('.file-name').textContent = `📄 ${file.name}`;
-            fileInfo.querySelector('.file-size').textContent = `(${fileSize} KB)`;
-            fileInfo.style.display = 'block';
-        } else {
-            fileInfo.style.display = 'none';
+    uploadedFile = uploadData.file;
+    totalRows    = uploadData.totalRows ?? 0;
+
+    document.getElementById('totalCount').textContent = totalRows || '—';
+    appendLog('system', `File accepted — ${totalRows} data rows detected.`);
+
+    openStream();
+}
+
+/* ── Open EventSource ───────────────────────────────────────────────── */
+function openStream() {
+    if (activeSource) { activeSource.close(); activeSource = null; }
+
+    setStatus('running');
+    isRunning = true;
+
+    const url = `<?= base_url('employees/stream') ?>?file=${encodeURIComponent(uploadedFile)}`;
+    const src = new EventSource(url);
+    activeSource = src;
+
+    // ── meta: server tells us the actual row count ────────────────────
+    src.addEventListener('meta', e => {
+        const d = JSON.parse(e.data);
+        totalRows = d.total;
+        document.getElementById('totalCount').textContent = totalRows;
+    });
+
+    // ── log: a single row result ──────────────────────────────────────
+    src.addEventListener('log', e => {
+        const d = JSON.parse(e.data);
+        appendLog(d.level ?? 'info', d.message);
+    });
+
+    // ── progress: update bar + counter ───────────────────────────────
+    src.addEventListener('progress', e => {
+        const d = JSON.parse(e.data);
+        updateProgress(d.processed, d.total ?? totalRows);
+    });
+
+    // ── done: import complete ─────────────────────────────────────────
+    src.addEventListener('done', e => {
+        const d = JSON.parse(e.data);
+        updateProgress(d.processed, d.processed);   // fill bar to 100 %
+
+        // Show summary stats
+        document.getElementById('statInserted').textContent = d.inserted ?? 0;
+        document.getElementById('statUpdated').textContent  = d.updated  ?? 0;
+        document.getElementById('statSkipped').textContent  = d.skipped  ?? 0;
+        document.getElementById('statsRow').style.display   = 'flex';
+
+        appendLog('info',
+            `🎉 Done — ${d.inserted} inserted · ${d.updated} updated · ${d.skipped} skipped`
+        );
+
+        setStatus('done');
+        src.close();
+        activeSource = null;
+        isRunning = false;
+    });
+
+    // ── error: SSE-level error ────────────────────────────────────────
+    src.addEventListener('error', e => {
+        if (e.data) {
+            const d = JSON.parse(e.data);
+            appendLog('error', '❌ ' + d.message);
+        } else if (src.readyState === EventSource.CLOSED) {
+            appendLog('error', '⚠️ Connection closed unexpectedly.');
         }
-    }
+        setStatus('idle');
+        src.close();
+        activeSource = null;
+        isRunning = false;
+    });
+}
 
-    async function startImport() {
-        const fileInput = document.getElementById('excelFile');
-        const file = fileInput.files[0];
+/* ── Helpers ────────────────────────────────────────────────────────── */
+function appendLog(level, message) {
+    const container = document.getElementById('logContainer');
+    const line = document.createElement('div');
+    line.className = `log-line log-${level}`;
+    line.textContent = message;
+    container.appendChild(line);
+    container.scrollTop = container.scrollHeight;
+    logLines++;
+    document.getElementById('logLineCount').textContent = logLines + ' lines';
+}
 
-        if (!file) {
-            alert('Pilih file Excel terlebih dahulu!');
-            return;
-        }
+function clearLog() {
+    document.getElementById('logContainer').innerHTML = '';
+    logLines = 0;
+    document.getElementById('logLineCount').textContent = '0 lines';
+}
 
-        if (!file.name.match(/\.(xlsx|xls)$/)) {
-            alert('File harus berformat .xlsx atau .xls');
-            return;
-        }
+function updateProgress(processed, total) {
+    document.getElementById('processedCount').textContent = processed;
+    if (!total) return;
+    const pct = Math.min(Math.round((processed / total) * 100), 100);
+    document.getElementById('progressBar').style.width = pct + '%';
+}
 
-        const overwrite = document.getElementById('overwriteData').checked ? '1' : '0';
-        const verbose = document.getElementById('verboseLog').checked ? '1' : '0';
+function resetUI() {
+    clearLog();
+    document.getElementById('progressBar').style.width = '0%';
+    document.getElementById('processedCount').textContent = '0';
+    document.getElementById('totalCount').textContent = '—';
+    document.getElementById('statsRow').style.display = 'none';
+    document.getElementById('statInserted').textContent = '0';
+    document.getElementById('statUpdated').textContent  = '0';
+    document.getElementById('statSkipped').textContent  = '0';
+}
 
-        const formData = new FormData();
-        formData.append('file', file);
+const statusCfg = {
+    idle:       { icon:'circle',        color:'bg-gray-100 text-gray-500',   dot:'text-gray-300', label:'Idle'      },
+    uploading:  { icon:'cloud-upload-alt', color:'bg-yellow-50 text-yellow-700', dot:'text-yellow-400', label:'Uploading…' },
+    running:    { icon:'cog fa-spin',   color:'bg-blue-50 text-blue-700',    dot:'text-blue-400', label:'Importing…' },
+    done:       { icon:'check-circle',  color:'bg-green-50 text-green-700',  dot:'text-green-400', label:'Complete'  },
+};
 
-        // Show progress
-        document.getElementById('importProgress').style.display = 'block';
-        document.getElementById('importResult').style.display = 'none';
-        document.getElementById('btnImport').disabled = true;
+function stopImport() {
+    if (!activeSource) return;
 
-        updateProgress(10, 'Mengunggah file...');
+    activeSource.close();
+    activeSource = null;
+    isRunning    = false;
 
-        try {
-            const response = await fetch(`<?= base_url('api/import-employee') ?>?overwrite=${overwrite}&verbose=${verbose}`, {
-                method: 'POST',
-                body: formData
-            });
+    appendLog('warn', '⛔ Import stopped by user.');
+    setStatus('idle');
+}
 
-            updateProgress(90, 'Memproses data...');
+function setStatus(state) {
+    const cfg = statusCfg[state] || statusCfg.idle;
+    const badge = document.getElementById('statusBadge');
+    badge.className = `stat-pill ${cfg.color}`;
+    badge.innerHTML = `<i class="fas fa-${cfg.icon} ${cfg.dot}" style="font-size:9px"></i> ${cfg.label}`;
 
-            const result = await response.json();
+    const importBtn = document.getElementById('importButton');
+    const stopBtn   = document.getElementById('stopButton');
+    const label     = document.getElementById('importBtnLabel');
 
-            updateProgress(100, 'Selesai!');
+    const isActive = state === 'running' || state === 'uploading';
 
-            setTimeout(() => {
-                showImportResult(result);
-            }, 500);
+    importBtn.disabled = isActive || !document.getElementById('fileInput').files[0];
+    label.textContent  = isActive
+        ? (state === 'uploading' ? 'Uploading…' : 'Importing…')
+        : 'Import Data';
 
-        } catch (error) {
-            console.error('Import error:', error);
-            showImportError(error.message);
-        }
-    }
+    // Stop button is only enabled while actively streaming
+    stopBtn.disabled = !isActive;
+}
+</script>
 
-    function updateProgress(percent, text) {
-        document.getElementById('progressFill').style.width = percent + '%';
-        document.getElementById('progressText').textContent = text + ' (' + percent + '%)';
-    }
-
-    function showImportResult(result) {
-        document.getElementById('importProgress').style.display = 'none';
-        const resultDiv = document.getElementById('importResult');
-        
-        if (result.success) {
-            resultDiv.innerHTML = `
-                <div class="alert alert-success">
-                    <h4>✅ Import Berhasil!</h4>
-                    <div class="import-stats">
-                        <div class="stat-item">
-                            <span class="label">Data Baru:</span>
-                            <span class="value">${result.data.inserted}</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="label">Data Diupdate:</span>
-                            <span class="value">${result.data.updated}</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="label">Data Dilewati:</span>
-                            <span class="value">${result.data.skipped}</span>
-                        </div>
-                    </div>
-                    <button class="btn btn-success btn-sm" onclick="closeModal('importModal'); loadEmployees();">
-                        Tutup & Refresh Data
-                    </button>
-                </div>
-            `;
-        } else {
-            resultDiv.innerHTML = `
-                <div class="alert alert-danger">
-                    <h4>❌ Import Gagal</h4>
-                    <p>${result.message || 'Terjadi kesalahan saat import'}</p>
-                </div>
-            `;
-        }
-        
-        resultDiv.style.display = 'block';
-        document.getElementById('btnImport').disabled = false;
-    }
-
-    function showImportError(message) {
-        document.getElementById('importProgress').style.display = 'none';
-        const resultDiv = document.getElementById('importResult');
-        
-        resultDiv.innerHTML = `
-            <div class="alert alert-danger">
-                <h4>❌ Error</h4>
-                <p>${message}</p>
-            </div>
-        `;
-        
-        resultDiv.style.display = 'block';
-        document.getElementById('btnImport').disabled = false;
-    }
-    </script>
-
-    <style>
-    /* Import Modal Styles */
-    .import-info {
-        background: #f8f9fa;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-    }
-
-    .import-info h4 {
-        margin-top: 0;
-        color: #333;
-    }
-
-    .import-info ul {
-        margin: 10px 0;
-        padding-left: 20px;
-    }
-
-    .import-info li {
-        margin: 5px 0;
-        color: #666;
-    }
-
-    .file-upload-wrapper {
-        margin-top: 5px;
-    }
-
-    .file-info {
-        background: #e8f5e9;
-        padding: 10px;
-        border-radius: 5px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .file-name {
-        font-weight: 500;
-        color: #2e7d32;
-    }
-
-    .file-size {
-        color: #666;
-        font-size: 0.9em;
-    }
-
-    .checkbox-label {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        cursor: pointer;
-    }
-
-    .checkbox-label input[type="checkbox"] {
-        width: 18px;
-        height: 18px;
-        cursor: pointer;
-    }
-
-    .progress-bar {
-        width: 100%;
-        height: 30px;
-        background: #e0e0e0;
-        border-radius: 15px;
-        overflow: hidden;
-        margin-bottom: 10px;
-    }
-
-    .progress-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #4CAF50, #66BB6A);
-        transition: width 0.3s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-weight: 500;
-    }
-
-    .progress-text {
-        text-align: center;
-        color: #666;
-        font-size: 0.9em;
-    }
-
-    .alert {
-        padding: 15px;
-        border-radius: 8px;
-        margin-top: 15px;
-    }
-
-    .alert-success {
-        background: #d4edda;
-        border: 1px solid #c3e6cb;
-        color: #155724;
-    }
-
-    .alert-danger {
-        background: #f8d7da;
-        border: 1px solid #f5c6cb;
-        color: #721c24;
-    }
-
-    .alert h4 {
-        margin-top: 0;
-        margin-bottom: 10px;
-    }
-
-    .import-stats {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 15px;
-        margin: 15px 0;
-    }
-
-    .stat-item {
-        background: white;
-        padding: 10px;
-        border-radius: 5px;
-        text-align: center;
-    }
-
-    .stat-item .label {
-        display: block;
-        font-size: 0.85em;
-        color: #666;
-        margin-bottom: 5px;
-    }
-
-    .stat-item .value {
-        display: block;
-        font-size: 1.5em;
-        font-weight: bold;
-        color: #2e7d32;
-    }
-
-    .text-warning {
-        color: #856404;
-        font-size: 0.9em;
-        margin-top: 5px;
-        display: block;
-    }
-    </style>
-
- <?= $this->endSection() ?>
+<?= $this->endSection() ?>
