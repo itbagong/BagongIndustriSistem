@@ -31,7 +31,7 @@ class EmployeeModel extends Model
     // ── Column map: DataTables index → ORDER BY expression ───────
     // Matches the exact <th> order in karyawan/index.php
     public array $columnMap = [
-        1  => 'e.nik',
+        1  => "NULLIF(regexp_replace(e.nik, '\D', '', 'g'), '')::bigint",
         2  => 'e.name',
         3  => 'g.name',    // gender
         4  => 'd.name',    // department
@@ -80,7 +80,19 @@ class EmployeeModel extends Model
                 'e.date_of_birth',
                 'e.address',
                 'e.created_at',
-                // FK resolved labels
+
+                // ← Add all FK ID columns
+                'e.gender_id',
+                'e.department_id',
+                'e.division_id',
+                'e.job_position_id',
+                'e.site_id',
+                'e.employee_status_id',
+                'e.employment_status_id',
+                'e.last_education_id',
+                'e.religion_id',
+
+                // Resolved labels
                 'g.name   AS gender',
                 'd.name   AS department',
                 'dv.name  AS division',
@@ -91,15 +103,15 @@ class EmployeeModel extends Model
                 'le.name  AS last_education',
                 'r.name   AS religion',
             ])
-            ->join('genders g',               'g.id   = e.gender_id',              'left')
-            ->join('departments d',           'd.id   = e.department_id',          'left')
-            ->join('divisions dv',            'dv.id  = e.division_id',            'left')
-            ->join('groups gp',               'gp.id  = e.job_position_id',        'left')
-            ->join('sites s',                 's.id   = e.site_id',                'left')
-            ->join('employee_statuses es',    'es.id  = e.employee_status_id',     'left')
-            ->join('employment_statuses ems', 'ems.id = e.employment_status_id',   'left')
-            ->join('last_educations le',      'le.id  = e.last_education_id',      'left')
-            ->join('religions r',             'r.id   = e.religion_id',            'left')
+            ->join('genders g',               'g.id   = e.gender_id',            'left')
+            ->join('departments d',           'd.id   = e.department_id',        'left')
+            ->join('divisions dv',            'dv.id  = e.division_id',          'left')
+            ->join('groups gp',               'gp.id  = e.job_position_id',      'left')
+            ->join('sites s',                 's.id   = e.site_id',              'left')
+            ->join('employee_statuses es',    'es.id  = e.employee_status_id',   'left')
+            ->join('employment_statuses ems', 'ems.id = e.employment_status_id', 'left')
+            ->join('last_educations le',      'le.id  = e.last_education_id',    'left')
+            ->join('religions r',             'r.id   = e.religion_id',          'left')
             ->where('e.is_deleted', false);
     }
 
@@ -156,17 +168,16 @@ class EmployeeModel extends Model
         string $orderColumn = 'e.name',
         string $orderDir    = 'asc'
     ): array {
-        $allowed     = array_values($this->columnMap);
-        $orderColumn = in_array($orderColumn, $allowed) ? $orderColumn : 'e.name';
-        $orderDir    = strtolower($orderDir) === 'desc' ? 'DESC' : 'ASC';
+        $orderDir = strtolower($orderDir) === 'desc' ? 'DESC' : 'ASC';
 
         $builder = $this->applyFilters($this->baseQuery(), $search, $filters);
 
-        $rows = $builder
-            ->orderBy($orderColumn, $orderDir)
-            ->limit($length, $start)
-            ->get()
-            ->getResultArray();
+        // Get the compiled SQL and append ORDER BY manually
+        $sql = $builder->getCompiledSelect();
+        $sql .= " ORDER BY {$orderColumn} {$orderDir}";
+        $sql .= " LIMIT {$length} OFFSET {$start}";
+
+        $rows = $this->db->query($sql)->getResultArray();
 
         return array_map([$this, 'enrichRow'], $rows);
     }

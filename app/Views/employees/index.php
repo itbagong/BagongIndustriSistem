@@ -146,9 +146,9 @@
             <a href="<?= base_url('employees/import') ?>" class="btn btn-info">
                 📥 Import Excel
             </a>
-            <a href="<?= base_url('employees/export') ?>" class="btn btn-success">
+            <button id="btnExport" class="btn btn-success">
                 📤 Export CSV
-            </a>
+            </button>
             <a href="<?= base_url('employees/create') ?>" class="btn btn-primary">
                 ➕ Tambah Karyawan
             </a>
@@ -308,10 +308,9 @@
 <!-- ── Scripts ───────────────────────────────────────────────────────── -->
 
 <script>
+const BASE_URL = '<?= base_url() ?>';
+
 document.addEventListener('DOMContentLoaded', function () {
-
-    const BASE_URL = '<?= base_url() ?>';
-
     // ── Init DataTable ──────────────────────────────────────────────
     const table = $('#employeeTable').DataTable({
         processing  : true,
@@ -480,6 +479,25 @@ document.addEventListener('DOMContentLoaded', function () {
                     alert('Gagal menghapus: ' + (data.message ?? 'Unknown error'));
                 }
             });
+    });
+
+    document.getElementById('btnExport').addEventListener('click', function () {
+        const order     = table.order()[0];          // [columnIndex, 'asc'/'desc']
+        const orderCol  = order ? order[0] : 2;
+        const orderDir  = order ? order[1] : 'asc';
+        const search    = table.search();            // current global search string
+
+        const params = new URLSearchParams({
+            department        : $('#filterDepartment').val(),
+            division          : $('#filterDivision').val(),
+            employee_status   : $('#filterEmployeeStatus').val(),
+            employment_status : $('#filterEmploymentStatus').val(),
+            search            : search,
+            order_col         : orderCol,
+            order_dir         : orderDir,
+        });
+
+        window.location.href = BASE_URL + 'employees/export?' + params.toString();
     });
 
     // ── Helpers ───────────────────────────────────────────────────────

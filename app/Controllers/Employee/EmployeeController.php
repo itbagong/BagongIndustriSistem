@@ -110,6 +110,7 @@ class EmployeeController extends BaseController
         return view('employees/form', [
             'employee' => null,
             'mode'     => 'create',
+            'menus'                => $this->data['menus'] ?? [],
             ...$this->formDropdowns(),
         ]);
     }
@@ -142,6 +143,7 @@ class EmployeeController extends BaseController
         return view('employees/form', [
             'employee' => $employee,
             'mode'     => 'edit',
+            'menus'                => $this->data['menus'] ?? [],
             ...$this->formDropdowns(),
         ]);
     }
@@ -393,6 +395,10 @@ class EmployeeController extends BaseController
     // ── Export CSV ───────────────────────────────────────────────
     public function export(): void
     {
+        $search   = $this->request->getGet('search')    ?? '';
+        $orderCol = (int) ($this->request->getGet('order_col') ?? 2);
+        $orderDir = $this->request->getGet('order_dir') ?? 'asc';
+
         $filters = [
             'department'        => $this->request->getGet('department')        ?? '',
             'division'          => $this->request->getGet('division')          ?? '',
@@ -400,36 +406,76 @@ class EmployeeController extends BaseController
             'employee_status'   => $this->request->getGet('employee_status')   ?? '',
         ];
 
-        $rows = $this->model->getFiltered('', $filters, 0, PHP_INT_MAX, 'e.name', 'asc');
+        // Resolve column index to DB expression using the same columnMap
+        $orderColumn = $this->model->columnMap[$orderCol] ?? 'e.name';
 
-        $filename = 'employees_' . date('Ymd_His') . '.csv';
+        $rows = $this->model->getFiltered(
+            $search, $filters, 0, PHP_INT_MAX, $orderColumn, $orderDir
+        );
+
+        $filename = 'karyawan_' . date('Ymd_His') . '.csv';
         header('Content-Type: text/csv; charset=UTF-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
+        header('Expires: 0');
 
         $out = fopen('php://output', 'w');
-        fwrite($out, "\xEF\xBB\xBF");
+        $asText = fn($v) => $v ? "\t" . $v : '';
+        fwrite($out, "\xEF\xBB\xBF"); // UTF-8 BOM for Excel
 
+        // Header row
         fputcsv($out, [
-            'NIK', 'BIS ID', 'Nama', 'Gender', 'Department', 'Division',
-            'User', 'Job Position', 'PKWT Date', 'Tenure',
-            'Employee Status', 'Employment Status', 'Cutoff Date',
-            'National ID', 'Phone', 'Place of Birth', 'Age',
-            'Last Education', 'Site', 'Address', 'Religion',
+            'NIK',
+            'BIS ID',
+            'Nama',
+            'Work User',
+            'Gender',
+            'Department',
+            'Division',
+            'Job Position',
+            'Site',
+            'Status Karyawan',
+            'Status Kepegawaian',
+            'PKWT Date',
+            'Cutoff Date',
+            'Tenure',
+            'No. KTP',
+            'No. HP',
+            'Tempat Lahir',
+            'Tanggal Lahir',
+            'Umur',
+            'Pendidikan Terakhir',
+            'Alamat',
+            'Agama',
+            'Dibuat',
         ]);
 
         foreach ($rows as $r) {
             fputcsv($out, [
-                $r['nik'],               $r['bis_id'],
-                $r['name'],              $r['gender'],
-                $r['department'],        $r['division'],
-                $r['user'],              $r['job_position'],
-                $r['pkwt_date'],         $r['tenure'],
-                $r['employee_status'],   $r['employment_status'],
-                $r['cutoff_date'],       $r['national_id'],
-                $r['phone_number'],      $r['place_of_birth'],
-                $r['age'],               $r['last_education'],
-                $r['site'],              $r['address'],
-                $r['religion'],
+                $r['nik']               ?? '',
+                $r['bis_id']            ?? '',
+                $r['name']              ?? '',
+                $r['work_user']              ?? '',
+                $r['gender']            ?? '',
+                $r['department']        ?? '',
+                $r['division']          ?? '',
+                $r['job_position']      ?? '',
+                $r['site']              ?? '',
+                $r['employee_status']   ?? '',
+                $r['employment_status'] ?? '',
+                $r['pkwt_date']         ?? '',
+                $r['cutoff_date']       ?? '',
+                $r['tenure']            ?? '',
+                $asText($r['national_id']),      // ← force text
+                $asText($r['phone_number']),     // ← force text
+                $r['place_of_birth']    ?? '',
+                $r['date_of_birth']     ?? '',
+                $r['age'] !== null ? $r['age'] . ' thn' : '',
+                $r['last_education']    ?? '',
+                $r['address']           ?? '',
+                $r['religion']          ?? '',
+                $r['created_at']        ?? '',
             ]);
         }
 
@@ -466,7 +512,7 @@ class EmployeeController extends BaseController
             'site_id', 'employee_status_id', 'employment_status_id',
             'pkwt_date', 'cutoff_date',
             'national_id', 'phone_number', 'place_of_birth', 'date_of_birth',
-            'last_education_id', 'religion_id', 'address', 'user_id',
+            'last_education_id', 'religion_id', 'address', 'work_user',
         ];
 
         $data = [];
