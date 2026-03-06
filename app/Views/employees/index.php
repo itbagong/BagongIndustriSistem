@@ -54,6 +54,17 @@
     table.dataTable tbody tr:hover { background:#f9fafb; }
     table.dataTable tbody tr.odd  { background:#fff; }
     table.dataTable tbody tr.even { background:#fafafa; }
+    /* Fixed action column styling */
+    table.dataTable tbody td.dtfc-fixed-right,
+    table.dataTable thead th.dtfc-fixed-right {
+        background: #fff;
+        box-shadow: -3px 0 6px rgba(0,0,0,.06);
+    }
+    table.dataTable tbody tr:hover td.dtfc-fixed-right {
+        background: #f9fafb;
+    }
+    table.dataTable tbody tr.odd  td.dtfc-fixed-right { background: #fff; }
+    table.dataTable tbody tr.even td.dtfc-fixed-right { background: #fafafa; }
 
     /* ── Badges ── */
     .badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:999px; font-size:.75rem; font-weight:600; white-space:nowrap; }
@@ -82,8 +93,16 @@
     .btn-info:hover { background:#0e7490; }
 
     /* ── Detail modal ── */
-    #detailModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9999; align-items:center; justify-content:center; }
-    .detail-box  { background:#fff; border-radius:14px; width:100%; max-width:680px; max-height:90vh; overflow-y:auto; box-shadow:0 25px 50px rgba(0,0,0,.15); }
+    #detailModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9999; align-items:center; justify-content:center; padding:20px; }
+    .detail-box  {
+        background:#fff;
+        border-radius:14px;
+        width:100%;
+        max-width:900px;        /* ← was 680px */
+        max-height:92vh;        /* ← was 90vh */
+        overflow-y:auto;
+        box-shadow:0 25px 50px rgba(0,0,0,.15);
+    }
     .detail-header { padding:20px 24px; border-bottom:1px solid #f3f4f6; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; background:#fff; z-index:1; }
     .detail-header h2 { font-size:1.1rem; font-weight:700; color:#111827; margin:0; }
     .modal-close { background:none; border:none; font-size:1.4rem; color:#9ca3af; cursor:pointer; line-height:1; padding:0 4px; }
@@ -127,9 +146,9 @@
             <a href="<?= base_url('employees/import') ?>" class="btn btn-info">
                 📥 Import Excel
             </a>
-            <a href="<?= base_url('employees/export') ?>" class="btn btn-success">
+            <button id="btnExport" class="btn btn-success">
                 📤 Export CSV
-            </a>
+            </button>
             <a href="<?= base_url('employees/create') ?>" class="btn btn-primary">
                 ➕ Tambah Karyawan
             </a>
@@ -289,10 +308,9 @@
 <!-- ── Scripts ───────────────────────────────────────────────────────── -->
 
 <script>
+const BASE_URL = '<?= base_url() ?>';
+
 document.addEventListener('DOMContentLoaded', function () {
-
-    const BASE_URL = '<?= base_url() ?>';
-
     // ── Init DataTable ──────────────────────────────────────────────
     const table = $('#employeeTable').DataTable({
         processing  : true,
@@ -321,6 +339,11 @@ document.addEventListener('DOMContentLoaded', function () {
         pageLength  : 25,
         lengthMenu  : [10, 25, 50, 100],
         scrollX     : true,
+        scrollY     : '60vh',       // ← required for FixedColumns to work
+        scrollCollapse: true,
+        fixedColumns: {
+            right: 1,               // ← freeze last column (actions)
+        },
         language    : {
             processing : 'Memuat data…',
             search     : 'Cari:',
@@ -343,7 +366,7 @@ document.addEventListener('DOMContentLoaded', function () {
             { data:'gender',             render: v => v ?? '-' },
             { data:'department',         render: v => v ?? '-' },
             { data:'division',           render: v => v ?? '-' },
-            { data:'user',               render: v => v ?? '-' },
+            { data:'work_user',          render: v => v ?? '-' },
             { data:'job_position',       render: v => v ?? '-' },
             { data:'pkwt_date',          render: v => v ?? '-' },
             { data:'tenure',             render: v => v ? `<span class="badge badge-gray">${esc(v)}</span>` : '-' },
@@ -390,13 +413,33 @@ document.addEventListener('DOMContentLoaded', function () {
     // ── Detail modal ─────────────────────────────────────────────────
     $('#employeeTable').on('click', '.btn-view', function () {
         const id = this.dataset.id;
-        $('#detailContent').html('<p style="color:#9ca3af;text-align:center;padding:40px;">Memuat…</p>');
+
+        // Show modal immediately with loading state
+        $('#detailContent').html(`
+            <div style="padding:60px; text-align:center;">
+                <div style="font-size:2rem; margin-bottom:12px;">⏳</div>
+                <p style="color:#9ca3af;">Memuat data…</p>
+            </div>
+        `);
         document.getElementById('detailModal').style.display = 'flex';
 
-        fetch(BASE_URL + 'employees/detail/' + id)
-            .then(r => r.text())
-            .then(html => $('#detailContent').html(html))
-            .catch(() => $('#detailContent').html('<p style="color:#dc2626;text-align:center;">Gagal memuat data.</p>'));
+        fetch(BASE_URL + 'employees/detail/' + id, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.text();
+        })
+        .then(html => {
+            $('#detailContent').html(html);
+        })
+        .catch(err => {
+            $('#detailContent').html(`
+                <div style="padding:40px; text-align:center; color:#dc2626;">
+                    ❌ Gagal memuat data: ${err.message}
+                </div>
+            `);
+        });
     });
 
     document.getElementById('btnCloseDetail').addEventListener('click', () => {
@@ -436,6 +479,25 @@ document.addEventListener('DOMContentLoaded', function () {
                     alert('Gagal menghapus: ' + (data.message ?? 'Unknown error'));
                 }
             });
+    });
+
+    document.getElementById('btnExport').addEventListener('click', function () {
+        const order     = table.order()[0];          // [columnIndex, 'asc'/'desc']
+        const orderCol  = order ? order[0] : 2;
+        const orderDir  = order ? order[1] : 'asc';
+        const search    = table.search();            // current global search string
+
+        const params = new URLSearchParams({
+            department        : $('#filterDepartment').val(),
+            division          : $('#filterDivision').val(),
+            employee_status   : $('#filterEmployeeStatus').val(),
+            employment_status : $('#filterEmploymentStatus').val(),
+            search            : search,
+            order_col         : orderCol,
+            order_dir         : orderDir,
+        });
+
+        window.location.href = BASE_URL + 'employees/export?' + params.toString();
     });
 
     // ── Helpers ───────────────────────────────────────────────────────

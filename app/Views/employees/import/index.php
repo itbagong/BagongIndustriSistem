@@ -84,6 +84,11 @@
 
     <!-- ── Page Header ─────────────────────────────────────────────────── -->
     <div class="mb-8">
+        <button onclick="if(document.referrer){history.back()}else{window.location='<?= base_url('employees') ?>'}"
+            class="inline-flex items-center gap-2 text-gray py-2">
+            <i class="fas fa-chevron-left"></i>
+            Back
+        </button>
         <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Employee Import</h1>
         <p class="text-sm text-gray-500 mt-1">
             Upload an <span class="font-medium text-gray-700">.xlsx / .xls / .csv</span> file —
@@ -98,23 +103,28 @@
         </h2>
 
         <div class="drop-zone-ring mb-4" id="dropZone">
-            <div class="drop-zone-inner p-8 text-center" id="dropInner">
-                <i class="fas fa-file-excel text-5xl text-gray-300 mb-3 block"></i>
+            <div class="drop-zone-inner p-8 text-center flex flex-col items-center" id="dropInner">
+
+                <i class="fas fa-file-excel text-5xl text-gray-300 mb-4"></i>
 
                 <label id="fileLabel"
-                       class="cursor-pointer inline-flex items-center gap-2
-                              bg-blue-600 hover:bg-blue-700 text-white text-sm
-                              font-semibold px-5 py-2.5 rounded-lg transition-colors">
+                    class="cursor-pointer flex items-center gap-2
+                        bg-blue-600 hover:bg-blue-700 text-white text-sm
+                        font-semibold px-5 py-2.5 rounded-lg transition-colors mb-3">
+
                     <i class="fas fa-folder-open"></i> Browse file
-                    <input type="file"
-                           id="fileInput"
-                           name="file_upload"
-                           accept=".xlsx,.xls,.csv"
-                           class="hidden"
-                           onchange="onFileChosen(this)">
+
+                    <input
+                        type="file"
+                        id="fileInput"
+                        name="file_upload"
+                        accept=".xlsx,.xls,.csv"
+                        class="hidden"
+                        onchange="onFileChosen(this)">
                 </label>
 
-                <p class="text-xs text-gray-400 mt-3" id="fileName">No file selected</p>
+                <p class="text-xs text-gray-400" id="fileName">No file selected</p>
+
                 <p class="text-xs text-gray-300 mt-1">
                     Supported headers: NIK, Name, Department, Division, Job Position, Gender, Site …
                 </p>
@@ -198,6 +208,10 @@
         <!-- Row count below console -->
         <div class="flex items-center justify-end mt-2 gap-2 text-xs text-gray-400">
             <span id="logLineCount">0 lines</span>
+            <button onclick="downloadLog()"
+                    class="hover:text-gray-600 transition-colors focus:outline-none">
+                <i class="fas fa-download"></i> Download
+            </button>
             <button onclick="clearLog()"
                     class="hover:text-gray-600 transition-colors focus:outline-none">
                 <i class="fas fa-trash-alt"></i> Clear
@@ -365,10 +379,40 @@ function appendLog(level, message) {
     document.getElementById('logLineCount').textContent = logLines + ' lines';
 }
 
+document.getElementById('logContainer').addEventListener('keydown', function (e) {
+    if (e.key === 'a' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        const selection = window.getSelection();
+        const range     = document.createRange();
+        range.selectNodeContents(this);
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }
+});
+
 function clearLog() {
     document.getElementById('logContainer').innerHTML = '';
     logLines = 0;
     document.getElementById('logLineCount').textContent = '0 lines';
+}
+
+function downloadLog() {
+    const lines  = document.querySelectorAll('#logContainer .log-line');
+    if (!lines.length) return;
+
+    const text = Array.from(lines)
+        .map(l => l.textContent)
+        .join('\n');
+
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+
+    a.href     = url;
+    a.download = `import-log-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.txt`;
+    a.click();
+
+    URL.revokeObjectURL(url);
 }
 
 function updateProgress(processed, total) {
