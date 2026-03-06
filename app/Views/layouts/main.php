@@ -57,6 +57,9 @@
     <!-- ③ Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"></script>
 
+    <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/4.3.0/css/fixedColumns.dataTables.min.css">
+    <script src="https://cdn.datatables.net/fixedcolumns/4.3.0/js/dataTables.fixedColumns.min.js"></script>
+
     <!-- ④ Custom JS -->
     <script src="<?= base_url('assets/js/dashboard.js?v=1') ?>"></script>
     <script src="<?= base_url('assets/js/sidebar.js?v=1') ?>"></script>

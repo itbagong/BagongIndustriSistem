@@ -101,7 +101,7 @@ class EmployeeController extends BaseController
         if (! $employee) {
             return '<div class="alert alert-danger">Data tidak ditemukan.</div>';
         }
-        return view('employees/detail_partial', ['employee' => $employee]);
+        return view('employees/partials/employee_detail', ['employee' => $employee]);
     }
 
     // ── Create ───────────────────────────────────────────────────
@@ -175,7 +175,14 @@ class EmployeeController extends BaseController
         return $this->response->setJSON(['success' => true]);
     }
 
-    // ── Upload ───────────────────────────────────────────────────
+    // ── Upload 
+    public function import(): string
+    {
+        return view('employees/import/index', [
+            'menus'                => $this->data['menus'] ?? [],
+        ]);
+    }
+
     public function upload()
     {
         $file = $this->request->getFile('file_upload');

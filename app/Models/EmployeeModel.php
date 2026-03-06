@@ -267,13 +267,23 @@ class EmployeeModel extends Model
      * Tenure: pkwt_date → cutoff_date (or today).
      * Returns e.g. "3 thn 2 bln 5 hr" or "-".
      */
-    public function computeTenure(?string $pkwtDate, ?string $cutoffDate): string
+    public function computeTenure(?string $pkwtDate, ?string $cutoffDate, ?string $employmentStatus = null): string
     {
         if (empty($pkwtDate)) return '-';
 
+        // If no cutoff date, only compute using today for active employees
+        // Withdrawn/inactive without a cutoff date → show '-'
+        if (empty($cutoffDate)) {
+            $active = ['aktif', 'active', 'pkwt', 'pkwtt', 'pks'];
+            $status = strtolower(trim($employmentStatus ?? ''));
+            $isActive = array_filter($active, fn($s) => str_contains($status, $s));
+
+            if (!$isActive) return '-';
+        }
+
         try {
             $start = new DateTime($pkwtDate);
-            $end   = ! empty($cutoffDate) ? new DateTime($cutoffDate) : new DateTime();
+            $end   = !empty($cutoffDate) ? new DateTime($cutoffDate) : new DateTime();
             if ($end < $start) return '-';
 
             $diff  = $start->diff($end);
@@ -308,8 +318,9 @@ class EmployeeModel extends Model
     public function enrichRow(array $row): array
     {
         $row['tenure'] = $this->computeTenure(
-            $row['pkwt_date']   ?? null,
-            $row['cutoff_date'] ?? null
+            $row['pkwt_date']        ?? null,
+            $row['cutoff_date']      ?? null,
+            $row['employment_status'] ?? null   // ← pass status
         );
         $row['age'] = $this->computeAge($row['date_of_birth'] ?? null);
         return $row;

@@ -1,63 +1,51 @@
 <?php
 
 $routes->group('employees', function ($routes) {
+    // ── Index & DataTables ───────────────────────────────────────
+    $routes->get('/',           'Employee\EmployeeController::index', [
+        'filter' => 'permission:employee.view'
+    ]);
+    $routes->post('data',       'Employee\EmployeeController::data', [
+        'filter' => 'permission:employee.view'
+    ]);        // DataTables AJAX
 
-    // ===== VIEW =====
-    $routes->get('/', 'Employee\EmployeeController::index', [
+    // ── CRUD ─────────────────────────────────────────────────────
+    $routes->get('create',      'Employee\EmployeeController::create', [
         'filter' => 'permission:employee.view'
     ]);
-    $routes->match(['get','post'], 'data', 'Employee\EmployeeController::data', [
+    $routes->post('store',      'Employee\EmployeeController::store', [
         'filter' => 'permission:employee.view'
     ]);
-    $routes->get('statistics', 'Employee\EmployeeController::getStatistics', [
+    $routes->get('edit/(:any)', 'Employee\EmployeeController::edit/$1', [
         'filter' => 'permission:employee.view'
     ]);
-    $routes->get('view/(:num)', 'Employee\EmployeeController::view/$1', [
+    $routes->post('update/(:any)', 'Employee\EmployeeController::update/$1', [
         'filter' => 'permission:employee.view'
     ]);
-
-    // ===== CREATE =====
-    $routes->get('create', 'Employee\EmployeeController::create', [
-        'filter' => 'permission:employee.view'
-    ]);
-    $routes->post('store', 'Employee\EmployeeController::store', [
-        'filter' => 'permission:employee.view'
-    ]);
-    $routes->post('upload', 'Employee\EmployeeController::upload', [
-        'filter' => 'permission:employee.view'
-    ]);
-    $routes->post('process', 'Employee\EmployeeController::process', [
-        'filter' => 'permission:employee.view'
-    ]);
-    $routes->get('stream', 'Employee\EmployeeController::stream', [
+    $routes->post('delete/(:any)', 'Employee\EmployeeController::delete/$1', [
         'filter' => 'permission:employee.view'
     ]);
 
-    // ===== UPDATE =====
-    $routes->get('edit/(:num)', 'Employee\EmployeeController::edit/$1', [
-        'filter' => 'permission:employee.update'
-    ]);
-    $routes->post('update/(:num)', 'Employee\EmployeeController::update/$1', [
-        'filter' => 'permission:employee.update'
-    ]);
-
-    // ===== DELETE =====
-    $routes->delete('delete/(:num)', 'Employee\EmployeeController::delete/$1', [
-        'filter' => 'permission:employee.delete'
-    ]);
-
-    $routes->get('test-db', 'Employee\EmployeeController::testDb', [
+    // ── Detail modal (AJAX partial) ───────────────────────────────
+    $routes->get('detail/(:any)', 'Employee\EmployeeController::detail/$1', [
         'filter' => 'permission:employee.view'
     ]);
 
-    $routes->post(
-        'api/import-employee',
-        'EmployeeImportController::import',
-        [
-            'filter' => 'permission:employee.view'
-        ]
-    );
+    // ── Import ───────────────────────────────────────────────────
+    $routes->get('import',      'Employee\EmployeeController::import', [
+        'filter' => 'permission:employee.view'
+    ]);      // import page view
+    $routes->post('upload',     'Employee\EmployeeController::upload', [
+        'filter' => 'permission:employee.view'
+    ]);      // file upload handler
+    $routes->get('stream',      'Employee\EmployeeController::stream', [
+        'filter' => 'permission:employee.view'
+    ]);      // SSE stream
 
+    // ── Export ───────────────────────────────────────────────────
+    $routes->get('export',      'Employee\EmployeeController::export', [
+        'filter' => 'permission:employee.view'
+    ]);
 
     $routes->group('blood-type', static function ($routes) {
         $routes->get('/',               'EmployeeMaster\BloodTypeController::index');
