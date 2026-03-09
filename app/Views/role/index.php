@@ -319,12 +319,25 @@ let   CHASH = '<?= csrf_hash() ?>';
 const upd   = h => { if (h) CHASH = h; };
 
 // ── Helpers ──────────────────────────────────────────────────
-const $  = id  => document.getElementById(id);
-const show = (id, msg) => { $(id).innerHTML = msg; $(id).classList.remove('d-none'); };
-const hide = id => { $(id).innerHTML = ''; $(id).classList.add('d-none'); };
+const gid  = id => document.getElementById(id);
+
+const show = (id, msg) => {
+    const el = gid(id);
+    if (!el) return;
+    el.innerHTML = msg;
+    el.classList.remove('d-none');
+};
+
+const hide = id => {
+    const el = gid(id);
+    if (!el) return;
+    el.innerHTML = '';
+    el.classList.add('d-none');
+};
 
 function setBtn(id, loading, label = 'Simpan') {
-    const btn = $(id);
+    const btn = gid(id);
+    if (!btn) return;
     btn.disabled  = loading;
     btn.innerHTML = loading
         ? '<i class="fas fa-spinner fa-spin mr-1"></i>Menyimpan...'
@@ -343,20 +356,34 @@ async function ajax(url, fd) {
     return data;
 }
 
-// Auto-format nama role: huruf kecil, spasi → underscore
-$('c_name')?.addEventListener('input', function () {
+// ── Reset modal state (fix aria-hidden & backdrop) ───────────
+function resetModal(modalId) {
+    const $m = $(modalId);
+    $m.removeAttr('aria-hidden');           // fix aria-hidden blocking
+    $m.removeAttr('style');                 // reset inline style
+    $m.removeClass('show');
+    $('.modal-backdrop').remove();
+    $('body').removeClass('modal-open').css('padding-right', '');
+}
+
+// ── Auto-format nama role ────────────────────────────────────
+gid('c_name')?.addEventListener('input', function () {
     this.value = this.value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_-]/g, '');
 });
-$('e_name')?.addEventListener('input', function () {
+gid('e_name')?.addEventListener('input', function () {
     this.value = this.value.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_-]/g, '');
 });
 
 // ── CREATE ───────────────────────────────────────────────────
 function openCreateModal() {
-    ['c_name','c_display_name','c_description'].forEach(id => $(id).value = '');
-    $('c_level').value     = '';
-    $('c_is_active').value = '1';
+    resetModal('#modalCreate');
+    ['c_name','c_display_name','c_description'].forEach(id => {
+        const el = gid(id); if (el) el.value = '';
+    });
+    gid('c_level').value     = '';
+    gid('c_is_active').value = '1';
     hide('alert-create');
+    $('#modalCreate').modal({ backdrop: true, keyboard: true });
     $('#modalCreate').modal('show');
 }
 
@@ -365,14 +392,14 @@ async function submitCreate() {
     setBtn('btn-create', true);
 
     const fd = new FormData();
-    fd.append('name',         $('c_name').value.trim());
-    fd.append('display_name', $('c_display_name').value.trim());
-    fd.append('description',  $('c_description').value.trim());
-    fd.append('level',        $('c_level').value);
-    fd.append('is_active',    $('c_is_active').value);
+    fd.append('name',         gid('c_name').value.trim());
+    fd.append('display_name', gid('c_display_name').value.trim());
+    fd.append('description',  gid('c_description').value.trim());
+    fd.append('level',        gid('c_level').value);
+    fd.append('is_active',    gid('c_is_active').value);
 
     try {
-        const data = await ajax(`${BASE}/roles/store`, fd);
+        const data = await ajax(`${BASE}roles/store`, fd);
         if (data.status === 'success') {
             $('#modalCreate').modal('hide');
             location.reload();
@@ -388,39 +415,46 @@ async function submitCreate() {
 
 // ── EDIT ─────────────────────────────────────────────────────
 async function openEditModal(id) {
+    resetModal('#modalEdit');
     hide('alert-edit');
+
     try {
-        const res  = await fetch(`${BASE}/roles/edit/${id}`, {
+        const res  = await fetch(`${BASE}roles/edit/${id}`, {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         });
         const resp = await res.json();
         if (resp.status !== 'success') { alert(resp.message); return; }
 
         const d = resp.data;
-        $('e_id').value           = d.id;
-        $('e_name').value         = d.name;
-        $('e_display_name').value = d.display_name;
-        $('e_description').value  = d.description ?? '';
-        $('e_level').value        = d.level;
-        $('e_is_active').value    = d.is_active;
+        gid('e_id').value           = d.id;
+        gid('e_name').value         = d.name;
+        gid('e_display_name').value = d.display_name;
+        gid('e_description').value  = d.description ?? '';
+        gid('e_level').value        = parseInt(d.level);
+        gid('e_is_active').value    = parseInt(d.is_active);
+
+        $('#modalEdit').modal({ backdrop: true, keyboard: true });
         $('#modalEdit').modal('show');
-    } catch (e) { alert('Gagal memuat data: ' + e.message); }
+
+    } catch (e) {
+        alert('Gagal memuat data: ' + e.message);
+    }
 }
 
 async function submitEdit() {
     hide('alert-edit');
     setBtn('btn-edit', true, 'Update');
 
-    const id = $('e_id').value;
+    const id = gid('e_id').value;
     const fd = new FormData();
-    fd.append('name',         $('e_name').value.trim());
-    fd.append('display_name', $('e_display_name').value.trim());
-    fd.append('description',  $('e_description').value.trim());
-    fd.append('level',        $('e_level').value);
-    fd.append('is_active',    $('e_is_active').value);
+    fd.append('name',         gid('e_name').value.trim());
+    fd.append('display_name', gid('e_display_name').value.trim());
+    fd.append('description',  gid('e_description').value.trim());
+    fd.append('level',        gid('e_level').value);
+    fd.append('is_active',    gid('e_is_active').value);
 
     try {
-        const data = await ajax(`${BASE}/roles/update/${id}`, fd);
+        const data = await ajax(`${BASE}roles/update/${id}`, fd);
         if (data.status === 'success') {
             $('#modalEdit').modal('hide');
             location.reload();
@@ -441,11 +475,14 @@ async function hapusRole(id, nama) {
     try {
         const data = await ajax(`${BASE}/roles/delete/${id}`, new FormData());
         if (data.status === 'success') {
-            $(`row-${id}`) && document.getElementById(`row-${id}`).remove();
+            const row = document.getElementById(`row-${id}`);
+            if (row) row.remove();
         } else {
             alert(data.message);
         }
-    } catch (e) { alert('Error: ' + e.message); }
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
 }
 
 // ── TOGGLE AKTIF ─────────────────────────────────────────────
@@ -455,19 +492,24 @@ document.querySelectorAll('.toggle-active').forEach(el => {
         const id = me.dataset.id;
         try {
             const data = await ajax(`${BASE}/roles/toggle-active/${id}`, new FormData());
-            if (!data.success && data.status !== 'success') {
+            if (data.status !== 'success') {
                 me.checked = !me.checked;
                 alert(data.message);
             }
-        } catch (e) { me.checked = !me.checked; alert('Error: ' + e.message); }
+        } catch (e) {
+            me.checked = !me.checked;
+            alert('Error: ' + e.message);
+        }
     });
 });
 
-// Auto hide flash
+
+
+// ── Auto hide flash ───────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         document.querySelectorAll('.alert-dismissible').forEach(el => {
-            try { $(el).alert('close'); } catch(e) {}
+            $(el).alert('close');
         });
     }, 5000);
 });

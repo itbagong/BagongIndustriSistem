@@ -55,17 +55,17 @@
                 <?= csrf_field() ?>
                 
                 <div class="form-group">
-                    <label for="email">Email</label>
+                    <label for="email">Login ID</label>
                     <div class="input-wrapper">
                         <span class="input-icon">📧</span>
                         <input 
-                            type="email" 
+                            type="text" 
                             id="email" 
                             name="email" 
-                            placeholder="nama@perusahaan.com"
+                            placeholder="Masukkan Login ID"
                             value="<?= old('email') ?>"
                             required
-                            autocomplete="email"
+                            autocomplete="username"
                             autofocus
                         >
                     </div>

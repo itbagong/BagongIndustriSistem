@@ -66,7 +66,6 @@ class RolesController extends BaseApiController
     public function store(): ResponseInterface
     {
         if (!$this->request->isAJAX()) return $this->jsonError('Invalid request.', 400);
-        if (!$this->hasPermission('role.create')) return $this->jsonError('Unauthorized.', 403);
 
         $rules = [
             'name'         => 'required|min_length[3]|max_length[50]|alpha_dash|is_unique[roles.name]',
@@ -108,7 +107,6 @@ class RolesController extends BaseApiController
     public function edit($id = null): ResponseInterface
     {
         if (!$this->request->isAJAX()) return $this->jsonError('Invalid request.', 400);
-        if (!$this->hasPermission('role.edit')) return $this->jsonError('Unauthorized.', 403);
 
         $role = $this->roleModel->find($id);
         if (!$role) return $this->jsonError('Role tidak ditemukan.', 404);
@@ -123,7 +121,6 @@ class RolesController extends BaseApiController
     public function update($id = null): ResponseInterface
     {
         if (!$this->request->isAJAX()) return $this->jsonError('Invalid request.', 400);
-        if (!$this->hasPermission('role.edit')) return $this->jsonError('Unauthorized.', 403);
 
         $role = $this->roleModel->find($id);
         if (!$role) return $this->jsonError('Role tidak ditemukan.', 404);
@@ -168,7 +165,6 @@ class RolesController extends BaseApiController
     public function delete($id = null): ResponseInterface
     {
         if (!$this->request->isAJAX()) return $this->jsonError('Invalid request.', 400);
-        if (!$this->hasPermission('role.delete')) return $this->jsonError('Unauthorized.', 403);
 
         $role = $this->roleModel->find($id);
         if (!$role) return $this->jsonError('Role tidak ditemukan.', 404);

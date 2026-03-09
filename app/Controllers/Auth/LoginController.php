@@ -40,269 +40,357 @@ class LoginController extends BaseApiController
 
         return view('auth/login');
     }
-
     public function process(): RedirectResponse
-    {
-        $usernameInput = trim((string) ($this->request->getPost('username') ?: $this->request->getPost('email')));
-        $password      = (string) $this->request->getPost('password');
-        $remember      = (bool) $this->request->getPost('remember');
+{
+    $usernameInput = trim((string) ($this->request->getPost('username') ?: $this->request->getPost('email')));
+    $password      = (string) $this->request->getPost('password');
+    $remember      = (bool) $this->request->getPost('remember');
 
-        if (! $usernameInput || ! $password) {
-            return redirect()->back()->withInput()->with('error', 'Username/email dan password harus diisi');
-        }
-
-        // 1) panggil API login
-        try {
-            $response = $this->api->post('login', [
-                'json'        => [
-                    'email'    => $usernameInput,
-                    'password' => $password
-                ],
-                'http_errors' => false
-            ]);
-        } catch (\Throwable $e) {
-            log_message('error', 'API login error: ' . $e->getMessage());
-            $this->logAudit(null, 'login_failed', null, null, 'API connection error: ' . $e->getMessage());
-            return redirect()->back()->withInput()->with('error', 'Gagal terhubung ke server otentikasi.');
-        }
-
-        $status = $response->getStatusCode();
-        $body   = json_decode((string) $response->getBody(), true) ?? [];
-
-        if ($status !== 200) {
-            $msg = $body['message'] ?? $body['error'] ?? 'Login gagal';
-            $this->logAudit(null, 'login_failed', null, null, 'API responded ' . $status . ': ' . $msg);
-            return redirect()->back()->withInput()->with('error', $msg);
-        }
-
-        // 2) ambil token dari response (beberapa variasi field ditangani)
-        $accessToken  = $body['data']['accessToken']  ?? $body['accessToken'] ?? $body['token'] ?? null;
-        $refreshToken = $body['data']['refreshToken'] ?? $body['refreshToken'] ?? null;
-
-        if (! $accessToken) {
-            $this->logAudit(null, 'login_failed', null, null, 'No access token in API response');
-            return redirect()->back()->withInput()->with('error', 'Server otentikasi tidak mengembalikan token.');
-        }
-
-        // simpan token sementara di session (dipakai untuk request /user dan request selanjutnya)
-        session()->set([
-            'access_token'  => $accessToken,
-            'refresh_token' => $refreshToken
-        ]);
-
-        // 3) ambil profile /user menggunakan token
-        try {
-            $resUser = $this->api->get('user', [
-                'headers'     => ['Authorization' => 'Bearer ' . $accessToken],
-                'http_errors' => false
-            ]);
-        } catch (\Throwable $e) {
-            log_message('error', 'API /user error: ' . $e->getMessage());
-            $this->logAudit(null, 'login_failed', null, null, 'Failed to fetch /user: ' . $e->getMessage());
-            return redirect()->back()->withInput()->with('error', 'Gagal mengambil data user dari auth server.');
-        }
-
-        $statusUser = $resUser->getStatusCode();
-        $payload    = json_decode((string) $resUser->getBody(), true) ?? [];
-
-        if ($statusUser !== 200) {
-            $this->logAudit(null, 'login_failed', null, null, 'API /user responded ' . $statusUser);
-            return redirect()->back()->withInput()->with('error', 'Gagal mengambil data user dari auth server.');
-        }
-
-        // ---------- Normalisasi dan pemilihan user dari payload ----------
-        // payload['data'] bisa:
-        // - object user
-        // - array numerik [user1, user2, ...]
-        // - associative array with keys
-        $apiData = $payload['data'] ?? $payload;
-
-        $apiUser = null;
-
-        if (is_array($apiData)) {
-            // cek apakah list numerik
-            $isList = array_keys($apiData) === range(0, count($apiData) - 1);
-
-            if ($isList) {
-                // cari user yang cocok dengan email/nickname login yang diberikan
-                $search = strtolower($usernameInput);
-                foreach ($apiData as $u) {
-                    if (!is_array($u)) continue;
-                    if (!empty($u['email']) && strtolower($u['email']) === $search) {
-                        $apiUser = $u;
-                        break;
-                    }
-                    if (!empty($u['nickName']) && strtolower($u['nickName']) === $search) {
-                        $apiUser = $u;
-                        break;
-                    }
-                    // kadang API return 'username' atau 'name'
-                    if (!empty($u['username']) && strtolower($u['username']) === $search) {
-                        $apiUser = $u;
-                        break;
-                    }
-                }
-                // fallback: jika tidak ditemukan, ambil index 0 jika ada
-                if (! $apiUser && isset($apiData[0]) && is_array($apiData[0])) {
-                    $apiUser = $apiData[0];
-                }
-            } else {
-                // associative array => anggap ini object user
-                $apiUser = $apiData;
-            }
-        } else {
-            // bukan array: langsung ambil apa adanya
-            $apiUser = $apiData;
-        }
-
-        // validasi minimal
-        if (! is_array($apiUser) || empty($apiUser['id'])) {
-            $this->logAudit(null, 'login_failed', null, null, 'Profile incomplete or not found in /user payload: ' . print_r($payload, true));
-            return redirect()->back()->withInput()->with('error', 'Profile user tidak lengkap dari auth server.');
-        }
-
-        // cek active status
-        if (isset($apiUser['activeStatus']) && ! $apiUser['activeStatus']) {
-            $this->logAudit($apiUser['id'] ?? null, 'login_failed', null, null, 'User inactive in auth server');
-            return redirect()->back()->with('error', 'Akun Anda tidak aktif.');
-        }
-
-        // ===========================
-        // Mapping role dari API (DI SINI)
-        // ===========================
-        // mappedRoleId = default staff (ubah sesuai kebutuhan)
-        $mappedRoleId = 3;
-
-        // contoh mapping sederhana:
-        if (! empty($apiUser['employeeNumber']) && str_starts_with((string) $apiUser['employeeNumber'], '24')) {
-            $mappedRoleId = 2;
-        }
-
-        if (! empty($apiUser['email']) && strtolower($apiUser['email']) === 'ebri@bagongbis.com') {
-            $mappedRoleId = 1; // superadmin
-        }
-
-        // 4) sync user ke DB lokal (users.api_user_id = apiUser.id)
-        try {
-            $existing = $this->userModel->where('api_user_id', $apiUser['id'])->first();
-
-            $data = [
-                'api_user_id' => $apiUser['id'],
-                'username'    => $apiUser['nickName'] ?? ($apiUser['email'] ?? null),
-                'email'       => $apiUser['email'] ?? null,
-                'is_active'   => ! empty($apiUser['activeStatus']) ? 1 : 0,
-                'last_login'  => date('Y-m-d H:i:s'),
-                'updated_at'  => date('Y-m-d H:i:s'),
-            ];
-
-            if ($existing) {
-                // jika role sudah di-set manual/admin, jangan timpa
-                $data['role_id'] = $existing['role_id'] ?? $mappedRoleId;
-
-                $this->userModel->update($existing['id'], $data);
-                $localUserId = $existing['id'];
-                $roleId      = $data['role_id'];
-            } else {
-                // user baru: beri mapped role sebagai default
-                $data['role_id']    = $mappedRoleId;
-                $data['created_at'] = date('Y-m-d H:i:s');
-
-                $this->userModel->insert($data);
-                $localUserId = $this->userModel->getInsertID();
-                $roleId      = $mappedRoleId;
-            }
-        } catch (\Throwable $e) {
-            log_message('error', 'User sync error: ' . $e->getMessage());
-            // jangan gagalkan login hanya karena sync fail — tetap set session minimal
-            $localUserId = null;
-            $roleId      = null;
-        }
-
-        // 5) ambil role & permissions lokal (jika ada)
-        $role        = null;
-        $permissions = [];
-
-        try {
-            if ($localUserId && $roleId) {
-                $role = $this->roleModel->find($roleId);
-                // PermissionModel harus mengembalikan array permission string (permissions.name)
-                $permissions = $this->permissionModel->getPermissionsByUserId($localUserId);
-            } else {
-                // fallback: permission dasar
-                $role        = $role ?? ['id' => null, 'name' => 'guest', 'level' => 99];
-                $permissions = ['employee.view'];
-            }
-        } catch (\Throwable $e) {
-            log_message('error', 'Role/Permission lookup error: ' . $e->getMessage());
-            $permissions = ['employee.view'];
-        }
-
-        // pastikan minimal permission tidak hilang
-        if (! in_array('employee.view', $permissions, true)) {
-            $permissions[] = 'employee.view';
-        }
-
-        // 6) simpan session & session_model (hashed token)
-        session()->set([
-            'logged_in'    => true,
-            'access_token' => $accessToken,
-            'refresh_token'=> $refreshToken,
-
-            // external id + local id
-            'employee_id'  => $apiUser['id'],
-            'user_id'      => $localUserId,
-            'username'     => $apiUser['nickName'] ?? $apiUser['email'] ?? null,
-            'email'        => $apiUser['email'] ?? null,
-
-            'role_id'      => $role['id'] ?? $roleId,
-            'role_name'    => $role['name'] ?? null,
-            'role_level'   => $role['level'] ?? null,
-
-            'permissions'  => $permissions,
-            'user'         => $apiUser,
-            'login_time'   => time()
-        ]);
-
-        // store hashed token in user_sessions table for tracking (jangan simpan raw token ke DB)
-        try {
-            $hashed = hash('sha256', $accessToken);
-            $now    = date('Y-m-d H:i:s');
-
-            $this->sessionModel->insert([
-                // simpan local user id kalau ada, fallback ke employee id
-                'user_id'       => $localUserId ?? $apiUser['id'],
-                'session_token' => $hashed,
-                'ip_address'    => $this->request->getIPAddress(),
-                'user_agent'    => $this->request->getUserAgent()->getAgentString(),
-                'last_activity' => $now,
-                'created_at'    => $now,
-            ]);
-
-            // Simpan hash token di session untuk mempermudah logout
-            session()->set('session_token_hash', $hashed);
-            // jangan simpan raw token di DB; raw tetap ada di 'access_token' session untuk penggunaan API
-        } catch (\Throwable $e) {
-            log_message('error', 'Failed to register session model: ' . $e->getMessage());
-        }
-
-        // remember me cookie (set secure hanya di HTTPS)
-        if ($remember) {
-            $secureFlag = $this->request->isSecure();
-            set_cookie([
-                'name'     => 'access_token',
-                'value'    => $accessToken,
-                'expire'   => 30 * 24 * 60 * 60,
-                'secure'   => $secureFlag,
-                'httponly' => true,
-                'samesite' => 'Lax',
-                'path'     => '/'
-            ]);
-        }
-
-        $this->logAudit($apiUser['id'] ?? null, 'login', null, null, 'Login via API successful');
-
-        return redirect()->to('/dashboard')->with('success', 'Login berhasil! Selamat datang, ' . ($apiUser['nickName'] ?? $apiUser['email'] ?? ''));
+    if (! $usernameInput || ! $password) {
+        return redirect()->back()->withInput()->with('error', 'Username/email dan password harus diisi');
     }
+
+    // Cek DB lokal
+    $localUser = $this->userModel
+        ->where('username', $usernameInput)
+        ->orWhere('email', $usernameInput)
+        ->first();
+
+    if (! $localUser) {
+        return redirect()->back()->withInput()->with('error', 'Username/email atau password salah.');
+    }
+
+    if (empty($localUser['is_active'])) {
+        return redirect()->back()->with('error', 'Akun Anda tidak aktif.');
+    }
+
+    if (! password_verify($password, $localUser['password'])) {
+        return redirect()->back()->withInput()->with('error', 'Username/email atau password salah.');
+    }
+
+    // Ambil role & permissions
+    $roleId      = $localUser['role_id'] ?? null;
+    $role        = null;
+    $permissions = [];
+
+    try {
+        if ($roleId) {
+            $role        = $this->roleModel->find($roleId);
+            $permissions = $this->permissionModel->getPermissionsByUserId($localUser['id']);
+        }
+    } catch (\Throwable $e) {
+        log_message('error', 'Role/Permission lookup error: ' . $e->getMessage());
+    }
+
+    if (! in_array('Public', $permissions, true)) {
+        $permissions[] = 'Public';
+    }
+
+    $this->userModel->update($localUser['id'], ['last_login' => date('Y-m-d H:i:s')]);
+
+    session()->set([
+        'logged_in'   => true,
+        'user_id'     => $localUser['id'],
+        'employee_id' => $localUser['employee_id'] ?? null,
+        'username'    => $localUser['username'],
+        'email'       => $localUser['email'] ?? null,
+        'role_id'     => $role['id']    ?? $roleId,
+        'role_name'   => $role['name']  ?? null,
+        'role_level'  => $role['level'] ?? null,
+        'permissions' => $permissions,
+        'user'        => $localUser,
+        'login_time'  => time(),
+    ]);
+
+    if ($remember) {
+        // remember me tanpa token API, pakai session ID saja
+        set_cookie([
+            'name'     => 'remember_user',
+            'value'    => $localUser['id'],
+            'expire'   => 30 * 24 * 60 * 60,
+            'httponly' => true,
+            'samesite' => 'Lax',
+            'path'     => '/'
+        ]);
+    }
+
+    $this->logAudit($localUser['id'], 'login', null, null, 'Login via local DB');
+
+    return redirect()->to('/dashboard')->with('success', 'Login berhasil! Selamat datang, ' . $localUser['username']);
+}
+
+    // public function process(): RedirectResponse
+    // {
+    //     $usernameInput = trim((string) ($this->request->getPost('username') ?: $this->request->getPost('email')));
+    //     $password      = (string) $this->request->getPost('password');
+    //     $remember      = (bool) $this->request->getPost('remember');
+
+    //     if (! $usernameInput || ! $password) {
+    //         return redirect()->back()->withInput()->with('error', 'Username/email dan password harus diisi');
+    //     }
+
+    //     // ══════════════════════════════════════════════════════════════
+    //     // 1) COBA LOGIN VIA API EKSTERNAL DULU
+    //     // ══════════════════════════════════════════════════════════════
+    //     $apiSuccess  = false;
+    //     $accessToken = null;
+    //     $refreshToken= null;
+    //     $apiUser     = null;
+
+    //     try {
+    //         $response = $this->api->post('login', [
+    //             'json'        => [
+    //                 'email'    => $usernameInput,
+    //                 'password' => $password
+    //             ],
+    //             'http_errors' => false
+    //         ]);
+
+    //         $status = $response->getStatusCode();
+    //         $body   = json_decode((string) $response->getBody(), true) ?? [];
+
+    //         if ($status === 200) {
+    //             $accessToken  = $body['data']['accessToken']  ?? $body['accessToken'] ?? $body['token'] ?? null;
+    //             $refreshToken = $body['data']['refreshToken'] ?? $body['refreshToken'] ?? null;
+
+    //             if ($accessToken) {
+    //                 // Ambil profile dari API
+    //                 $resUser    = $this->api->get('user', [
+    //                     'headers'     => ['Authorization' => 'Bearer ' . $accessToken],
+    //                     'http_errors' => false
+    //                 ]);
+    //                 $statusUser = $resUser->getStatusCode();
+    //                 $payload    = json_decode((string) $resUser->getBody(), true) ?? [];
+
+    //                 if ($statusUser === 200) {
+    //                     $apiData = $payload['data'] ?? $payload;
+
+    //                     if (is_array($apiData)) {
+    //                         $isList = array_keys($apiData) === range(0, count($apiData) - 1);
+
+    //                         if ($isList) {
+    //                             $search = strtolower($usernameInput);
+    //                             foreach ($apiData as $u) {
+    //                                 if (!is_array($u)) continue;
+    //                                 if (!empty($u['email'])    && strtolower($u['email'])    === $search) { $apiUser = $u; break; }
+    //                                 if (!empty($u['nickName']) && strtolower($u['nickName']) === $search) { $apiUser = $u; break; }
+    //                                 if (!empty($u['username']) && strtolower($u['username']) === $search) { $apiUser = $u; break; }
+    //                             }
+    //                             if (! $apiUser && isset($apiData[0]) && is_array($apiData[0])) {
+    //                                 $apiUser = $apiData[0];
+    //                             }
+    //                         } else {
+    //                             $apiUser = $apiData;
+    //                         }
+    //                     }
+
+    //                     if (is_array($apiUser) && !empty($apiUser['id'])) {
+    //                         $apiSuccess = true;
+    //                     }
+    //                 }
+    //             }
+    //         }
+
+    //     } catch (\Throwable $e) {
+    //         log_message('error', 'API login error: ' . $e->getMessage());
+    //         // API tidak bisa dihubungi — lanjut ke fallback lokal
+    //     }
+
+    //     // ══════════════════════════════════════════════════════════════
+    //     // 2) FALLBACK — cek DB lokal jika API gagal / user tidak ada
+    //     // ══════════════════════════════════════════════════════════════
+    //     if (! $apiSuccess) {
+    //         $localUser = $this->userModel
+    //             ->where('username', $usernameInput)
+    //             ->orWhere('email', $usernameInput)
+    //             ->first();
+
+    //         // User tidak ditemukan di lokal juga
+    //         if (! $localUser) {
+    //             $this->logAudit(null, 'login_failed', null, null, 'User not found in API or local DB');
+    //             return redirect()->back()->withInput()->with('error', 'Username/email atau password salah.');
+    //         }
+
+    //         // Cek is_active
+    //         if (empty($localUser['is_active'])) {
+    //             $this->logAudit($localUser['id'], 'login_failed', null, null, 'Local user inactive');
+    //             return redirect()->back()->with('error', 'Akun Anda tidak aktif.');
+    //         }
+
+    //         // Verifikasi password
+    //         if (! password_verify($password, $localUser['password'])) {
+    //             $this->logAudit($localUser['id'], 'login_failed', null, null, 'Wrong password (local)');
+    //             return redirect()->back()->withInput()->with('error', 'Username/email atau password salah.');
+    //         }
+
+    //         // ── Login lokal berhasil — bangun session langsung ──────────
+    //         $roleId = $localUser['role_id'] ?? null;
+    //         $role   = null;
+    //         $permissions = [];
+
+    //         try {
+    //             if ($roleId) {
+    //                 $role        = $this->roleModel->find($roleId);
+    //                 $permissions = $this->permissionModel->getPermissionsByUserId($localUser['id']);
+    //             }
+    //         } catch (\Throwable $e) {
+    //             log_message('error', 'Role/Permission lookup error (local): ' . $e->getMessage());
+    //         }
+
+    //         if (! in_array('Public', $permissions, true)) {
+    //             $permissions[] = 'Public';
+    //         }
+
+    //         // Update last_login
+    //         $this->userModel->update($localUser['id'], ['last_login' => date('Y-m-d H:i:s')]);
+
+    //         session()->set([
+    //             'logged_in'   => true,
+    //             'access_token'=> null,
+    //             'user_id'     => $localUser['id'],
+    //             'employee_id' => $localUser['employee_id'] ?? null,
+    //             'username'    => $localUser['username'],
+    //             'email'       => $localUser['email'] ?? null,
+    //             'role_id'     => $role['id']    ?? $roleId,
+    //             'role_name'   => $role['name']  ?? null,
+    //             'role_level'  => $role['level'] ?? null,
+    //             'permissions' => $permissions,
+    //             'user'        => $localUser,
+    //             'login_time'  => time(),
+    //             'auth_source' => 'local', // penanda login dari DB lokal
+    //         ]);
+
+    //         $this->logAudit($localUser['id'], 'login', null, null, 'Login via local DB');
+
+    //         return redirect()->to('/dashboard')->with('success', 'Login berhasil! Selamat datang, ' . ($localUser['username'] ?? ''));
+    //     }
+
+    //     // ══════════════════════════════════════════════════════════════
+    //     // 3) API LOGIN BERHASIL — lanjut proses seperti semula
+    //     // ══════════════════════════════════════════════════════════════
+
+    //     // Cek active status
+    //     if (isset($apiUser['activeStatus']) && ! $apiUser['activeStatus']) {
+    //         $this->logAudit($apiUser['id'] ?? null, 'login_failed', null, null, 'User inactive in auth server');
+    //         return redirect()->back()->with('error', 'Akun Anda tidak aktif.');
+    //     }
+
+    //     // Mapping role dari API
+    //     $mappedRoleId = 3;
+    //     if (! empty($apiUser['employeeNumber']) && str_starts_with((string) $apiUser['employeeNumber'], '24')) {
+    //         $mappedRoleId = 2;
+    //     }
+    //     if (! empty($apiUser['email']) && strtolower($apiUser['email']) === 'ebri@bagongbis.com') {
+    //         $mappedRoleId = 1;
+    //     }
+
+    //     // Sync user ke DB lokal
+    //     $localUserId = null;
+    //     $roleId      = $mappedRoleId;
+
+    //     try {
+    //         $existing = $this->userModel->where('api_user_id', $apiUser['id'])->first();
+
+    //         $data = [
+    //             'api_user_id' => $apiUser['id'],
+    //             'username'    => $apiUser['nickName'] ?? ($apiUser['email'] ?? null),
+    //             'email'       => $apiUser['email'] ?? null,
+    //             'is_active'   => ! empty($apiUser['activeStatus']) ? 1 : 0,
+    //             'last_login'  => date('Y-m-d H:i:s'),
+    //             'updated_at'  => date('Y-m-d H:i:s'),
+    //         ];
+
+    //         if ($existing) {
+    //             $data['role_id'] = $existing['role_id'] ?? $mappedRoleId;
+    //             $this->userModel->update($existing['id'], $data);
+    //             $localUserId = $existing['id'];
+    //             $roleId      = $data['role_id'];
+    //         } else {
+    //             $data['role_id']    = $mappedRoleId;
+    //             $data['created_at'] = date('Y-m-d H:i:s');
+    //             $this->userModel->insert($data);
+    //             $localUserId = $this->userModel->getInsertID();
+    //         }
+    //     } catch (\Throwable $e) {
+    //         log_message('error', 'User sync error: ' . $e->getMessage());
+    //     }
+
+    //     // Ambil role & permissions
+    //     $role        = null;
+    //     $permissions = [];
+
+    //     try {
+    //         if ($localUserId && $roleId) {
+    //             $role        = $this->roleModel->find($roleId);
+    //             $permissions = $this->permissionModel->getPermissionsByUserId($localUserId);
+    //         } else {
+    //             $role        = ['id' => null, 'name' => 'guest', 'level' => 99];
+    //             $permissions = ['Public'];
+    //         }
+    //     } catch (\Throwable $e) {
+    //         log_message('error', 'Role/Permission lookup error: ' . $e->getMessage());
+    //         $permissions = ['Public'];
+    //     }
+
+    //     if (! in_array('Public', $permissions, true)) {
+    //         $permissions[] = 'Public';
+    //     }
+
+    //     // Simpan session
+    //     session()->set([
+    //         'logged_in'     => true,
+    //         'access_token'  => $accessToken,
+    //         'refresh_token' => $refreshToken,
+    //         'employee_id'   => $apiUser['id'],
+    //         'user_id'       => $localUserId,
+    //         'username'      => $apiUser['nickName'] ?? $apiUser['email'] ?? null,
+    //         'email'         => $apiUser['email'] ?? null,
+    //         'role_id'       => $role['id'] ?? $roleId,
+    //         'role_name'     => $role['name'] ?? null,
+    //         'role_level'    => $role['level'] ?? null,
+    //         'permissions'   => $permissions,
+    //         'user'          => $apiUser,
+    //         'login_time'    => time(),
+    //         'auth_source'   => 'api', // penanda login dari API
+    //     ]);
+
+    //     // Simpan session token ke DB
+    //     try {
+    //         $hashed = hash('sha256', $accessToken);
+    //         $now    = date('Y-m-d H:i:s');
+
+    //         $this->sessionModel->insert([
+    //             'user_id'       => $localUserId ?? $apiUser['id'],
+    //             'session_token' => $hashed,
+    //             'ip_address'    => $this->request->getIPAddress(),
+    //             'user_agent'    => $this->request->getUserAgent()->getAgentString(),
+    //             'last_activity' => $now,
+    //             'created_at'    => $now,
+    //         ]);
+
+    //         session()->set('session_token_hash', $hashed);
+    //     } catch (\Throwable $e) {
+    //         log_message('error', 'Failed to register session model: ' . $e->getMessage());
+    //     }
+
+    //     // Remember me cookie
+    //     if ($remember) {
+    //         $secureFlag = $this->request->isSecure();
+    //         set_cookie([
+    //             'name'     => 'access_token',
+    //             'value'    => $accessToken,
+    //             'expire'   => 30 * 24 * 60 * 60,
+    //             'secure'   => $secureFlag,
+    //             'httponly' => true,
+    //             'samesite' => 'Lax',
+    //             'path'     => '/'
+    //         ]);
+    //     }
+
+    //     $this->logAudit($apiUser['id'] ?? null, 'login', null, null, 'Login via API successful');
+
+    //     return redirect()->to('/dashboard')->with('success', 'Login berhasil! Selamat datang, ' . ($apiUser['nickName'] ?? $apiUser['email'] ?? ''));
+    // }
 
     public function logout(): RedirectResponse
     {
