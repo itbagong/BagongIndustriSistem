@@ -41,6 +41,11 @@ $routes->group('employees', function ($routes) {
     $routes->get('stream',      'Employee\EmployeeController::stream', [
         'filter' => 'permission:employee.view'
     ]);      // SSE stream
+    $routes->get('import/status', 'Employee\EmployeeController::importStatus');
+    $routes->get( 'import/jobs',                  'Employee\EmployeeController::importJobs');
+    $routes->get( 'import/jobs/(:num)/file',      'Employee\EmployeeController::jobDownload/$1');
+    $routes->post('import/jobs/(:num)/restart',   'Employee\EmployeeController::jobRestart/$1');
+    $routes->delete('import/jobs/(:num)/delete',  'Employee\EmployeeController::jobDelete/$1');
 
     // ── Export ───────────────────────────────────────────────────
     $routes->get('export',      'Employee\EmployeeController::export', [
