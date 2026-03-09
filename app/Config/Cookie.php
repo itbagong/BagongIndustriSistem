@@ -45,7 +45,7 @@ class Cookie extends BaseConfig
      *
      * Set to `.your-domain.com` for site-wide cookies.
      */
-    public string $domain = '.web.bagongbis.com';
+    public string $domain = '';
 
     /**
      * --------------------------------------------------------------------------
