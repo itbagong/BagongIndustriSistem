@@ -13,6 +13,7 @@ use App\Models\EmployeeMaster\LastEducationModel;
 use App\Models\EmployeeMaster\ReligionModel;
 use App\Models\EmployeeMaster\SiteModel;
 use App\Models\EmployeeModel;
+use CodeIgniter\HTTP\ResponseInterface;
 
 class EmployeeController extends BaseController
 {
@@ -135,6 +136,8 @@ class EmployeeController extends BaseController
     public function edit(string $id): \CodeIgniter\HTTP\ResponseInterface|string
     {
         $employee = $this->model->findEmployee($id);
+        $userModel   = new \App\Models\UserModel();
+$hasLogin    = $userModel->where('username', $employee['nik'])->first();
         if (! $employee) {
             return redirect()->to(base_url('employees'))
                              ->with('error', 'Data tidak ditemukan.');
@@ -142,6 +145,7 @@ class EmployeeController extends BaseController
 
         return view('employees/form', [
             'employee' => $employee,
+            'hasLogin' => (bool) $hasLogin,
             'mode'     => 'edit',
             'menus'                => $this->data['menus'] ?? [],
             ...$this->formDropdowns(),
@@ -566,5 +570,79 @@ class EmployeeController extends BaseController
     private function normalize(string $string): string
     {
         return preg_replace('/[^a-z0-9]/', '', strtolower(trim(str_replace(' ', '', $string))));
+    }
+
+    public function createLogin(): ResponseInterface
+    {
+        if (! $this->request->isAJAX()) {
+            return $this->response->setStatusCode(403)
+                ->setJSON(['success' => false, 'message' => 'Forbidden']);
+        }
+
+        $json = $this->request->getJSON(true);
+
+        $employeeId = trim((string) ($json['employee_id'] ?? 0));
+        $username   = trim((string) ($json['username']    ?? ''));
+
+        // ── Validasi dasar ───────────────────────────────────────────
+        if (! $employeeId || $username === '') {
+            return $this->response->setStatusCode(422)
+                ->setJSON(['success' => false, 'message' => 'Data tidak lengkap.']);
+        }
+
+        // ── Ambil data karyawan ──────────────────────────────────────
+        $employeeModel = new \App\Models\EmployeeModel();
+        $employee      = $employeeModel->find($employeeId);
+
+        if (! $employee) {
+            return $this->response->setStatusCode(404)
+                ->setJSON(['success' => false, 'message' => 'Karyawan tidak ditemukan.']);
+        }
+
+        if ($employee['nik'] !== $username) {
+            return $this->response->setStatusCode(422)
+                ->setJSON(['success' => false, 'message' => 'NIK tidak sesuai dengan data karyawan.']);
+        }
+
+        // ── Cek apakah username sudah ada di tabel users ─────────────
+        $userModel    = new \App\Models\UserModel();
+        $existingUser = $userModel->where('username', $username)->first();
+
+        // ── Data yang disimpan ───────────────────────────────────────
+        // Password default: "Password.1" — di-hash otomatis oleh beforeInsert/beforeUpdate di UserModel
+        $userData = [
+            'username'    => $username,       // NIK karyawan
+            'email'       => $username,
+            'password'    => 'Password.1',    // default, model auto-hash
+            'employee_id' => $employeeId,
+            'role_id'     => 3,  // wajib karena ada FK constraint
+            'is_active'   => 1,
+        ];
+
+        try {
+            if ($existingUser) {
+                // Akun sudah ada — reset password ke default saja
+                $userModel->update($existingUser['id'], [
+                    'password'  => 'Password.1',
+                    'is_active' => 1,
+                ]);
+                $message = 'Akun sudah ada. Password direset ke default.';
+            } else {
+                $userModel->insert($userData);
+                $message = 'Akun login berhasil dibuat.';
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => $message,
+                'is_new'  => ! $existingUser,
+            ]);
+
+        } catch (\Throwable $e) {
+            log_message('error', '[createLogin] ' . $e->getMessage());
+
+            return $this->response->setStatusCode(500)
+                ->setJSON(['success' => false, 'message' => $e->getMessage()]);
+        }
     }
 }

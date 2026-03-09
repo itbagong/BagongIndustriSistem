@@ -125,4 +125,6 @@ $routes->group('employees', function ($routes) {
         $routes->post('update/(:segment)',   'EmployeeMaster\SiteController::update/$1');
         $routes->post('toggle/(:segment)',   'EmployeeMaster\SiteController::toggleStatus/$1');
     });
+
+    $routes->post('create-login', 'Employee\EmployeeController::createLogin');
 });
