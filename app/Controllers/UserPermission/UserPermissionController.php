@@ -15,27 +15,19 @@ class UserPermissionController extends BaseController
 
     public function __construct()
     {
-        $this->userModel = new UserModel();
-        $this->permissionModel = new PermissionModel();
+        $this->userModel           = new UserModel();
+        $this->permissionModel     = new PermissionModel();
         $this->userPermissionModel = new UserPermissionModel();
     }
 
-    /**
-     * Halaman utama: List semua user
-     */
+    // =========================================================
+    // INDEX — List semua user
+    // =========================================================
     public function index()
     {
-        // 1. Cek Permission (Gunakan nama yang sudah Anda insert di DB)
-        // Pastikan di tabel permissions ada: 'userpermission.view'
-        if (!in_array('userpermission.view', session()->get('permissions') ?? [], true)) {
-            return redirect()->to('/dashboard')->with('error', 'Akses ditolak: Anda tidak memiliki izin user_permission.view');
-        }
-
-        // 2. Gunakan $this->data (JANGAN membuat array baru $data = [])
-        // Ini agar variable $menus dari BaseController tidak tertimpa
         $this->data['title'] = 'User Permission Management';
-        
-        $this->data['users'] = $this->userModel->select('users.*, roles.name as role_name')
+        $this->data['users'] = $this->userModel
+            ->select('users.*, roles.name as role_name')
             ->join('roles', 'roles.id = users.role_id', 'left')
             ->where('users.is_active', 1)
             ->findAll();
@@ -43,16 +35,13 @@ class UserPermissionController extends BaseController
         return view('user_permission/index', $this->data);
     }
 
-    /**
-     * Halaman Edit: Form centang permission
-     */
+    // =========================================================
+    // EDIT — Form centang permission per user
+    // =========================================================
     public function edit($userId)
     {
-        if (!in_array('userpermission.view', session()->get('permissions') ?? [], true)) {
-            return redirect()->to('/dashboard')->with('error', 'Akses ditolak');
-        }
-
-        $user = $this->userModel->select('users.*, roles.name as role_name, roles.id as role_id')
+        $user = $this->userModel
+            ->select('users.*, roles.name as role_name, roles.id as role_id')
             ->join('roles', 'roles.id = users.role_id', 'left')
             ->find($userId);
 
@@ -60,76 +49,70 @@ class UserPermissionController extends BaseController
             return redirect()->to('/user-permissions')->with('error', 'User tidak ditemukan');
         }
 
-        // Ambil Data Permission
         $allPermissions  = $this->permissionModel->findAll();
         $rolePermissions = $this->permissionModel->getPermissionsByRoleId($user['role_id']);
         $userPermissions = $this->userPermissionModel->getPermissionsByUserId($userId);
 
-        // Masukkan ke $this->data
-        $this->data['title'] = 'Edit Permissions - ' . $user['username'];
-        $this->data['user']  = $user;
-        
-        // Data Permission Lengkap
-        $this->data['allPermissions'] = $allPermissions;
-        
-        // Kita hanya butuh nama permission-nya saja untuk pengecekan (in_array) di View
-        $this->data['rolePermissions'] = array_column($rolePermissions, 'name'); // Contoh: ['user.view', 'dashboard.view']
-        $this->data['userPermissions'] = array_column($userPermissions, 'name'); // Contoh: ['audit.view']
+        $this->data['title']           = 'Edit Permissions - ' . $user['username'];
+        $this->data['user']            = $user;
+        $this->data['allPermissions']  = $allPermissions;
+        $this->data['rolePermissions'] = array_column($rolePermissions, 'name');
+        $this->data['userPermissions'] = array_column($userPermissions, 'name');
 
         return view('user_permission/edit', $this->data);
     }
 
-    /**
-     * Proses Update (POST)
-     */
+    // =========================================================
+    // UPDATE — Proses simpan permission (POST)
+    // =========================================================
     public function update($userId)
     {
-        // Cek permission
-        if (!in_array('userpermission.view', session()->get('permissions') ?? [], true)) {
-            return $this->response->setJSON([
-                'success' => false, 
-                'message' => 'Akses ditolak'
-            ])->setStatusCode(403);
-        }
 
         $user = $this->userModel->find($userId);
         if (!$user) {
             return $this->response->setJSON([
-                'success' => false, 
+                'success' => false,
                 'message' => 'User tidak ditemukan'
             ])->setStatusCode(404);
         }
 
-        // Ambil data yang dicentang dari form
         $selectedPermissions = $this->request->getPost('permissions') ?? [];
 
-        // Gunakan Database Transaction agar aman
         $db = \Config\Database::connect();
         $db->transStart();
 
         try {
-            // 1. Hapus SEMUA permission khusus user ini (Reset)
+            // 1. Hapus semua custom permission user ini
             $this->userPermissionModel->where('user_id', $userId)->delete();
 
-            // 2. Insert permission baru (jika ada yang dipilih)
+            // 2. Insert permission baru
             if (!empty($selectedPermissions)) {
+                $now        = date('Y-m-d H:i:s');
                 $insertData = [];
-                $now = date('Y-m-d H:i:s');
-                
+
                 foreach ($selectedPermissions as $permissionId) {
                     $insertData[] = [
                         'user_id'       => $userId,
                         'permission_id' => $permissionId,
-                        'created_at'    => $now
+                        'created_at'    => $now,
                     ];
                 }
                 $this->userPermissionModel->insertBatch($insertData);
             }
 
-            $db->transComplete(); // Selesaikan transaksi
+            $db->transComplete();
 
             if ($db->transStatus() === false) {
                 throw new \Exception('Gagal menyimpan ke database.');
+            }
+
+            // [FIX #1] Refresh session jika user yang diedit sedang login sekarang
+            if ((int) session()->get('user_id') === (int) $userId) {
+                $newPermissions = $this->permissionModel->getPermissionsByUserId($userId);
+                if (!in_array('Public', $newPermissions, true)) {
+                    $newPermissions[] = 'Public';
+                }
+                session()->set('permissions', $newPermissions);
             }
 
             return $this->response->setJSON([
@@ -138,9 +121,9 @@ class UserPermissionController extends BaseController
             ]);
 
         } catch (\Exception $e) {
-            $db->transRollback(); // Batalkan perubahan jika error
+            $db->transRollback();
             log_message('error', 'Update user permission error: ' . $e->getMessage());
-            
+
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Error: ' . $e->getMessage()
@@ -148,14 +131,11 @@ class UserPermissionController extends BaseController
         }
     }
 
-    /**
-     * Remove Single Permission (Optional API style)
-     */
+    // =========================================================
+    // REMOVE — Hapus satu permission (API style)
+    // =========================================================
     public function remove($userId, $permissionId)
     {
-        if (!in_array('userpermission.view', session()->get('permissions') ?? [], true)) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Akses ditolak'])->setStatusCode(403);
-        }
 
         try {
             $this->userPermissionModel
@@ -163,9 +143,22 @@ class UserPermissionController extends BaseController
                 ->where('permission_id', $permissionId)
                 ->delete();
 
+            // [FIX #1] Refresh session jika user yang diedit sedang login
+            if ((int) session()->get('user_id') === (int) $userId) {
+                $newPermissions = $this->permissionModel->getPermissionsByUserId($userId);
+                if (!in_array('Public', $newPermissions, true)) {
+                    $newPermissions[] = 'Public';
+                }
+                session()->set('permissions', $newPermissions);
+            }
+
             return $this->response->setJSON(['success' => true, 'message' => 'Permission dihapus']);
+
         } catch (\Exception $e) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Gagal: ' . $e->getMessage()])->setStatusCode(500);
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal: ' . $e->getMessage()
+            ])->setStatusCode(500);
         }
     }
 }
