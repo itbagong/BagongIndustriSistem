@@ -20,17 +20,32 @@ class PermissionModel extends Model
     public function getPermissionsByUserId(int $userId): array
     {
         $db = \Config\Database::connect();
-        $rows = $db->table('users u')
+
+        // 1. Permissions dari Role
+        $fromRole = $db->table('users u')
             ->select('p.name')
-            ->join('roles r',            'r.id = u.role_id')
+            ->join('roles r',             'r.id = u.role_id')
             ->join('role_permissions rp', 'rp.role_id = r.id')
             ->join('permissions p',       'p.id = rp.permission_id')
-            ->where('u.id',      $userId)
+            ->where('u.id', $userId)
             ->where('u.is_active', 1)
             ->where('r.is_active', 1)
             ->get()->getResultArray();
 
-        return array_values(array_unique(array_map(fn($row) => $row['name'], $rows)));
+        // 2. Permissions khusus dari user_permissions
+        $fromUser = $db->table('user_permissions up')
+            ->select('p.name')
+            ->join('permissions p', 'p.id = up.permission_id')
+            ->where('up.user_id', $userId)
+            ->get()->getResultArray();
+
+        // 3. Gabungkan & hapus duplikat
+        $all = array_merge(
+            array_column($fromRole, 'name'),
+            array_column($fromUser, 'name')
+        );
+
+        return array_values(array_unique($all));
     }
 
     public function getPermissionsByRoleId(int $roleId): array
