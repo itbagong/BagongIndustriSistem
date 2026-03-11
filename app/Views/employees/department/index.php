@@ -18,35 +18,6 @@
                 </div>
             </div>
 
-            <!-- Stats Summary -->
-            <div class="stats-summary">
-                <div class="stat-box">
-                    <span class="icon">🏢</span>
-                    <div class="content">
-                        <h4>Total Department</h4>
-                        <div class="value"><?= $pager->getTotal() ?></div>
-                    </div>
-                </div>
-                <div class="stat-box">
-                    <span class="icon">✅</span>
-                    <div class="content">
-                        <h4>Aktif</h4>
-                        <div class="value">
-                            <?= count(array_filter($departments, fn($d) => !($d['is_deleted'] === true || $d['is_deleted'] === 't' || $d['is_deleted'] === '1' || $d['is_deleted'] === 1))) ?>
-                        </div>
-                    </div>
-                </div>
-                <div class="stat-box">
-                    <span class="icon">⏸️</span>
-                    <div class="content">
-                        <h4>Non-Aktif</h4>
-                        <div class="value">
-                            <?= count(array_filter($departments, fn($d) => ($d['is_deleted'] === true || $d['is_deleted'] === 't' || $d['is_deleted'] === '1' || $d['is_deleted'] === 1))) ?>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Flash Messages -->
             <?php if (session()->getFlashdata('success')): ?>
                 <div class="alert alert-success">✅ <?= session()->getFlashdata('success') ?></div>

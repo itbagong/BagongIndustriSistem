@@ -611,9 +611,31 @@ class EmployeeController extends BaseController
 
                                 if (! $related && ($cfg['partial_match'] ?? false)) {
                                     foreach ($this->{$modelProp}->findAll() as $item) {
+                                        // Check the canonical name first
                                         if (stripos($value, $item['name']) !== false) {
                                             $related = $item;
                                             break;
+                                        }
+
+                                        // Then check every alias stored in the aliases column.
+                                        // The column may arrive as a raw Postgres array string
+                                        // e.g. '{"alias one","alias two"}' or a PHP array
+                                        // depending on driver / cast settings.
+                                        $aliases = $item['aliases'] ?? [];
+                                        if (is_string($aliases)) {
+                                            $aliases = trim($aliases, '{}');
+                                            preg_match_all('/"(?:[^"\\\\]|\\\\.)*"|[^,]+/', $aliases, $m);
+                                            $aliases = array_map(
+                                                fn($a) => trim(trim($a), '"'),
+                                                $m[0]
+                                            );
+                                        }
+
+                                        foreach ((array) $aliases as $alias) {
+                                            if ($alias !== '' && stripos($value, $alias) !== false) {
+                                                $related = $item;
+                                                break 2;
+                                            }
                                         }
                                     }
                                 }

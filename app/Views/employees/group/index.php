@@ -18,35 +18,6 @@
                 </div>
             </div>
 
-            <!-- Stats Summary -->
-            <div class="stats-summary">
-                <div class="stat-box">
-                    <span class="icon">👥</span>
-                    <div class="content">
-                        <h4>Total Group</h4>
-                        <div class="value"><?= count($groups) ?></div>
-                    </div>
-                </div>
-                <div class="stat-box">
-                    <span class="icon">✅</span>
-                    <div class="content">
-                        <h4>Aktif</h4>
-                        <div class="value">
-                            <?= count(array_filter($groups, fn($es) => !($es['is_deleted'] === true || $es['is_deleted'] === 't' || $es['is_deleted'] === '1' || $es['is_deleted'] === 1))) ?>
-                        </div>
-                    </div>
-                </div>
-                <div class="stat-box">
-                    <span class="icon">⏸️</span>
-                    <div class="content">
-                        <h4>Non-Aktif</h4>
-                        <div class="value">
-                            <?= count(array_filter($groups, fn($es) => ($es['is_deleted'] === true || $es['is_deleted'] === 't' || $es['is_deleted'] === '1' || $es['is_deleted'] === 1))) ?>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Flash Messages -->
             <?php if (session()->getFlashdata('success')): ?>
                 <div class="alert alert-success">✅ <?= session()->getFlashdata('success') ?></div>
@@ -78,7 +49,7 @@
                 <div class="table-header">
                     <h3>Daftar Group</h3>
                     <div class="table-info">
-                        Menampilkan <strong><?= count($groups) ?></strong> dari <strong><?= $pager->getTotal() ?></strong> data
+                        Total <strong><?= $pager->getTotal() ?></strong> data
                     </div>
                 </div>
                 <div class="table-responsive">

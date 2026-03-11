@@ -18,35 +18,6 @@
                 </div>
             </div>
 
-            <!-- Stats Summary -->
-            <div class="stats-summary">
-                <div class="stat-box">
-                    <span class="icon">🗺️</span>
-                    <div class="content">
-                        <h4>Total Site</h4>
-                        <div class="value"><?= count($sites) ?></div>
-                    </div>
-                </div>
-                <div class="stat-box">
-                    <span class="icon">✅</span>
-                    <div class="content">
-                        <h4>Aktif</h4>
-                        <div class="value">
-                            <?= count(array_filter($sites, fn($es) => !($es['is_deleted'] === true || $es['is_deleted'] === 't' || $es['is_deleted'] === '1' || $es['is_deleted'] === 1))) ?>
-                        </div>
-                    </div>
-                </div>
-                <div class="stat-box">
-                    <span class="icon">⏸️</span>
-                    <div class="content">
-                        <h4>Non-Aktif</h4>
-                        <div class="value">
-                            <?= count(array_filter($sites, fn($es) => ($es['is_deleted'] === true || $es['is_deleted'] === 't' || $es['is_deleted'] === '1' || $es['is_deleted'] === 1))) ?>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Flash Messages -->
             <?php if (session()->getFlashdata('success')): ?>
                 <div class="alert alert-success">✅ <?= session()->getFlashdata('success') ?></div>
@@ -78,7 +49,7 @@
                 <div class="table-header">
                     <h3>Daftar Site</h3>
                     <div class="table-info">
-                        Menampilkan <strong><?= count($sites) ?></strong> dari <strong><?= $pager->getTotal() ?></strong> data
+                        Total <strong><?= $pager->getTotal() ?></strong> data
                     </div>
                 </div>
                 <div class="table-responsive">
@@ -106,7 +77,7 @@
                                     );
                                 ?>
                                 <tr>
-                                    <td><?= $i + 1 ?></td>
+                                    <td><?= ($pager->getCurrentPage() - 1) * $perPage + $i + 1 ?></td>
                                     <td><code><?= esc($es['id']) ?></code></td>
                                     <td><strong><?= esc($es['name']) ?></strong></td>
                                     <td style="color:#666; font-size:.9em;"><?= esc($es['address'] ?? '-') ?></td>
